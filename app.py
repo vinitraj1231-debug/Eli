@@ -203,18 +203,34 @@ class DeployEngine:
         return self._run_deploy()
 
     def zip_deploy(self, zip_path):
-        self._log("Extracting ZIP archive...")
         if os.path.exists(self.deploy_path):
             shutil.rmtree(self.deploy_path)
         os.makedirs(self.deploy_path, exist_ok=True)
 
-        try:
-            shutil.unpack_archive(zip_path, self.deploy_path)
-        except Exception as e:
-            self._log(f"ZIP extract failed: {str(e)}")
-            self.deployment.status = 'error'
-            db.session.commit()
-            return False
+        import zipfile
+        if zipfile.is_zipfile(zip_path):
+            self._log("Extracting ZIP archive...")
+            try:
+                shutil.unpack_archive(zip_path, self.deploy_path)
+            except Exception as e:
+                self._log(f"ZIP extract failed: {str(e)}")
+                self.deployment.status = 'error'
+                db.session.commit()
+                return False
+        else:
+            self._log("Normal file detected, copying...")
+            # If it's not a zip, it's a single file (like .py)
+            filename = os.path.basename(zip_path)
+            # Remove the uuid prefix if it was added during upload
+            # format was {uuid.uuid4().hex}_{filename}
+            if '_' in filename and len(filename.split('_')[0]) == 32:
+                original_name = filename.split('_', 1)[1]
+            else:
+                original_name = filename
+
+            dest = os.path.join(self.deploy_path, original_name)
+            shutil.copy2(zip_path, dest)
+            self._log(f"File {original_name} placed in deploy directory")
 
         self.deployment.deploy_path = self.deploy_path
         db.session.commit()
@@ -479,6 +495,30 @@ def terms_page():
 @app.route('/privacy')
 def privacy_page():
     return render_template('index.html', page='privacy')
+
+@app.route('/robots.txt')
+def robots_txt():
+    return send_from_directory(app.static_folder, 'robots.txt')
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    pages = []
+    # Static pages
+    now = datetime.now().strftime("%Y-%m-%d")
+    for rule in app.url_map.iter_rules():
+        if "GET" in rule.methods and len(rule.arguments) == 0:
+            if not str(rule.rule).startswith(('/api', '/raj', '/dashboard')):
+                pages.append(["https://elitehosting.com" + str(rule.rule), now])
+
+    # Dynamic blog posts
+    posts = BlogPost.query.all()
+    for post in posts:
+        pages.append(["https://elitehosting.com/blogs/" + post.slug, post.created_at.strftime("%Y-%m-%d")])
+
+    sitemap_template = render_template('sitemap.xml', pages=pages)
+    response = app.make_response(sitemap_template)
+    response.headers["Content-Type"] = "application/xml"
+    return response
 
 # ===================== ROUTES — AUTH API =====================
 
@@ -929,14 +969,25 @@ def api_admin_stats():
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def api_admin_users():
-    users = User.query.order_by(User.created_at.desc()).all()
+    # Use a join to avoid N+1 query problem for referrers
+    # and use subqueries for deployment counts
+    from sqlalchemy.orm import aliased
+    Referrer = aliased(User)
+
+    users = db.session.query(User, Referrer.username)\
+        .outerjoin(Referrer, User.referred_by == Referrer.id)\
+        .order_by(User.created_at.desc()).all()
+
+    # Get deployment counts in one go to be even more efficient
+    dep_counts = dict(db.session.query(Deployment.user_id, db.func.count(Deployment.id)).group_by(Deployment.user_id).all())
+
     return jsonify([{
-        'id': u.id, 'username': u.username, 'email': u.email,
-        'plan': u.plan, 'wallet': u.wallet_balance,
-        'is_banned': u.is_banned, 'referral_code': u.referral_code,
-        'referred_by': u.referred_by,
-        'deployments': Deployment.query.filter_by(user_id=u.id).count(),
-        'created_at': u.created_at.isoformat()
+        'id': u.User.id, 'username': u.User.username, 'email': u.User.email,
+        'plan': u.User.plan, 'wallet': u.User.wallet_balance, 'credits': u.User.credits,
+        'is_banned': u.User.is_banned, 'referral_code': u.User.referral_code,
+        'referred_by': u.username,
+        'deployments': dep_counts.get(u.User.id, 0),
+        'created_at': u.User.created_at.isoformat()
     } for u in users])
 
 @app.route('/api/admin/users/<int:uid>/ban', methods=['POST'])
@@ -972,10 +1023,23 @@ def api_admin_balance(uid):
     user = User.query.get_or_404(uid)
     user.wallet_balance += amount
     if amount != 0:
-        tx = Transaction(user_id=uid, tx_type='admin_adjustment', amount=amount, description=f'Admin {"added" if amount > 0 else "removed"} ₹{abs(amount)}')
+        tx = Transaction(user_id=uid, tx_type='admin_balance_adjustment', amount=amount, description=f'Admin {"added" if amount > 0 else "removed"} ₹{abs(amount)} to wallet')
         db.session.add(tx)
     db.session.commit()
     return jsonify({'message': f'Balance updated to ₹{user.wallet_balance}', 'new_balance': user.wallet_balance})
+
+@app.route('/api/admin/users/<int:uid>/credits', methods=['POST'])
+@admin_required
+def api_admin_credits(uid):
+    data = request.get_json()
+    amount = int(data.get('amount', 0))
+    user = User.query.get_or_404(uid)
+    user.credits += amount
+    if amount != 0:
+        tx = Transaction(user_id=uid, tx_type='admin_credits_adjustment', amount=float(amount), description=f'Admin {"added" if amount > 0 else "removed"} {abs(amount)} credits')
+        db.session.add(tx)
+    db.session.commit()
+    return jsonify({'message': f'Credits updated to {user.credits}', 'new_credits': user.credits})
 
 @app.route('/api/admin/deployments', methods=['GET'])
 @admin_required

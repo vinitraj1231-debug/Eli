@@ -388,9 +388,13 @@ function openPaymentModal(amount, credits) {
     selectedPayCredits = credits;
     document.getElementById('payAmountDisp').textContent = '₹' + amount;
     document.getElementById('paymentModal').classList.add('show');
-    // Update QR URL with amount
-    const upiUrl = `upi://pay?pa=raj.papa@okicici&pn=EliteHosting&am=${amount}&cu=INR`;
-    document.getElementById('payQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+
+    // Use pre-provided QR images for fixed tiers
+    let qrPath = '/static/img/qr_99.png';
+    if (amount >= 299) qrPath = '/static/img/qr_299.png';
+    else if (amount >= 199) qrPath = '/static/img/qr_199.png';
+
+    document.getElementById('payQR').src = qrPath;
     payNextStep(1);
 }
 
@@ -557,31 +561,118 @@ async function loadAdminStats() {
     } catch {}
 }
 
+let allAdminUsers = [];
 async function loadAdminUsers() {
     const el = document.getElementById('adminUsersTable');
     el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
     try {
-        const users = await api('/api/admin/users');
-        if (!users.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No users</td></tr>'; return; }
-        el.innerHTML = users.map(u => `
-            <tr>
-                <td>${u.id}</td>
-                <td style="color:#fff">${esc(u.username)}</td>
-                <td>${esc(u.email)}</td>
-                <td>${u.plan}</td>
-                <td>₹${u.wallet_balance.toFixed(2)}</td>
-                <td>${u.deployments}</td>
-                <td><span class="status-badge ${u.is_banned ? 'status-error' : 'status-running'}">${u.is_banned ? 'Banned' : 'Active'}</span></td>
-                <td>
-                    ${u.is_banned
-                        ? `<button class="admin-action-btn success" onclick="adminUnban(${u.id})">Unban</button>`
-                        : `<button class="admin-action-btn danger" onclick="adminBan(${u.id})">Ban</button>`
-                    }
-                    <button class="admin-action-btn" onclick="promptBalance(${u.id}, ${u.wallet_balance})">Balance</button>
-                </td>
-            </tr>
-        `).join('');
+        allAdminUsers = await api('/api/admin/users');
+        renderAdminUsers(allAdminUsers);
     } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error</td></tr>'; }
+}
+
+function renderAdminUsers(users) {
+    const el = document.getElementById('adminUsersTable');
+    if (!users.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No users found</td></tr>'; return; }
+    el.innerHTML = users.map(u => `
+        <tr>
+            <td>${u.id}</td>
+            <td style="color:#fff" title="Referred by: ${u.referred_by || 'Nobody'}">${esc(u.username)} ${u.is_banned ? '🚫' : ''}</td>
+            <td style="font-size:11px">${esc(u.email)}</td>
+            <td>₹${u.wallet_balance.toFixed(1)}</td>
+            <td>${u.credits}</td>
+            <td><a href="#" onclick="filterDepsByUid(${u.id}); return false;" style="color:var(--accent)">${u.deployments}</a></td>
+            <td style="font-size:10px">${new Date(u.created_at).toLocaleDateString()}</td>
+            <td>
+                <div class="flex gap-1">
+                    <button class="admin-action-btn" onclick="openAdminChat(${u.id})" title="Chat"><i class="fas fa-comments"></i></button>
+                    <button class="admin-action-btn" onclick="promptBalance(${u.id}, ${u.wallet_balance})" title="Wallet"><i class="fas fa-wallet"></i></button>
+                    <button class="admin-action-btn" onclick="promptCredits(${u.id}, ${u.credits})" title="Credits"><i class="fas fa-coins"></i></button>
+                    ${u.is_banned
+                        ? `<button class="admin-action-btn success" onclick="adminUnban(${u.id})"><i class="fas fa-check"></i></button>`
+                        : `<button class="admin-action-btn danger" onclick="adminBan(${u.id})"><i class="fas fa-ban"></i></button>`
+                    }
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterUsers() {
+    const q = document.getElementById('userSearch').value.toLowerCase();
+    const filtered = allAdminUsers.filter(u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+    renderAdminUsers(filtered);
+}
+
+function promptCredits(uid, current) {
+    const amt = prompt(`Current credits: ${current}\nEnter amount to add (e.g. 5) or remove (e.g. -5):`);
+    if (amt === null) return;
+    const val = parseInt(amt);
+    if (isNaN(val)) { toast('Invalid amount', 'error'); return; }
+    api(`/api/admin/users/${uid}/credits`, { method: 'POST', body: JSON.stringify({ amount: val }) })
+        .then(() => { toast('Credits updated', 'success'); loadAdminUsers(); })
+        .catch(() => {});
+}
+
+let allAdminDeps = [];
+async function loadAdminDeployments(filterUid = null) {
+    const el = document.getElementById('adminDepsTable');
+    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        allAdminDeps = await api('/api/admin/deployments');
+        if (filterUid) {
+            const filtered = allAdminDeps.filter(d => d.user_id === filterUid);
+            renderAdminDeps(filtered);
+        } else {
+            renderAdminDeps(allAdminDeps);
+        }
+    } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error</td></tr>'; }
+}
+
+function renderAdminDeps(deps) {
+    const el = document.getElementById('adminDepsTable');
+    if (!deps.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No deployments found</td></tr>'; return; }
+    el.innerHTML = deps.map(d => `
+        <tr>
+            <td>${d.id}</td>
+            <td style="color:#fff">${esc(d.username)}</td>
+            <td>${esc(d.name)}</td>
+            <td>${d.type}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(d.repo_url)}">${esc(d.repo_url || '-')}</td>
+            <td><span class="status-badge status-${d.status}">${d.status}</span></td>
+            <td>${d.port || '-'}</td>
+            <td>
+                <div class="flex gap-1">
+                    ${d.status === 'running' ? `<button class="admin-action-btn danger" onclick="adminStopDep(${d.id})" title="Stop"><i class="fas fa-stop"></i></button>` : ''}
+                    <button class="admin-action-btn" onclick="adminViewDepLogs(${d.id})" title="Logs"><i class="fas fa-terminal"></i></button>
+                    <button class="admin-action-btn" onclick="adminShowDepInfo(${d.id})" title="Info"><i class="fas fa-info-circle"></i></button>
+                    <button class="admin-action-btn danger" onclick="adminDeleteDep(${d.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function filterDeps() {
+    const q = document.getElementById('depSearch').value.toLowerCase();
+    const filtered = allAdminDeps.filter(d => d.name.toLowerCase().includes(q) || d.username.toLowerCase().includes(q));
+    renderAdminDeps(filtered);
+}
+
+function filterDepsByUid(uid) {
+    document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelector('.admin-nav-item[data-section="deployments"]')?.classList.add('active');
+    document.querySelectorAll('.admin-section').forEach(c => c.classList.add('hidden'));
+    document.getElementById('admin-deployments')?.classList.remove('hidden');
+    loadAdminDeployments(uid);
+    document.getElementById('depSearch').value = '';
+}
+
+function adminShowDepInfo(id) {
+    const d = allAdminDeps.find(dep => dep.id === id);
+    if (!d) return;
+    let info = `Name: ${d.name}\nType: ${d.type}\nUser ID: ${d.user_id}\nEntry: ${d.entry_file || 'auto'}\nCreated: ${new Date(d.created_at).toLocaleString()}\n\nEnvironment Variables:\n${d.env_vars || 'None'}`;
+    alert(info);
 }
 
 async function adminBan(id) { if (!confirm('Ban this user?')) return; try { await api(`/api/admin/users/${id}/ban`, { method: 'POST' }); toast('Banned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
@@ -699,6 +790,7 @@ async function loadAdminChats() {
 }
 
 async function openAdminChat(uid) {
+    switchAdminSection('chats');
     adminChatUserId = uid;
     document.querySelectorAll('.admin-chat-user-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.admin-chat-user-item[data-uid="${uid}"]`)?.classList.add('active');

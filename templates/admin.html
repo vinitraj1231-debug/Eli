@@ -78,10 +78,13 @@
 
                 <!-- Section: Users -->
                 <div id="admin-users" class="admin-section hidden">
-                    <div class="admin-top"><h1>Users</h1></div>
+                    <div class="admin-top">
+                        <h1>Users</h1>
+                        <input type="text" id="userSearch" class="form-input" placeholder="Search by username/email..." oninput="filterUsers()" style="max-width:250px; font-size:12px">
+                    </div>
                     <div class="admin-table-wrap" style="overflow-x:auto">
                         <table class="admin-table">
-                            <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Plan</th><th>Wallet</th><th>Deps</th><th>Status</th><th>Actions</th></tr></thead>
+                            <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Wallet</th><th>Credits</th><th>Deps</th><th>Joined</th><th>Actions</th></tr></thead>
                             <tbody id="adminUsersTable"><tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
                         </table>
                     </div>
@@ -89,7 +92,10 @@
 
                 <!-- Section: Deployments -->
                 <div id="admin-deployments" class="admin-section hidden">
-                    <div class="admin-top"><h1>All Deployments</h1></div>
+                    <div class="admin-top">
+                        <h1>All Deployments</h1>
+                        <input type="text" id="depSearch" class="form-input" placeholder="Search by name/user..." oninput="filterDeps()" style="max-width:250px; font-size:12px">
+                    </div>
                     <div class="admin-table-wrap" style="overflow-x:auto">
                         <table class="admin-table">
                             <thead><tr><th>ID</th><th>User</th><th>Name</th><th>Type</th><th>Repo</th><th>Status</th><th>Port</th><th>Actions</th></tr></thead>
