@@ -4,7 +4,7 @@ import threading
 import shutil
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
                    session, jsonify, send_from_directory)
@@ -34,6 +34,8 @@ class User(db.Model):
     referral_code = db.Column(db.String(20), unique=True, nullable=False)
     referred_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     wallet_balance = db.Column(db.Float, default=0.0)
+    credits = db.Column(db.Integer, default=0)
+    free_deploy_until = db.Column(db.DateTime, nullable=True)
     is_banned = db.Column(db.Boolean, default=False)
     plan = db.Column(db.String(20), default='free')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -49,6 +51,7 @@ class Deployment(db.Model):
     deploy_command = db.Column(db.String(1000), nullable=True)
     env_vars = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), default='idle')
+    is_free = db.Column(db.Boolean, default=False)
     pid = db.Column(db.Integer, nullable=True)
     logs = db.Column(db.Text, default='')
     deploy_path = db.Column(db.String(500), nullable=True)
@@ -70,6 +73,17 @@ class Transaction(db.Model):
     tx_type = db.Column(db.String(50), nullable=False)
     amount = db.Column(db.Float, default=0.0)
     description = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class PaymentRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    number = db.Column(db.String(20), nullable=False)
+    transaction_id = db.Column(db.String(100), unique=True, nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    credits = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), default='pending') # pending, approved, rejected
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AdminAuth(db.Model):
@@ -211,7 +225,22 @@ class DeployEngine:
         if self.deployment.env_vars:
             try:
                 parsed = json.loads(self.deployment.env_vars)
-                if isinstance(parsed, dict):
+                if isinstance(parsed, list):
+                    # Naye style ke env vars: [{"id": "TOKEN", "key": "123"}]
+                    env_data = {}
+                    for item in parsed:
+                        if isinstance(item, dict) and 'id' in item and 'key' in item:
+                            k, v = str(item['id']), str(item['key'])
+                            env[k] = v
+                            env_data[k] = v
+                    if env_data:
+                        env_content = '\n'.join(f'{k}={v}' for k, v in env_data.items())
+                        env_path = os.path.join(self.deploy_path, '.env')
+                        with open(env_path, 'w') as f:
+                            f.write(env_content)
+                        self._log(f"Environment variables set: {len(env_data)} vars")
+                elif isinstance(parsed, dict):
+                    # Purana style: {"TOKEN": "123"}
                     for k, v in parsed.items():
                         env[str(k)] = str(v)
                     env_content = '\n'.join(f'{k}={v}' for k, v in parsed.items())
@@ -321,6 +350,12 @@ class DeployEngine:
         return None
 
     def _execute(self, cmd, env):
+        # Prevent double execution
+        db.session.refresh(self.deployment)
+        if self.deployment.pid or self.deployment.status == 'running':
+            self._log("Process already running or starting. Aborting duplicate.")
+            return True
+
         self.deployment.status = 'running'
         db.session.commit()
         self._log(f"Starting process...")
@@ -477,7 +512,8 @@ def api_register():
         email=email,
         password_hash=generate_password_hash(password),
         referral_code=generate_referral_code(),
-        referred_by=referrer.id if referrer else None
+        referred_by=referrer.id if referrer else None,
+        free_deploy_until=datetime.utcnow() + timedelta(hours=3)
     )
     db.session.add(user)
     db.session.commit()
@@ -529,12 +565,15 @@ def api_stats():
     uid = session['user_id']
     deps = Deployment.query.filter_by(user_id=uid).all()
     running = sum(1 for d in deps if d.status == 'running')
+    user = User.query.get(uid)
     return jsonify({
         'total_deployments': len(deps),
         'running': running,
         'stopped': len(deps) - running,
-        'wallet': User.query.get(uid).wallet_balance,
-        'plan': User.query.get(uid).plan
+        'wallet': user.wallet_balance,
+        'credits': user.credits,
+        'plan': user.plan,
+        'free_deploy_until': user.free_deploy_until.isoformat() if user.free_deploy_until else None
     })
 
 # ===================== ROUTES — DEPLOY API =====================
@@ -552,6 +591,7 @@ def api_list_deployments():
 @app.route('/api/deploy/github', methods=['POST'])
 @login_required
 def api_deploy_github():
+    user = User.query.get(session['user_id'])
     data = request.get_json()
     name = data.get('name', '').strip()
     repo_url = data.get('repo_url', '').strip()
@@ -564,11 +604,23 @@ def api_deploy_github():
     if not name or not repo_url:
         return jsonify({'error': 'Name and repo URL required'}), 400
 
+    # Check free tier or credits
+    is_free = False
+    if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
+        free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
+        if free_deps >= 1:
+            return jsonify({'error': 'Free deployment limit reached. Buy premium to deploy more.'}), 402
+        is_free = True
+    else:
+        if user.credits < 1:
+            return jsonify({'error': 'No credits left. Buy premium to deploy.'}), 402
+        user.credits -= 1
+
     dep = Deployment(
-        user_id=session['user_id'], name=name, deploy_type='github',
+        user_id=user.id, name=name, deploy_type='github',
         repo_url=repo_url, branch=branch,
         build_command=build_cmd, deploy_command=deploy_cmd,
-        env_vars=env_vars
+        env_vars=env_vars, is_free=is_free
     )
     db.session.add(dep)
     db.session.commit()
@@ -576,11 +628,12 @@ def api_deploy_github():
     t = threading.Thread(target=run_deploy_background, args=(dep.id, 'github'), kwargs={'token': token}, daemon=True)
     t.start()
 
-    return jsonify({'message': 'Deployment started', 'id': dep.id}), 201
+    return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': user.credits}), 201
 
 @app.route('/api/deploy/zip', methods=['POST'])
 @login_required
 def api_deploy_zip():
+    user = User.query.get(session['user_id'])
     name = request.form.get('name', '').strip()
     build_cmd = request.form.get('build_command', '').strip() or None
     deploy_cmd = request.form.get('deploy_command', '').strip() or None
@@ -590,13 +643,26 @@ def api_deploy_zip():
     if not name or not zip_file:
         return jsonify({'error': 'Name and ZIP file required'}), 400
 
+    # Check free tier or credits
+    is_free = False
+    if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
+        free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
+        if free_deps >= 1:
+            return jsonify({'error': 'Free deployment limit reached. Buy premium to deploy more.'}), 402
+        is_free = True
+    else:
+        if user.credits < 1:
+            return jsonify({'error': 'No credits left. Buy premium to deploy.'}), 402
+        user.credits -= 1
+
     filename = secure_filename(zip_file.filename)
     zip_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid.uuid4().hex}_{filename}')
     zip_file.save(zip_path)
 
     dep = Deployment(
-        user_id=session['user_id'], name=name, deploy_type='zip',
-        build_command=build_cmd, deploy_command=deploy_cmd, env_vars=env_vars
+        user_id=user.id, name=name, deploy_type='zip',
+        build_command=build_cmd, deploy_command=deploy_cmd, env_vars=env_vars,
+        is_free=is_free
     )
     db.session.add(dep)
     db.session.commit()
@@ -604,7 +670,7 @@ def api_deploy_zip():
     t = threading.Thread(target=run_deploy_background, args=(dep.id, 'zip'), kwargs={'zip_path': zip_path}, daemon=True)
     t.start()
 
-    return jsonify({'message': 'ZIP deployment started', 'id': dep.id}), 201
+    return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': user.credits}), 201
 
 @app.route('/api/deploy/<int:dep_id>/start', methods=['POST'])
 @login_required
@@ -681,34 +747,84 @@ def api_withdraw():
     db.session.commit()
     return jsonify({'message': f'Withdrawal of ₹{amount} requested', 'balance': user.wallet_balance})
 
-@app.route('/api/plans/buy', methods=['POST'])
+@app.route('/api/payments/request', methods=['POST'])
 @login_required
-def api_buy_plan():
+def api_payment_request():
     data = request.get_json()
-    plan = data.get('plan', '').strip().lower()
-    prices = {'starter': 99, 'pro': 299, 'enterprise': 999}
-    if plan not in prices:
-        return jsonify({'error': 'Invalid plan'}), 400
+    name = data.get('name', '').strip()
+    number = data.get('number', '').strip()
+    tx_id = data.get('transaction_id', '').strip()
+    amount = float(data.get('amount', 0))
 
-    user = User.query.get(session['user_id'])
-    price = prices[plan]
-    user.plan = plan
-    tx = Transaction(user_id=user.id, tx_type='purchase', amount=price, description=f'{plan} plan purchase')
+    if not name or not number or not tx_id or amount <= 0:
+        return jsonify({'error': 'All fields are required'}), 400
+
+    if PaymentRequest.query.filter_by(transaction_id=tx_id).first():
+        return jsonify({'error': 'Transaction ID already submitted'}), 400
+
+    # Pricing: 99 -> 2, 199 -> 5, 299 -> 8
+    credits = 0
+    if amount >= 299: credits = 8
+    elif amount >= 199: credits = 5
+    elif amount >= 99: credits = 2
+    else: return jsonify({'error': 'Minimum amount is ₹99'}), 400
+
+    req = PaymentRequest(
+        user_id=session['user_id'], name=name, number=number,
+        transaction_id=tx_id, amount=amount, credits=credits
+    )
+    db.session.add(req)
+    db.session.commit()
+    return jsonify({'message': 'Payment request submitted. Admin will approve soon.'})
+
+@app.route('/api/admin/payments', methods=['GET'])
+@admin_required
+def api_admin_payments():
+    reqs = PaymentRequest.query.order_by(PaymentRequest.created_at.desc()).all()
+    return jsonify([{
+        'id': r.id, 'user_id': r.user_id, 'username': User.query.get(r.user_id).username,
+        'name': r.name, 'number': r.number, 'transaction_id': r.transaction_id,
+        'amount': r.amount, 'credits': r.credits, 'status': r.status,
+        'created_at': r.created_at.isoformat()
+    } for r in reqs])
+
+@app.route('/api/admin/payments/<int:rid>/approve', methods=['POST'])
+@admin_required
+def api_admin_approve_payment(rid):
+    req = PaymentRequest.query.get_or_404(rid)
+    if req.status != 'pending':
+        return jsonify({'error': 'Already processed'}), 400
+
+    user = User.query.get(req.user_id)
+    user.credits += req.credits
+    req.status = 'approved'
+
+    tx = Transaction(user_id=user.id, tx_type='credits_purchase', amount=req.amount, description=f'Purchased {req.credits} credits')
     db.session.add(tx)
 
-    # Referral commission — 30%
+    # Referral commission - 30% of payment amount
     if user.referred_by:
         referrer = User.query.get(user.referred_by)
         if referrer:
-            commission = round(price * 0.30, 2)
+            commission = round(req.amount * 0.30, 2)
             referrer.wallet_balance += commission
-            ref_tx = Transaction(user_id=referrer.id, tx_type='referral_commission', amount=commission, description=f'Commission from {user.username} ({plan} plan)')
+            ref_tx = Transaction(user_id=referrer.id, tx_type='referral_commission', amount=commission, description=f'Commission from {user.username} (Payment ₹{req.amount})')
             db.session.add(ref_tx)
-            ref_record = Referral(referrer_id=referrer.id, referred_id=user.id, amount=commission, plan_name=plan)
+            ref_record = Referral(referrer_id=referrer.id, referred_id=user.id, amount=commission, plan_name='premium_credits')
             db.session.add(ref_record)
 
     db.session.commit()
-    return jsonify({'message': f'{plan.capitalize()} plan activated', 'plan': plan})
+    return jsonify({'message': 'Payment approved and credits added'})
+
+@app.route('/api/admin/payments/<int:rid>/reject', methods=['POST'])
+@admin_required
+def api_admin_reject_payment(rid):
+    req = PaymentRequest.query.get_or_404(rid)
+    if req.status != 'pending':
+        return jsonify({'error': 'Already processed'}), 400
+    req.status = 'rejected'
+    db.session.commit()
+    return jsonify({'message': 'Payment rejected'})
 
 @app.route('/api/transactions', methods=['GET'])
 @login_required
@@ -799,14 +915,15 @@ def api_admin_stats():
     active_deps = Deployment.query.filter_by(status='running').count()
     total_deps = Deployment.query.count()
     banned_users = User.query.filter_by(is_banned=True).count()
-    total_revenue = sum(t.amount for t in Transaction.query.filter_by(tx_type='purchase').all())
+    total_revenue = sum(t.amount for t in Transaction.query.filter(Transaction.tx_type.in_(['purchase', 'credits_purchase'])).all())
     total_commissions = sum(t.amount for t in Transaction.query.filter_by(tx_type='referral_commission').all())
     unread_chats = ChatMessage.query.filter_by(sender_type='user', is_read=False).count()
+    pending_payments = PaymentRequest.query.filter_by(status='pending').count()
     return jsonify({
         'total_users': total_users, 'active_deployments': active_deps,
         'total_deployments': total_deps, 'banned_users': banned_users,
         'total_revenue': total_revenue, 'total_commissions': total_commissions,
-        'unread_chats': unread_chats
+        'unread_chats': unread_chats, 'pending_payments': pending_payments
     })
 
 @app.route('/api/admin/users', methods=['GET'])
@@ -869,6 +986,7 @@ def api_admin_deployments():
         'user_id': d.user_id, 'username': User.query.get(d.user_id).username if User.query.get(d.user_id) else 'Unknown',
         'repo_url': d.repo_url, 'status': d.status, 'pid': d.pid,
         'port': d.port, 'entry_file': d.entry_file,
+        'env_vars': d.env_vars,
         'created_at': d.created_at.isoformat()
     } for d in deps])
 
