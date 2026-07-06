@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — EliteHosting</title>
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="dash-header">
+        <a href="/" class="logo" style="text-decoration:none">
+            <div class="logo-icon">E</div>
+            <span class="logo-text">EliteHosting</span>
+        </a>
+        <div class="dash-user">
+            <span class="dash-user-name">...</span>
+            <div class="dash-user-avatar">?</div>
+        </div>
+    </header>
+
+    <!-- ===== BODY ===== -->
+    <div class="dash-body">
+
+        <!-- TAB: HOME -->
+        <div id="tab-home" class="tab-content hidden">
+            <div style="margin-bottom:24px">
+                <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:#fff;margin-bottom:4px">Welcome back, <span class="dash-user-name">...</span></h2>
+                <p style="font-size:12px;color:var(--muted)">Here's an overview of your deployments</p>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="label">Total Deployments</div>
+                    <div class="value" id="statTotal">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Running</div>
+                    <div class="value" id="statRunning" style="color:var(--accent)">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Stopped</div>
+                    <div class="value" id="statStopped" style="color:var(--warning)">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Wallet Balance</div>
+                    <div class="value" id="statWallet">₹0</div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-card-title"><i class="fas fa-crown"></i> Current Plan</div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div style="font-size:16px;font-weight:600;color:#fff" id="userPlan">Free</div>
+                        <div style="font-size:11px;color:var(--muted);margin-top:2px">Upgrade for more deployments and features</div>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <button class="btn btn-sm btn-secondary" onclick="buyPlan('starter')">Starter ₹99</button>
+                        <button class="btn btn-sm btn-primary" onclick="buyPlan('pro')">Pro ₹299</button>
+                        <button class="btn btn-sm btn-secondary" onclick="buyPlan('enterprise')">Enterprise ₹999</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: MANAGE -->
+        <div id="tab-manage" class="tab-content hidden">
+            <div class="dash-card-title" style="margin-bottom:20px"><i class="fas fa-layer-group"></i> Your Deployments</div>
+            <div id="deployList">
+                <div class="empty-state"><span class="spinner"></span><br>Loading...</div>
+            </div>
+        </div>
+
+        <!-- TAB: DEPLOY -->
+        <div id="tab-deploy" class="tab-content hidden">
+            <div class="dash-card-title" style="margin-bottom:20px"><i class="fas fa-rocket"></i> New Deployment</div>
+
+            <div class="tab-bar">
+                <button class="tab-btn deploy-tab-btn active" data-target="github"><i class="fab fa-github"></i> GitHub</button>
+                <button class="tab-btn deploy-tab-btn" data-target="zip"><i class="fas fa-file-zipper"></i> ZIP Upload</button>
+            </div>
+
+            <!-- GitHub Form -->
+            <div id="githubForm" class="dash-card">
+                <form id="ghDeployForm">
+                    <div class="form-group">
+                        <label>Deployment Name</label>
+                        <input type="text" id="ghName" class="form-input" placeholder="My API Server" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Repository URL</label>
+                        <input type="url" id="ghRepo" class="form-input" placeholder="https://github.com/user/repo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Branch</label>
+                        <input type="text" id="ghBranch" class="form-input" placeholder="main" value="main">
+                    </div>
+                    <div class="form-group">
+                        <label>GitHub Token <span style="color:var(--muted)">(for private repos)</span></label>
+                        <input type="password" id="ghToken" class="form-input" placeholder="ghp_xxxxxxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label>Build Command <span style="color:var(--muted)">(optional)</span></label>
+                        <input type="text" id="ghBuild" class="form-input" placeholder="pip install -r requirements.txt">
+                    </div>
+                    <div class="form-group">
+                        <label>Deploy Command <span style="color:var(--muted)">(optional — auto-detected if empty)</span></label>
+                        <input type="text" id="ghDeploy" class="form-input" placeholder="python3 main.py">
+                    </div>
+                    <div class="form-group">
+                        <label>Environment Variables <span style="color:var(--muted)">(JSON format)</span></label>
+                        <textarea id="ghEnv" class="form-input" placeholder='{"KEY": "value", "PORT": "8080"}'></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" style="padding:12px"><i class="fas fa-rocket"></i> Deploy from GitHub</button>
+                </form>
+            </div>
+
+            <!-- ZIP Form -->
+            <div id="zipForm" class="dash-card hidden">
+                <form id="zipDeployForm">
+                    <div class="form-group">
+                        <label>Deployment Name</label>
+                        <input type="text" name="name" class="form-input" placeholder="My Project" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ZIP File</label>
+                        <input type="file" name="zip_file" accept=".zip" class="form-input" required style="padding:8px">
+                        <div style="font-size:10px;color:var(--muted);margin-top:4px">Single .py file also works — will run with python3</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Build Command <span style="color:var(--muted)">(optional)</span></label>
+                        <input type="text" name="build_command" class="form-input" placeholder="npm install">
+                    </div>
+                    <div class="form-group">
+                        <label>Deploy Command <span style="color:var(--muted)">(optional — auto-detected if empty)</span></label>
+                        <input type="text" name="deploy_command" class="form-input" placeholder="node index.js">
+                    </div>
+                    <div class="form-group">
+                        <label>Environment Variables <span style="color:var(--muted)">(JSON format)</span></label>
+                        <textarea name="env_vars" class="form-input" placeholder='{"KEY": "value"}'></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" style="padding:12px"><i class="fas fa-upload"></i> Upload &amp; Deploy</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: AI -->
+        <div id="tab-ai" class="tab-content hidden">
+            <div class="coming-soon">
+                <div class="coming-soon-icon"><i class="fas fa-brain"></i></div>
+                <h2>AI Assistant</h2>
+                <p>Powered by AI code analysis, auto-debugging, and smart deployment suggestions. Coming soon.</p>
+                <div style="margin-top:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                    <span style="font-size:11px;color:var(--muted);background:var(--surface);padding:4px 12px;border-radius:50px;border:1px solid var(--border)">Auto Debug</span>
+                    <span style="font-size:11px;color:var(--muted);background:var(--surface);padding:4px 12px;border-radius:50px;border:1px solid var(--border)">Code Review</span>
+                    <span style="font-size:11px;color:var(--muted);background:var(--surface);padding:4px 12px;border-radius:50px;border:1px solid var(--border)">Smart Deploy</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: SETTINGS -->
+        <div id="tab-settings" class="tab-content hidden">
+
+            <!-- Chat Section -->
+            <div class="settings-section">
+                <h3><i class="fas fa-comments"></i> Support Chat</h3>
+                <div class="chat-container" id="chatMessages">
+                    <div class="text-muted text-sm" style="text-align:center;padding:20px">Loading...</div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" class="form-input flex-1" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+                    <button class="btn btn-primary btn-sm" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- Referral Section -->
+            <div class="settings-section">
+                <h3><i class="fas fa-gift"></i> Referral Program</h3>
+                <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Earn 30% commission when your referral purchases any plan</p>
+                <div class="referral-code-box">
+                    <span style="font-size:11px;color:var(--muted)">Code:</span>
+                    <code id="refCode">...</code>
+                    <button class="btn btn-sm btn-secondary" onclick="copyRefLink()"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="form-group">
+                    <label>Referral Link</label>
+                    <input type="text" id="refLink" class="form-input" readonly>
+                </div>
+                <div class="stat-grid" style="margin-bottom:12px">
+                    <div class="stat-card"><div class="label">Total Earned</div><div class="value" id="refEarned" style="font-size:18px">₹0</div></div>
+                    <div class="stat-card"><div class="label">Wallet Balance</div><div class="value" id="refBalance" style="font-size:18px">₹0</div></div>
+                </div>
+                <div id="refList" style="margin-bottom:12px">Loading...</div>
+                <div class="flex gap-2 items-center">
+                    <input type="number" id="withdrawAmt" class="form-input flex-1" placeholder="Amount to withdraw" min="1" step="0.01">
+                    <button class="btn btn-primary btn-sm" onclick="requestWithdraw()">Withdraw</button>
+                </div>
+            </div>
+
+            <!-- Transactions Section -->
+            <div class="settings-section">
+                <h3><i class="fas fa-receipt"></i> Transaction History</h3>
+                <div id="txList">Loading...</div>
+            </div>
+
+            <!-- Logout -->
+            <div class="settings-section" style="border-color:rgba(255,68,68,0.15)">
+                <button class="btn btn-danger btn-block" onclick="logout()" style="padding:12px"><i class="fas fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== LOG MODAL ===== -->
+    <div class="modal-overlay" id="logModal" onclick="if(event.target===this)closeLogModal()">
+        <div class="modal" style="max-width:600px">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="margin:0"><i class="fas fa-terminal" style="color:var(--accent);margin-right:8px"></i>Deployment Logs</h3>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span class="status-badge status-idle" id="logStatus">idle</span>
+                    <button onclick="closeLogModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px"><i class="fas fa-xmark"></i></button>
+                </div>
+            </div>
+            <div class="log-terminal" id="logContent">Loading...</div>
+        </div>
+    </div>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <nav class="bottom-nav" role="navigation" aria-label="Dashboard navigation">
+        <button class="nav-item active" data-tab="home" aria-label="Home"><i class="fas fa-house"></i><span>Home</span></button>
+        <button class="nav-item" data-tab="manage" aria-label="Manage"><i class="fas fa-layer-group"></i><span>Manage</span></button>
+        <button class="nav-item" data-tab="deploy" aria-label="Deploy"><i class="fas fa-rocket"></i><span>Deploy</span></button>
+        <button class="nav-item" data-tab="ai" aria-label="AI"><i class="fas fa-brain"></i><span>AI</span></button>
+        <button class="nav-item" data-tab="settings" aria-label="Settings"><i class="fas fa-gear"></i><span>Settings</span></button>
+    </nav>
+
+    <script src="/static/js/app.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', initDashboard);</script>
+</body>
+</html>
