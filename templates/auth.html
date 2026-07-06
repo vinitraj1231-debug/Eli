@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Login' if mode == 'login' else 'Create Account' }} — EliteHosting</title>
+    <meta name="description" content="{{ 'Sign in to your EliteHosting account to manage deployments.' if mode == 'login' else 'Create your EliteHosting account and start deploying code instantly.' }}">
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body data-mode="{{ mode }}" class="auth-page">
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <a href="/" class="logo" style="text-decoration:none">
+                <div class="logo-icon">E</div>
+                <span class="logo-text">EliteHosting</span>
+            </a>
+
+            {% if mode == 'login' %}
+            <h2>Welcome Back</h2>
+            <p class="sub">Sign in to manage your deployments</p>
+            <form id="loginForm" autocomplete="on">
+                <div class="form-group">
+                    <label for="loginUser">Username or Email</label>
+                    <input type="text" id="loginUser" class="form-input" placeholder="Enter username or email" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="loginPass">Password</label>
+                    <input type="password" id="loginPass" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;padding:11px">Login</button>
+            </form>
+            <div class="auth-switch">Don't have an account? <a href="/register">Create one</a></div>
+
+            {% else %}
+            <h2>Create Account</h2>
+            <p class="sub">Start deploying in under a minute</p>
+            <form id="registerForm" autocomplete="on">
+                <div class="form-group">
+                    <label for="regUser">Username</label>
+                    <input type="text" id="regUser" class="form-input" placeholder="Choose a username" required minlength="3" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" class="form-input" placeholder="you@example.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="regPass">Password</label>
+                    <input type="password" id="regPass" class="form-input" placeholder="Min 6 characters" required minlength="6" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="regRef">Referral Code (optional)</label>
+                    <input type="text" id="regRef" class="form-input" placeholder="Enter referral code" value="{{ ref }}" autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;padding:11px">Create Account</button>
+            </form>
+            <div class="auth-switch">Already have an account? <a href="/login">Sign in</a></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', initAuth);</script>
+</body>
+</html>
