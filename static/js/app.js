@@ -1,0 +1,609 @@
+/* ===================== GLOBALS ===================== */
+const API = '';
+let currentUser = null;
+let currentDepId = null;
+let logPolling = null;
+
+/* ===================== TOAST ===================== */
+function toast(msg, type = 'info') {
+    const c = document.querySelector('.toast-container') || createToastContainer();
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>${msg}`;
+    c.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(40px)'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+function createToastContainer() {
+    const c = document.createElement('div'); c.className = 'toast-container';
+    document.body.appendChild(c); return c;
+}
+
+/* ===================== API HELPER ===================== */
+async function api(url, options = {}) {
+    const res = await fetch(API + url, {
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        ...options
+    });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Request failed', 'error'); throw new Error(data.error); }
+    return data;
+}
+
+/* ===================== LANDING PAGE ===================== */
+function initLanding() {
+    const hamburger = document.querySelector('.hamburger');
+    const dropdown = document.querySelector('.nav-dropdown');
+    if (hamburger && dropdown) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            dropdown.classList.toggle('show');
+        });
+        document.addEventListener('click', (e) => {
+            if (!hamburger.contains(e.target) && !dropdown.contains(e.target)) {
+                hamburger.classList.remove('active');
+                dropdown.classList.remove('show');
+            }
+        });
+    }
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)'; } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => {
+        el.style.opacity = '0'; el.style.transform = 'translateY(20px)';
+        el.style.transition = 'all 0.6s ease-out'; observer.observe(el);
+    });
+}
+
+/* ===================== AUTH PAGE ===================== */
+function initAuth() {
+    const mode = document.body.dataset.mode;
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = loginForm.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+            try {
+                const data = await api('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('loginUser').value,
+                        password: document.getElementById('loginPass').value
+                    })
+                });
+                toast('Login successful', 'success');
+                setTimeout(() => window.location.href = '/dashboard', 500);
+            } catch (err) { btn.disabled = false; btn.textContent = 'Login'; }
+        });
+    }
+
+    if (registerForm) {
+        const refField = document.getElementById('regRef');
+        if (refField && window.location.search.includes('ref=')) {
+            const params = new URLSearchParams(window.location.search);
+            refField.value = params.get('ref') || '';
+        }
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = registerForm.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+            try {
+                const data = await api('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('regUser').value,
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPass').value,
+                        referral: document.getElementById('regRef').value
+                    })
+                });
+                toast('Account created!', 'success');
+                setTimeout(() => window.location.href = '/dashboard', 500);
+            } catch (err) { btn.disabled = false; btn.textContent = 'Create Account'; }
+        });
+    }
+}
+
+/* ===================== DASHBOARD ===================== */
+function initDashboard() {
+    loadUser();
+    switchTab('home');
+
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    const panel = document.getElementById(`tab-${tab}`);
+    if (panel) panel.classList.remove('hidden');
+
+    if (logPolling) { clearInterval(logPolling); logPolling = null; }
+
+    switch (tab) {
+        case 'home': loadStats(); break;
+        case 'manage': loadDeployments(); break;
+        case 'deploy': initDeployForm(); break;
+        case 'settings': loadSettings(); break;
+    }
+}
+
+async function loadUser() {
+    try {
+        currentUser = await api('/api/auth/me');
+        const avatar = document.querySelector('.dash-user-avatar');
+        const name = document.querySelector('.dash-user-name');
+        if (avatar) avatar.textContent = currentUser.username[0].toUpperCase();
+        if (name) name.textContent = currentUser.username;
+    } catch { window.location.href = '/login'; }
+}
+
+async function loadStats() {
+    try {
+        const s = await api('/api/dashboard/stats');
+        document.getElementById('statTotal').textContent = s.total_deployments;
+        document.getElementById('statRunning').textContent = s.running;
+        document.getElementById('statStopped').textContent = s.stopped;
+        document.getElementById('statWallet').textContent = '₹' + s.wallet.toFixed(2);
+        document.getElementById('userPlan').textContent = s.plan.charAt(0).toUpperCase() + s.plan.slice(1);
+    } catch {}
+}
+
+/* ===================== MANAGE DEPLOYMENTS ===================== */
+async function loadDeployments() {
+    const list = document.getElementById('deployList');
+    list.innerHTML = '<div class="empty-state"><span class="spinner"></span><br>Loading...</div>';
+    try {
+        const deps = await api('/api/deployments');
+        if (!deps.length) {
+            list.innerHTML = '<div class="empty-state"><i class="fas fa-rocket"></i>No deployments yet.<br>Go to Deploy tab to create one.</div>';
+            return;
+        }
+        list.innerHTML = deps.map(d => `
+            <div class="deploy-item">
+                <div class="deploy-item-header">
+                    <div>
+                        <div class="deploy-item-name">${esc(d.name)}</div>
+                        <div class="deploy-item-meta">${d.type === 'github' ? '<i class="fab fa-github"></i> ' + esc(d.repo_url || '') : '<i class="fas fa-file-archive"></i> ZIP Upload'}${d.port ? ' • Port: ' + d.port : ''}</div>
+                    </div>
+                    <span class="status-badge status-${d.status}">${statusDot(d.status)} ${d.status}</span>
+                </div>
+                <div class="deploy-actions">
+                    ${d.status === 'running' ? `<button class="btn btn-sm btn-secondary" onclick="stopDep(${d.id})"><i class="fas fa-stop"></i> Stop</button>` : `<button class="btn btn-sm btn-primary" onclick="startDep(${d.id})"><i class="fas fa-play"></i> Start</button>`}
+                    <button class="btn btn-sm btn-secondary" onclick="viewLogs(${d.id})"><i class="fas fa-terminal"></i> Logs</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteDep(${d.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    } catch { list.innerHTML = '<div class="empty-state">Failed to load</div>'; }
+}
+
+function statusDot(s) {
+    if (s === 'running') return '<span style="width:5px;height:5px;background:var(--accent);border-radius:50%;display:inline-block"></span>';
+    if (s === 'error') return '<span style="width:5px;height:5px;background:var(--danger);border-radius:50%;display:inline-block"></span>';
+    return '<span style="width:5px;height:5px;background:var(--muted);border-radius:50%;display:inline-block"></span>';
+}
+
+async function startDep(id) {
+    try { await api(`/api/deploy/${id}/start`, { method: 'POST' }); toast('Starting...', 'success'); setTimeout(loadDeployments, 2000); } catch {}
+}
+async function stopDep(id) {
+    try { await api(`/api/deploy/${id}/stop`, { method: 'POST' }); toast('Stopped', 'success'); loadDeployments(); } catch {}
+}
+async function deleteDep(id) {
+    if (!confirm('Delete this deployment permanently?')) return;
+    try { await api(`/api/deploy/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadDeployments(); } catch {}
+}
+async function viewLogs(id) {
+    currentDepId = id;
+    document.getElementById('logModal').classList.add('show');
+    document.getElementById('logContent').textContent = 'Loading logs...';
+    pollLogs();
+    logPolling = setInterval(pollLogs, 2000);
+}
+async function pollLogs() {
+    if (!currentDepId) return;
+    try {
+        const data = await api(`/api/deploy/${currentDepId}/logs`);
+        document.getElementById('logContent').textContent = data.logs || 'No logs yet...';
+        document.getElementById('logStatus').textContent = data.status;
+    } catch {}
+}
+function closeLogModal() {
+    document.getElementById('logModal').classList.remove('show');
+    if (logPolling) { clearInterval(logPolling); logPolling = null; }
+    currentDepId = null;
+}
+
+/* ===================== DEPLOY FORM ===================== */
+function initDeployForm() {
+    const tabs = document.querySelectorAll('.deploy-tab-btn');
+    tabs.forEach(t => t.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('githubForm').classList.toggle('hidden', t.dataset.target !== 'github');
+        document.getElementById('zipForm').classList.toggle('hidden', t.dataset.target !== 'zip');
+    }));
+
+    const ghForm = document.getElementById('ghDeployForm');
+    if (ghForm) {
+        ghForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = ghForm.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Deploying...';
+            try {
+                const data = await api('/api/deploy/github', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('ghName').value,
+                        repo_url: document.getElementById('ghRepo').value,
+                        branch: document.getElementById('ghBranch').value,
+                        build_command: document.getElementById('ghBuild').value,
+                        deploy_command: document.getElementById('ghDeploy').value,
+                        github_token: document.getElementById('ghToken').value,
+                        env_vars: document.getElementById('ghEnv').value
+                    })
+                });
+                toast('Deployment started!', 'success');
+                ghForm.reset();
+                setTimeout(() => switchTab('manage'), 1000);
+            } catch { btn.disabled = false; btn.innerHTML = '<i class="fas fa-rocket"></i> Deploy'; }
+        });
+    }
+
+    const zipForm = document.getElementById('zipDeployForm');
+    if (zipForm) {
+        zipForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = zipForm.querySelector('button[type="submit"]');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...';
+            const fd = new FormData(zipForm);
+            try {
+                const res = await fetch(API + '/api/deploy/zip', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                toast('ZIP deployment started!', 'success');
+                zipForm.reset();
+                setTimeout(() => switchTab('manage'), 1000);
+            } catch (err) { toast(err.message, 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Upload & Deploy'; }
+        });
+    }
+}
+
+/* ===================== SETTINGS ===================== */
+async function loadSettings() {
+    loadReferralInfo();
+    loadChatMessages();
+    loadTransactions();
+}
+
+async function loadReferralInfo() {
+    try {
+        const data = await api('/api/referral/info');
+        document.getElementById('refCode').textContent = data.referral_code;
+        document.getElementById('refLink').value = window.location.origin + '/register?ref=' + data.referral_code;
+        document.getElementById('refEarned').textContent = '₹' + data.total_earned.toFixed(2);
+        document.getElementById('refBalance').textContent = '₹' + data.wallet_balance.toFixed(2);
+        const refList = document.getElementById('refList');
+        if (!data.referrals.length) {
+            refList.innerHTML = '<div class="text-muted text-sm">No referrals yet</div>';
+        } else {
+            refList.innerHTML = data.referrals.map(r => `
+                <div class="flex justify-between items-center mb-2" style="padding:8px 0;border-bottom:1px solid var(--border)">
+                    <div><span style="color:#fff;font-size:12px">${esc(r.username)}</span><br><span class="text-muted text-sm">${r.plan} plan</span></div>
+                    <span class="text-accent text-sm">+₹${r.amount.toFixed(2)}</span>
+                </div>
+            `).join('');
+        }
+    } catch {}
+}
+
+function copyRefLink() {
+    const inp = document.getElementById('refLink');
+    inp.select(); navigator.clipboard.writeText(inp.value);
+    toast('Link copied!', 'success');
+}
+
+async function requestWithdraw() {
+    const amt = parseFloat(document.getElementById('withdrawAmt').value);
+    if (!amt || amt <= 0) { toast('Enter valid amount', 'error'); return; }
+    try { await api('/api/referral/withdraw', { method: 'POST', body: JSON.stringify({ amount: amt }) }); toast('Withdrawal requested!', 'success'); loadReferralInfo(); } catch {}
+}
+
+/* Chat */
+async function loadChatMessages() {
+    try {
+        const msgs = await api('/api/chat');
+        const container = document.getElementById('chatMessages');
+        if (!msgs.length) {
+            container.innerHTML = '<div class="text-muted text-sm" style="text-align:center;padding:20px">No messages yet. Start a conversation!</div>';
+            return;
+        }
+        container.innerHTML = msgs.map(m => `
+            <div class="chat-bubble ${m.sender}">
+                ${esc(m.message)}
+                <div class="chat-time">${new Date(m.date).toLocaleString()}</div>
+            </div>
+        `).join('');
+        container.scrollTop = container.scrollHeight;
+    } catch {}
+}
+
+async function sendChat() {
+    const inp = document.getElementById('chatInput');
+    const msg = inp.value.trim();
+    if (!msg) return;
+    inp.value = '';
+    try { await api('/api/chat', { method: 'POST', body: JSON.stringify({ message: msg }) }); loadChatMessages(); } catch {}
+}
+
+/* Transactions */
+async function loadTransactions() {
+    try {
+        const txs = await api('/api/transactions');
+        const el = document.getElementById('txList');
+        if (!txs.length) { el.innerHTML = '<div class="text-muted text-sm">No transactions</div>'; return; }
+        el.innerHTML = txs.map(t => `
+            <div class="flex justify-between mb-2" style="padding:8px 0;border-bottom:1px solid var(--border)">
+                <div><span style="color:#fff;font-size:12px">${esc(t.description || t.type)}</span><br><span class="text-muted text-sm">${new Date(t.date).toLocaleDateString()}</span></div>
+                <span class="${t.amount >= 0 ? 'text-accent' : 'text-danger'} text-sm">${t.amount >= 0 ? '+' : ''}₹${t.amount.toFixed(2)}</span>
+            </div>
+        `).join('');
+    } catch {}
+}
+
+/* Plan Purchase */
+async function buyPlan(plan) {
+    const prices = { starter: 99, pro: 299, enterprise: 999 };
+    if (!confirm(`Buy ${plan} plan for ₹${prices[plan]}?`)) return;
+    try { await api('/api/plans/buy', { method: 'POST', body: JSON.stringify({ plan }) }); toast(`${plan} plan activated!`, 'success'); loadStats(); loadSettings(); } catch {}
+}
+
+/* Logout */
+async function logout() {
+    try { await api('/api/auth/logout', { method: 'POST' }); } catch {}
+    window.location.href = '/login';
+}
+
+/* ===================== ADMIN PANEL ===================== */
+function initAdmin() {
+    // Check if already logged in
+    const loginSection = document.getElementById('adminLogin');
+    const panelSection = document.getElementById('adminPanel');
+    const stored = sessionStorage.getItem('admin_logged');
+    if (stored === 'true') {
+        loginSection.classList.add('hidden');
+        panelSection.classList.remove('hidden');
+        loadAdminStats();
+    }
+
+    const loginForm = document.getElementById('adminLoginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = loginForm.querySelector('button');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+            try {
+                await api('/api/admin/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('adminUser').value,
+                        password: document.getElementById('adminPass').value
+                    })
+                });
+                sessionStorage.setItem('admin_logged', 'true');
+                toast('Admin access granted', 'success');
+                loginSection.classList.add('hidden');
+                panelSection.classList.remove('hidden');
+                loadAdminStats();
+            } catch { btn.disabled = false; btn.textContent = 'Access Panel'; }
+        });
+    }
+
+    document.querySelectorAll('.admin-nav-item[data-section]').forEach(btn => {
+        btn.addEventListener('click', () => switchAdminSection(btn.dataset.section));
+    });
+}
+
+function switchAdminSection(section) {
+    document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.admin-nav-item[data-section="${section}"]`)?.classList.add('active');
+    document.querySelectorAll('.admin-section').forEach(c => c.classList.add('hidden'));
+    document.getElementById(`admin-${section}`)?.classList.remove('hidden');
+
+    switch (section) {
+        case 'dashboard': loadAdminStats(); break;
+        case 'users': loadAdminUsers(); break;
+        case 'deployments': loadAdminDeployments(); break;
+        case 'chats': loadAdminChats(); break;
+        case 'banned': loadAdminBanned(); break;
+    }
+}
+
+async function loadAdminStats() {
+    try {
+        const s = await api('/api/admin/stats');
+        document.getElementById('aStatUsers').textContent = s.total_users;
+        document.getElementById('aStatActive').textContent = s.active_deployments;
+        document.getElementById('aStatDeps').textContent = s.total_deployments;
+        document.getElementById('aStatBanned').textContent = s.banned_users;
+        document.getElementById('aStatRevenue').textContent = '₹' + s.total_revenue.toFixed(0);
+        document.getElementById('aStatComm').textContent = '₹' + s.total_commissions.toFixed(0);
+        document.getElementById('aStatChats').textContent = s.unread_chats;
+    } catch {}
+}
+
+async function loadAdminUsers() {
+    const el = document.getElementById('adminUsersTable');
+    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        const users = await api('/api/admin/users');
+        if (!users.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No users</td></tr>'; return; }
+        el.innerHTML = users.map(u => `
+            <tr>
+                <td>${u.id}</td>
+                <td style="color:#fff">${esc(u.username)}</td>
+                <td>${esc(u.email)}</td>
+                <td>${u.plan}</td>
+                <td>₹${u.wallet_balance.toFixed(2)}</td>
+                <td>${u.deployments}</td>
+                <td><span class="status-badge ${u.is_banned ? 'status-error' : 'status-running'}">${u.is_banned ? 'Banned' : 'Active'}</span></td>
+                <td>
+                    ${u.is_banned
+                        ? `<button class="admin-action-btn success" onclick="adminUnban(${u.id})">Unban</button>`
+                        : `<button class="admin-action-btn danger" onclick="adminBan(${u.id})">Ban</button>`
+                    }
+                    <button class="admin-action-btn" onclick="promptBalance(${u.id}, ${u.wallet_balance})">Balance</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error</td></tr>'; }
+}
+
+async function adminBan(id) { if (!confirm('Ban this user?')) return; try { await api(`/api/admin/users/${id}/ban`, { method: 'POST' }); toast('Banned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
+async function adminUnban(id) { try { await api(`/api/admin/users/${id}/unban`, { method: 'POST' }); toast('Unbanned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
+
+function promptBalance(uid, current) {
+    const amt = prompt(`Current balance: ₹${current}\nEnter amount (negative to remove):`);
+    if (amt === null) return;
+    const val = parseFloat(amt);
+    if (isNaN(val)) { toast('Invalid amount', 'error'); return; }
+    api(`/api/admin/users/${uid}/balance`, { method: 'POST', body: JSON.stringify({ amount: val }) })
+        .then(() => { toast('Balance updated', 'success'); loadAdminUsers(); })
+        .catch(() => {});
+}
+
+async function loadAdminDeployments() {
+    const el = document.getElementById('adminDepsTable');
+    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        const deps = await api('/api/admin/deployments');
+        if (!deps.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No deployments</td></tr>'; return; }
+        el.innerHTML = deps.map(d => `
+            <tr>
+                <td>${d.id}</td>
+                <td style="color:#fff">${esc(d.username)}</td>
+                <td>${esc(d.name)}</td>
+                <td>${d.type}</td>
+                <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.repo_url || '-')}</td>
+                <td><span class="status-badge status-${d.status}">${d.status}</span></td>
+                <td>${d.port || '-'}</td>
+                <td>
+                    ${d.status === 'running' ? `<button class="admin-action-btn danger" onclick="adminStopDep(${d.id})">Stop</button>` : ''}
+                    <button class="admin-action-btn" onclick="adminViewDepLogs(${d.id})">Logs</button>
+                    <button class="admin-action-btn danger" onclick="adminDeleteDep(${d.id})">Del</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error</td></tr>'; }
+}
+
+async function adminStopDep(id) { try { await api(`/api/admin/deployments/${id}/stop`, { method: 'POST' }); toast('Stopped', 'success'); loadAdminDeployments(); } catch {} }
+async function adminDeleteDep(id) { if (!confirm('Delete?')) return; try { await api(`/api/admin/deployments/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadAdminDeployments(); } catch {} }
+
+let adminLogDepId = null;
+let adminLogPolling = null;
+async function adminViewDepLogs(id) {
+    adminLogDepId = id;
+    document.getElementById('adminLogModal').classList.add('show');
+    document.getElementById('adminLogContent').textContent = 'Loading...';
+    adminLogPoll();
+    adminLogPolling = setInterval(adminLogPoll, 2000);
+}
+async function adminLogPoll() {
+    if (!adminLogDepId) return;
+    try { const d = await api(`/api/admin/deployments/${adminLogDepId}/logs`); document.getElementById('adminLogContent').textContent = d.logs || 'No logs'; } catch {}
+}
+function closeAdminLogModal() {
+    document.getElementById('adminLogModal').classList.remove('show');
+    if (adminLogPolling) { clearInterval(adminLogPolling); adminLogPolling = null; }
+    adminLogDepId = null;
+}
+
+/* Admin Chats */
+let adminChatUserId = null;
+let adminChatPolling = null;
+
+async function loadAdminChats() {
+    try {
+        const chats = await api('/api/admin/chats');
+        const list = document.getElementById('adminChatUserList');
+        if (!chats.length) { list.innerHTML = '<div class="text-muted text-sm" style="padding:20px;text-align:center">No conversations</div>'; return; }
+        list.innerHTML = chats.map(c => `
+            <div class="admin-chat-user-item" data-uid="${c.user_id}" onclick="openAdminChat(${c.user_id})">
+                <div class="name">${esc(c.username)} ${c.unread ? '<span class="unread-dot"></span>' : ''}</div>
+                <div class="preview">${esc(c.last_message)}</div>
+            </div>
+        `).join('');
+    } catch {}
+}
+
+async function openAdminChat(uid) {
+    adminChatUserId = uid;
+    document.querySelectorAll('.admin-chat-user-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.admin-chat-user-item[data-uid="${uid}"]`)?.classList.add('active');
+    document.getElementById('adminChatWindow').classList.remove('hidden');
+    if (adminChatPolling) clearInterval(adminChatPolling);
+    await refreshAdminChat();
+    adminChatPolling = setInterval(refreshAdminChat, 3000);
+}
+
+async function refreshAdminChat() {
+    if (!adminChatUserId) return;
+    try {
+        const data = await api(`/api/admin/chats/${adminChatUserId}`);
+        document.getElementById('adminChatHeader').textContent = data.username;
+        const msgs = document.getElementById('adminChatMsgs');
+        msgs.innerHTML = data.messages.map(m => `
+            <div class="chat-bubble ${m.sender}" style="margin-bottom:10px">
+                ${esc(m.message)}
+                <div class="chat-time">${new Date(m.date).toLocaleString()}</div>
+            </div>
+        `).join('');
+        msgs.scrollTop = msgs.scrollHeight;
+    } catch {}
+}
+
+async function adminReply() {
+    const inp = document.getElementById('adminChatInput');
+    const msg = inp.value.trim();
+    if (!msg || !adminChatUserId) return;
+    inp.value = '';
+    try { await api(`/api/admin/chats/${adminChatUserId}/reply`, { method: 'POST', body: JSON.stringify({ message: msg }) }); refreshAdminChat(); loadAdminChats(); } catch {}
+}
+
+async function loadAdminBanned() {
+    try {
+        const ips = await api('/api/admin/banned-ips');
+        const el = document.getElementById('adminBannedList');
+        if (!ips.length) { el.innerHTML = '<div class="text-muted text-sm" style="padding:20px;text-align:center">No banned devices</div>'; return; }
+        el.innerHTML = ips.map(ip => `
+            <div class="flex justify-between items-center mb-2" style="padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">
+                <div><span style="color:#fff;font-size:12px">${esc(ip.ip)}</span><br><span class="text-muted text-sm">${ip.attempts} failed attempts</span></div>
+                <button class="admin-action-btn success" onclick="unbanIp(${ip.id})">Unban</button>
+            </div>
+        `).join('');
+    } catch {}
+}
+
+async function unbanIp(id) { try { await api(`/api/admin/banned-ips/${id}/unban`, { method: 'POST' }); toast('IP unbanned', 'success'); loadAdminBanned(); } catch {} }
+
+async function adminLogout() {
+    try { await api('/api/admin/logout', { method: 'POST' }); } catch {}
+    sessionStorage.removeItem('admin_logged');
+    location.reload();
+}
+
+/* ===================== UTILS ===================== */
+function esc(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
