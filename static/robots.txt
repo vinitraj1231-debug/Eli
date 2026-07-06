@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /raj
+Disallow: /api/
+Sitemap: https://elitehosting.com/sitemap.xml
