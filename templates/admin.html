@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel — EliteHosting</title>
+    <meta name="robots" content="noindex, nofollow, noarchive">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ===== ADMIN LOGIN ===== -->
+    <div id="adminLogin" class="auth-container">
+        <div class="auth-card" style="max-width:340px">
+            <div class="logo" style="margin-bottom:24px;justify-content:center">
+                <div class="logo-icon" style="background:var(--danger)">A</div>
+                <span class="logo-text">Admin Access</span>
+            </div>
+            <h2 style="font-size:18px">Restricted Area</h2>
+            <p class="sub">3 failed attempts = permanent device ban</p>
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="adminUser" class="form-input" placeholder="Admin username" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="adminPass" class="form-input" placeholder="Admin password" required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" style="padding:11px;margin-top:8px">Access Panel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== ADMIN PANEL ===== -->
+    <div id="adminPanel" class="hidden">
+        <div class="admin-layout">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar">
+                <a href="/" class="logo" style="text-decoration:none;padding:0 20px;margin-bottom:28px">
+                    <div class="logo-icon" style="background:var(--danger)">A</div>
+                    <span class="logo-text">Admin</span>
+                </a>
+                <button class="admin-nav-item active" data-section="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
+                <button class="admin-nav-item" data-section="users"><i class="fas fa-users"></i> Users</button>
+                <button class="admin-nav-item" data-section="deployments"><i class="fas fa-server"></i> Deployments</button>
+                <button class="admin-nav-item" data-section="chats"><i class="fas fa-comments"></i> Chats</button>
+                <button class="admin-nav-item" data-section="banned"><i class="fas fa-ban"></i> Banned IPs</button>
+                <div class="admin-nav-spacer"></div>
+                <button class="admin-nav-item" onclick="adminLogout()" style="color:var(--danger)"><i class="fas fa-right-from-bracket"></i> Logout</button>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="admin-main">
+
+                <!-- Section: Dashboard -->
+                <div id="admin-dashboard" class="admin-section">
+                    <div class="admin-top">
+                        <h1>Dashboard</h1>
+                        <span style="font-size:11px;color:var(--muted)" id="adminTime"></span>
+                    </div>
+                    <div class="admin-stat-grid">
+                        <div class="admin-stat"><div class="label">Total Users</div><div class="val" id="aStatUsers">0</div></div>
+                        <div class="admin-stat"><div class="label">Active Deploys</div><div class="val" id="aStatActive" style="color:var(--accent)">0</div></div>
+                        <div class="admin-stat"><div class="label">Total Deploys</div><div class="val" id="aStatDeps">0</div></div>
+                        <div class="admin-stat"><div class="label">Banned Users</div><div class="val" id="aStatBanned" style="color:var(--danger)">0</div></div>
+                        <div class="admin-stat"><div class="label">Revenue</div><div class="val" id="aStatRevenue">₹0</div></div>
+                        <div class="admin-stat"><div class="label">Commissions</div><div class="val" id="aStatComm" style="color:var(--warning)">₹0</div></div>
+                        <div class="admin-stat"><div class="label">Unread Chats</div><div class="val" id="aStatChats" style="color:#4da6ff">0</div></div>
+                    </div>
+                </div>
+
+                <!-- Section: Users -->
+                <div id="admin-users" class="admin-section hidden">
+                    <div class="admin-top"><h1>Users</h1></div>
+                    <div class="admin-table-wrap" style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Plan</th><th>Wallet</th><th>Deps</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="adminUsersTable"><tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section: Deployments -->
+                <div id="admin-deployments" class="admin-section hidden">
+                    <div class="admin-top"><h1>All Deployments</h1></div>
+                    <div class="admin-table-wrap" style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead><tr><th>ID</th><th>User</th><th>Name</th><th>Type</th><th>Repo</th><th>Status</th><th>Port</th><th>Actions</th></tr></thead>
+                            <tbody id="adminDepsTable"><tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section: Chats -->
+                <div id="admin-chats" class="admin-section hidden">
+                    <div class="admin-top"><h1>Support Chats</h1></div>
+                    <div class="admin-chat-list">
+                        <div class="admin-chat-users" id="adminChatUserList">
+                            <div class="text-muted text-sm" style="padding:20px;text-align:center">Loading...</div>
+                        </div>
+                        <div class="admin-chat-window hidden" id="adminChatWindow">
+                            <div class="admin-chat-header" id="adminChatHeader">Select a conversation</div>
+                            <div class="admin-chat-messages" id="adminChatMsgs"></div>
+                            <div class="admin-chat-input">
+                                <input type="text" id="adminChatInput" class="form-input flex-1" placeholder="Type reply..." onkeydown="if(event.key==='Enter')adminReply()">
+                                <button class="btn btn-primary btn-sm" onclick="adminReply()"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Banned IPs -->
+                <div id="admin-banned" class="admin-section hidden">
+                    <div class="admin-top"><h1>Banned Devices</h1></div>
+                    <div id="adminBannedList"><div class="text-muted text-sm" style="padding:20px;text-align:center">Loading...</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Log Modal -->
+    <div class="modal-overlay" id="adminLogModal" onclick="if(event.target===this)closeAdminLogModal()">
+        <div class="modal" style="max-width:600px">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="margin:0"><i class="fas fa-terminal" style="color:var(--accent);margin-right:8px"></i>Logs</h3>
+                <button onclick="closeAdminLogModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="log-terminal" id="adminLogContent">Loading...</div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initAdmin();
+            // Admin time updater
+            setInterval(() => {
+                const el = document.getElementById('adminTime');
+                if (el) el.textContent = new Date().toLocaleString();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
