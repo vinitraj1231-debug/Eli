@@ -49,6 +49,7 @@
                 <button class="admin-nav-item active" data-section="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
                 <button class="admin-nav-item" data-section="users"><i class="fas fa-users"></i> Users</button>
                 <button class="admin-nav-item" data-section="deployments"><i class="fas fa-server"></i> Deployments</button>
+                <button class="admin-nav-item" data-section="payments"><i class="fas fa-indian-rupee-sign"></i> Payments</button>
                 <button class="admin-nav-item" data-section="chats"><i class="fas fa-comments"></i> Chats</button>
                 <button class="admin-nav-item" data-section="banned"><i class="fas fa-ban"></i> Banned IPs</button>
                 <div class="admin-nav-spacer"></div>
@@ -93,6 +94,17 @@
                         <table class="admin-table">
                             <thead><tr><th>ID</th><th>User</th><th>Name</th><th>Type</th><th>Repo</th><th>Status</th><th>Port</th><th>Actions</th></tr></thead>
                             <tbody id="adminDepsTable"><tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section: Payments -->
+                <div id="admin-payments" class="admin-section hidden">
+                    <div class="admin-top"><h1>Payment Requests</h1></div>
+                    <div class="admin-table-wrap" style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead><tr><th>ID</th><th>User</th><th>Details</th><th>Amount</th><th>Credits</th><th>Tx ID</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="adminPaymentsTable"><tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
                         </table>
                     </div>
                 </div>

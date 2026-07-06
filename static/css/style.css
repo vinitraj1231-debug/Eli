@@ -291,6 +291,23 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .stat-card .label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
 .stat-card .value { font-family: var(--font-heading); font-size: 22px; font-weight: 700; color: #fff; }
 
+.credit-plan {
+    flex: 1; min-width: 100px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s ease;
+}
+.credit-plan:hover { border-color: var(--accent); transform: translateY(-2px); }
+.credit-plan.active { border-color: var(--accent); background: rgba(0, 230, 118, 0.05); }
+.credit-plan .price { font-size: 20px; font-weight: 700; color: #fff; }
+.credit-plan .label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.env-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.env-row input { flex: 1; }
+.btn-del {
+    background: rgba(255, 68, 68, 0.1); border: none; color: var(--danger);
+    width: 38px; height: 38px; border-radius: var(--radius-sm); cursor: pointer;
+}
+
 .dash-card {
     background: var(--card); border: 1px solid var(--border);
     border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px;

@@ -148,11 +148,31 @@ async function loadStats() {
     try {
         const s = await api('/api/dashboard/stats');
         document.getElementById('statTotal').textContent = s.total_deployments;
-        document.getElementById('statRunning').textContent = s.running;
-        document.getElementById('statStopped').textContent = s.stopped;
+        document.getElementById('statCredits').textContent = s.credits;
         document.getElementById('statWallet').textContent = '₹' + s.wallet.toFixed(2);
-        document.getElementById('userPlan').textContent = s.plan.charAt(0).toUpperCase() + s.plan.slice(1);
+
+        if (s.free_deploy_until) {
+            updateTimer(s.free_deploy_until);
+            if (!window.timerInterval) {
+                window.timerInterval = setInterval(() => updateTimer(s.free_deploy_until), 1000);
+            }
+        }
     } catch {}
+}
+
+function updateTimer(until) {
+    const el = document.getElementById('statFreeTimer');
+    if (!el) return;
+    const diff = new Date(until) - new Date();
+    if (diff <= 0) {
+        el.textContent = 'Expired';
+        el.style.color = 'var(--danger)';
+        return;
+    }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 /* ===================== MANAGE DEPLOYMENTS ===================== */
@@ -247,7 +267,7 @@ function initDeployForm() {
                         build_command: document.getElementById('ghBuild').value,
                         deploy_command: document.getElementById('ghDeploy').value,
                         github_token: document.getElementById('ghToken').value,
-                        env_vars: document.getElementById('ghEnv').value
+                        env_vars: getEnvData('ghEnvList')
                     })
                 });
                 toast('Deployment started!', 'success');
@@ -264,6 +284,7 @@ function initDeployForm() {
             const btn = zipForm.querySelector('button[type="submit"]');
             btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Uploading...';
             const fd = new FormData(zipForm);
+            fd.set('env_vars', getEnvData('zipEnvList'));
             try {
                 const res = await fetch(API + '/api/deploy/zip', { method: 'POST', body: fd });
                 const data = await res.json();
@@ -358,11 +379,107 @@ async function loadTransactions() {
     } catch {}
 }
 
-/* Plan Purchase */
-async function buyPlan(plan) {
-    const prices = { starter: 99, pro: 299, enterprise: 999 };
-    if (!confirm(`Buy ${plan} plan for ₹${prices[plan]}?`)) return;
-    try { await api('/api/plans/buy', { method: 'POST', body: JSON.stringify({ plan }) }); toast(`${plan} plan activated!`, 'success'); loadStats(); loadSettings(); } catch {}
+/* Payment Modal Logic */
+let selectedPayAmount = 0;
+let selectedPayCredits = 0;
+
+function openPaymentModal(amount, credits) {
+    selectedPayAmount = amount;
+    selectedPayCredits = credits;
+    document.getElementById('payAmountDisp').textContent = '₹' + amount;
+    document.getElementById('paymentModal').classList.add('show');
+    // Update QR URL with amount
+    const upiUrl = `upi://pay?pa=raj.papa@okicici&pn=EliteHosting&am=${amount}&cu=INR`;
+    document.getElementById('payQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+    payNextStep(1);
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').classList.remove('show');
+}
+
+function payNextStep(step) {
+    document.getElementById('pay-step-1').classList.add('hidden');
+    document.getElementById('pay-step-2').classList.add('hidden');
+    document.getElementById('pay-step-3').classList.add('hidden');
+    document.getElementById(`pay-step-${step}`).classList.remove('hidden');
+}
+
+async function submitPaymentRequest() {
+    const name = document.getElementById('payName').value.trim();
+    const number = document.getElementById('payNumber').value.trim();
+    const txId = document.getElementById('payTxID').value.trim();
+
+    if (!name || !number || !txId) { toast('All fields are required', 'error'); return; }
+
+    const btn = document.getElementById('paySubmitBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+    try {
+        await api('/api/payments/request', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: name,
+                number: number,
+                transaction_id: txId,
+                amount: selectedPayAmount
+            })
+        });
+        toast('Request submitted! Admin will approve soon.', 'success');
+        closePaymentModal();
+    } catch {
+        btn.disabled = false; btn.textContent = 'Submit Request';
+    }
+}
+
+/* Env Row Helpers */
+function addEnvRow(containerId) {
+    const container = document.getElementById(containerId);
+    const row = document.createElement('div');
+    row.className = 'env-row';
+    row.innerHTML = `
+        <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)">
+        <input type="text" class="env-key form-input" placeholder="Key (Value)">
+        <button type="button" class="btn-del" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    `;
+    container.appendChild(row);
+}
+
+function getEnvData(containerId) {
+    const rows = document.querySelectorAll(`#${containerId} .env-row`);
+    const data = [];
+    rows.forEach(r => {
+        const id = r.querySelector('.env-id').value.trim();
+        const key = r.querySelector('.env-key').value.trim();
+        if (id && key) data.push({ id, key });
+    });
+    return JSON.stringify(data);
+}
+
+/* AI Assistant */
+async function askAI() {
+    const inp = document.getElementById('aiChatInput');
+    const msg = inp.value.trim();
+    if (!msg) return;
+
+    const container = document.getElementById('aiChatMessages');
+    container.innerHTML += `<div class="chat-bubble user">${esc(msg)}</div>`;
+    inp.value = '';
+    container.scrollTop = container.scrollHeight;
+
+    // Simulate AI response
+    setTimeout(() => {
+        const responses = [
+            "I'm analyzing your deployment logs... everything seems fine!",
+            "To fix environment errors, make sure you've added your BOT_TOKEN in the environment variables.",
+            "I recommend using a requirements.txt file for better dependency management.",
+            "Your project structure looks great! Ready for deployment.",
+            "If you face a port error, try changing the port or wait for the system to auto-assign one."
+        ];
+        const random = responses[Math.floor(Math.random() * responses.length)];
+        container.innerHTML += `<div class="chat-bubble admin">${esc(random)}</div>`;
+        container.scrollTop = container.scrollHeight;
+    }, 1000);
 }
 
 /* Logout */
@@ -421,6 +538,7 @@ function switchAdminSection(section) {
         case 'dashboard': loadAdminStats(); break;
         case 'users': loadAdminUsers(); break;
         case 'deployments': loadAdminDeployments(); break;
+        case 'payments': loadAdminPayments(); break;
         case 'chats': loadAdminChats(); break;
         case 'banned': loadAdminBanned(); break;
     }
@@ -506,6 +624,42 @@ async function loadAdminDeployments() {
 
 async function adminStopDep(id) { try { await api(`/api/admin/deployments/${id}/stop`, { method: 'POST' }); toast('Stopped', 'success'); loadAdminDeployments(); } catch {} }
 async function adminDeleteDep(id) { if (!confirm('Delete?')) return; try { await api(`/api/admin/deployments/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadAdminDeployments(); } catch {} }
+
+async function loadAdminPayments() {
+    const el = document.getElementById('adminPaymentsTable');
+    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        const reqs = await api('/api/admin/payments');
+        if (!reqs.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No payment requests</td></tr>'; return; }
+        el.innerHTML = reqs.map(r => `
+            <tr>
+                <td>${r.id}</td>
+                <td>${esc(r.username)}</td>
+                <td style="font-size:11px">${esc(r.name)}<br>${esc(r.number)}</td>
+                <td>₹${r.amount}</td>
+                <td>${r.credits}</td>
+                <td><code style="font-size:10px">${esc(r.transaction_id)}</code></td>
+                <td><span class="status-badge status-${r.status}">${r.status}</span></td>
+                <td>
+                    ${r.status === 'pending' ? `
+                        <button class="admin-action-btn success" onclick="adminApprovePayment(${r.id})">Approve</button>
+                        <button class="admin-action-btn danger" onclick="adminRejectPayment(${r.id})">Reject</button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `).join('');
+    } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error loading payments</td></tr>'; }
+}
+
+async function adminApprovePayment(id) {
+    if (!confirm('Approve this payment and add credits?')) return;
+    try { await api(`/api/admin/payments/${id}/approve`, { method: 'POST' }); toast('Approved!', 'success'); loadAdminPayments(); loadAdminStats(); } catch {}
+}
+
+async function adminRejectPayment(id) {
+    if (!confirm('Reject this payment?')) return;
+    try { await api(`/api/admin/payments/${id}/reject`, { method: 'POST' }); toast('Rejected', 'error'); loadAdminPayments(); } catch {}
+}
 
 let adminLogDepId = null;
 let adminLogPolling = null;

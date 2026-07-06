@@ -42,12 +42,12 @@
                     <div class="value" id="statTotal">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Running</div>
-                    <div class="value" id="statRunning" style="color:var(--accent)">0</div>
+                    <div class="label">Available Credits</div>
+                    <div class="value" id="statCredits" style="color:var(--accent)">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Stopped</div>
-                    <div class="value" id="statStopped" style="color:var(--warning)">0</div>
+                    <div class="label">Free Tier</div>
+                    <div class="value" id="statFreeTimer" style="font-size:14px;color:var(--warning)">--:--:--</div>
                 </div>
                 <div class="stat-card">
                     <div class="label">Wallet Balance</div>
@@ -56,16 +56,20 @@
             </div>
 
             <div class="dash-card">
-                <div class="dash-card-title"><i class="fas fa-crown"></i> Current Plan</div>
-                <div class="flex justify-between items-center">
-                    <div>
-                        <div style="font-size:16px;font-weight:600;color:#fff" id="userPlan">Free</div>
-                        <div style="font-size:11px;color:var(--muted);margin-top:2px">Upgrade for more deployments and features</div>
+                <div class="dash-card-title"><i class="fas fa-crown"></i> Premium Credits</div>
+                <p style="font-size:11px;color:var(--muted);margin-bottom:15px">Free tier expires in 3 hours. Buy credits to keep deploying.</p>
+                <div class="flex justify-between items-center" style="gap:10px;flex-wrap:wrap">
+                    <div class="credit-plan" onclick="openPaymentModal(99, 2)">
+                        <div class="price">₹99</div>
+                        <div class="label">2 Credits</div>
                     </div>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap">
-                        <button class="btn btn-sm btn-secondary" onclick="buyPlan('starter')">Starter ₹99</button>
-                        <button class="btn btn-sm btn-primary" onclick="buyPlan('pro')">Pro ₹299</button>
-                        <button class="btn btn-sm btn-secondary" onclick="buyPlan('enterprise')">Enterprise ₹999</button>
+                    <div class="credit-plan active" onclick="openPaymentModal(199, 5)">
+                        <div class="price">₹199</div>
+                        <div class="label">5 Credits</div>
+                    </div>
+                    <div class="credit-plan" onclick="openPaymentModal(299, 8)">
+                        <div class="price">₹299</div>
+                        <div class="label">8 Credits</div>
                     </div>
                 </div>
             </div>
@@ -116,8 +120,15 @@
                         <input type="text" id="ghDeploy" class="form-input" placeholder="python3 main.py">
                     </div>
                     <div class="form-group">
-                        <label>Environment Variables <span style="color:var(--muted)">(JSON format)</span></label>
-                        <textarea id="ghEnv" class="form-input" placeholder='{"KEY": "value", "PORT": "8080"}'></textarea>
+                        <label>Environment Variables</label>
+                        <div id="ghEnvList" class="env-list">
+                            <div class="env-row">
+                                <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)">
+                                <input type="text" class="env-key form-input" placeholder="Key (Value)">
+                                <button type="button" class="btn-del" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addEnvRow('ghEnvList')"><i class="fas fa-plus"></i> Add Variable</button>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block" style="padding:12px"><i class="fas fa-rocket"></i> Deploy from GitHub</button>
                 </form>
@@ -144,8 +155,15 @@
                         <input type="text" name="deploy_command" class="form-input" placeholder="node index.js">
                     </div>
                     <div class="form-group">
-                        <label>Environment Variables <span style="color:var(--muted)">(JSON format)</span></label>
-                        <textarea name="env_vars" class="form-input" placeholder='{"KEY": "value"}'></textarea>
+                        <label>Environment Variables</label>
+                        <div id="zipEnvList" class="env-list">
+                            <div class="env-row">
+                                <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)">
+                                <input type="text" class="env-key form-input" placeholder="Key (Value)">
+                                <button type="button" class="btn-del" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addEnvRow('zipEnvList')"><i class="fas fa-plus"></i> Add Variable</button>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block" style="padding:12px"><i class="fas fa-upload"></i> Upload &amp; Deploy</button>
                 </form>
@@ -154,14 +172,25 @@
 
         <!-- TAB: AI -->
         <div id="tab-ai" class="tab-content hidden">
-            <div class="coming-soon">
-                <div class="coming-soon-icon"><i class="fas fa-brain"></i></div>
-                <h2>AI Assistant</h2>
-                <p>Powered by AI code analysis, auto-debugging, and smart deployment suggestions. Coming soon.</p>
-                <div style="margin-top:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-                    <span style="font-size:11px;color:var(--muted);background:var(--surface);padding:4px 12px;border-radius:50px;border:1px solid var(--border)">Auto Debug</span>
-                    <span style="font-size:11px;color:var(--muted);background:var(--surface);padding:4px 12px;border-radius:50px;border:1px solid var(--border)">Code Review</span>
-                    <span style="font-size:11px;color:var(--muted);background:var(--surface);padding:4px 12px;border-radius:50px;border:1px solid var(--border)">Smart Deploy</span>
+            <div class="dash-card">
+                <div class="dash-card-title"><i class="fas fa-robot"></i> Elite AI Assistant</div>
+                <div id="aiChatMessages" style="max-height:300px;overflow-y:auto;margin-bottom:15px">
+                    <div class="chat-bubble admin">Hello! I'm your AI deployment assistant. How can I help you today?</div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="aiChatInput" class="form-input flex-1" placeholder="Ask AI anything about your code..." onkeydown="if(event.key==='Enter')askAI()">
+                    <button class="btn btn-primary btn-sm" onclick="askAI()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <div class="stat-grid mt-4">
+                <div class="stat-card">
+                    <div class="label"><i class="fas fa-bug"></i> AI Auto-Fix</div>
+                    <div class="text-muted text-xs mt-1">AI can detect and fix common deployment errors automatically.</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label"><i class="fas fa-code"></i> Code Review</div>
+                    <div class="text-muted text-xs mt-1">Get instant feedback on your project structure.</div>
                 </div>
             </div>
         </div>
@@ -219,6 +248,51 @@
     </div>
 
     <!-- ===== LOG MODAL ===== -->
+    <!-- ===== PAYMENT MODAL ===== -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal" style="max-width:400px">
+            <div id="pay-step-1">
+                <h3 class="mb-2">Step 1: Your Details</h3>
+                <p class="text-muted text-sm mb-4">Enter your name and number for payment verification.</p>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="payName" class="form-input" placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp Number</label>
+                    <input type="text" id="payNumber" class="form-input" placeholder="Enter your number">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="payNextStep(2)">Next <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <div id="pay-step-2" class="hidden text-center">
+                <h3 class="mb-2">Step 2: Scan & Pay</h3>
+                <p class="text-muted text-sm mb-4">Pay <span id="payAmountDisp" style="color:#fff;font-weight:700">₹0</span> via UPI QR code.</p>
+                <div style="background:#fff;padding:15px;border-radius:10px;display:inline-block;margin-bottom:15px">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=raj.papa@okicici%26pn=EliteHosting%26am=99%26cu=INR" id="payQR" style="width:200px;height:200px;display:block">
+                </div>
+                <p class="text-xs text-muted mb-4">Click "Paid" after completing payment in your UPI app.</p>
+                <div class="flex gap-2">
+                    <button class="btn btn-secondary flex-1" onclick="payNextStep(1)">Back</button>
+                    <button class="btn btn-primary flex-1" onclick="payNextStep(3)">Paid <i class="fas fa-check"></i></button>
+                </div>
+            </div>
+
+            <div id="pay-step-3" class="hidden">
+                <h3 class="mb-2">Step 3: Verify Payment</h3>
+                <p class="text-muted text-sm mb-4">Enter the Transaction ID / UTR from your payment app.</p>
+                <div class="form-group">
+                    <label>Transaction ID</label>
+                    <input type="text" id="payTxID" class="form-input" placeholder="Enter 12-digit UTR">
+                </div>
+                <button class="btn btn-primary btn-block" id="paySubmitBtn" onclick="submitPaymentRequest()">Submit Request</button>
+                <button class="btn btn-secondary btn-block mt-2" onclick="payNextStep(2)">Back</button>
+            </div>
+
+            <button class="btn btn-sm btn-secondary mt-4" style="width:100%" onclick="closePaymentModal()">Cancel</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="logModal" onclick="if(event.target===this)closeLogModal()">
         <div class="modal" style="max-width:600px">
             <div class="flex justify-between items-center mb-4">
