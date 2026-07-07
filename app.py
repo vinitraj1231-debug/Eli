@@ -462,7 +462,11 @@ def run_deploy_background(dep_id, dep_type, **kwargs):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',
+        title="EliteHosting | Best Instant Cloud Deployment Platform for Developers",
+        description="EliteHosting provides the fastest way to deploy your Python, Node.js, and web applications. Deploy instantly from GitHub or ZIP upload with auto-detection.",
+        canonical="https://elitehosting.com/"
+    )
 
 @app.route('/login')
 def login_page():
@@ -486,15 +490,30 @@ def admin_page():
 @app.route('/blogs')
 def blogs_page():
     posts = BlogPost.query.order_by(BlogPost.created_at.desc()).all()
-    return render_template('index.html', blogs=posts)
+    return render_template('index.html',
+        blogs=posts,
+        title="Developer Blog | EliteHosting Cloud Platform",
+        description="Read the latest news, tutorials, and updates from the EliteHosting team. Learn how to optimize your deployments.",
+        canonical="https://elitehosting.com/blogs"
+    )
 
 @app.route('/terms')
 def terms_page():
-    return render_template('index.html', page='terms')
+    return render_template('index.html',
+        page='terms',
+        title="Terms & Conditions | EliteHosting",
+        description="Read our terms of service and conditions for using the EliteHosting cloud deployment platform.",
+        canonical="https://elitehosting.com/terms"
+    )
 
 @app.route('/privacy')
 def privacy_page():
-    return render_template('index.html', page='privacy')
+    return render_template('index.html',
+        page='privacy',
+        title="Privacy Policy | EliteHosting",
+        description="Your privacy is important to us. Learn how EliteHosting handles your data and protects your information.",
+        canonical="https://elitehosting.com/privacy"
+    )
 
 @app.route('/robots.txt')
 def robots_txt():
@@ -505,15 +524,18 @@ def sitemap_xml():
     pages = []
     # Static pages
     now = datetime.now().strftime("%Y-%m-%d")
+    base_url = "https://elitehosting.com"
     for rule in app.url_map.iter_rules():
         if "GET" in rule.methods and len(rule.arguments) == 0:
-            if not str(rule.rule).startswith(('/api', '/raj', '/dashboard')):
-                pages.append(["https://elitehosting.com" + str(rule.rule), now])
+            route = str(rule.rule)
+            if not route.startswith(('/api', '/raj', '/dashboard', '/static')):
+                if route == '/':
+                    pages.append([base_url + "/", now])
+                else:
+                    pages.append([base_url + route, now])
 
-    # Dynamic blog posts
-    posts = BlogPost.query.all()
-    for post in posts:
-        pages.append(["https://elitehosting.com/blogs/" + post.slug, post.created_at.strftime("%Y-%m-%d")])
+    # Dynamic blog posts - Currently we only have a list page, individual post routes are not implemented yet.
+    # We will only list the main blogs page for now to avoid 404s in sitemap.
 
     sitemap_template = render_template('sitemap.xml', pages=pages)
     response = app.make_response(sitemap_template)

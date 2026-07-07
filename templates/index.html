@@ -3,27 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EliteHosting | Best Instant Cloud Deployment Platform for Developers</title>
-    <meta name="description" content="EliteHosting provides the fastest way to deploy your Python, Node.js, and web applications. Deploy instantly from GitHub or ZIP upload with auto-detection, real-time logs, and a powerful AI assistant. Get started for free today!">
-    <meta name="keywords" content="cloud hosting, instant deployment, python hosting, nodejs hosting, github deployment, zip upload deploy, best cloud platform, free hosting trial, premium cloud hosting, EliteHosting">
+    <title>{{ title or "EliteHosting | Best Instant Cloud Deployment Platform for Developers" }}</title>
+    <meta name="description" content="{{ description or "EliteHosting provides the fastest way to deploy your Python, Node.js, and web applications. Deploy instantly from GitHub or ZIP upload with auto-detection, real-time logs, and a powerful AI assistant." }}">
+    <meta name="keywords" content="{{ keywords or "cloud hosting, instant deployment, python hosting, nodejs hosting, github deployment, zip upload deploy, best cloud platform, free hosting trial, premium cloud hosting, EliteHosting" }}">
     <meta name="author" content="EliteHosting Team">
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="https://elitehosting.com">
+    <meta name="robots" content="{{ robots or "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" }}">
+    <link rel="canonical" href="{{ canonical or "https://elitehosting.com" }}">
 
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://elitehosting.com/">
-    <meta property="og:title" content="EliteHosting | Deploy Your Code Instantly & Scale with Ease">
-    <meta property="og:description" content="Stop worrying about servers. Deploy your projects in seconds with EliteHosting. Advanced auto-detection for Python and Node.js.">
-    <meta property="og:image" content="https://elitehosting.com/static/img/og-image.jpg">
+    <meta property="og:type" content="{{ og_type or "website" }}">
+    <meta property="og:url" content="{{ canonical or "https://elitehosting.com/" }}">
+    <meta property="og:title" content="{{ og_title or title or "EliteHosting | Deploy Your Code Instantly & Scale with Ease" }}">
+    <meta property="og:description" content="{{ og_description or description or "Stop worrying about servers. Deploy your projects in seconds with EliteHosting." }}">
+    <meta property="og:image" content="{{ og_image or "https://elitehosting.com/static/img/og-image.jpg" }}">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://elitehosting.com/">
-    <meta property="twitter:title" content="EliteHosting | Deploy Your Code Instantly">
-    <meta property="twitter:description" content="The ultimate cloud platform for developers. Instant GitHub & ZIP deployments with live logs and AI support.">
+    <meta property="twitter:url" content="{{ canonical or "https://elitehosting.com/" }}">
+    <meta property="twitter:title" content="{{ twitter_title or title or "EliteHosting | Deploy Your Code Instantly" }}">
+    <meta property="twitter:description" content="{{ twitter_description or description or "The ultimate cloud platform for developers." }}">
     <meta property="twitter:image" content="https://elitehosting.com/static/img/og-image.jpg">
 
+    <link rel="preload" href="/static/css/style.css" as="style">
+    <link rel="preload" href="/static/js/app.js" as="script">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -46,6 +48,102 @@
         ]
     }
     </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "EliteHosting",
+        "url": "https://elitehosting.com",
+        "logo": "https://elitehosting.com/static/img/logo.png",
+        "sameAs": [
+            "https://twitter.com/elitehosting",
+            "https://github.com/elitehosting"
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "EliteHosting",
+        "url": "https://elitehosting.com",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://elitehosting.com/blogs?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [{
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://elitehosting.com"
+        }
+        {% if page == 'terms' %}
+        ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Terms & Conditions",
+            "item": "https://elitehosting.com/terms"
+        }
+        {% elif page == 'privacy' %}
+        ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Privacy Policy",
+            "item": "https://elitehosting.com/privacy"
+        }
+        {% elif blogs %}
+        ,{
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Blogs",
+            "item": "https://elitehosting.com/blogs"
+        }
+        {% endif %}
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [{
+            "@type": "Question",
+            "name": "What technologies does EliteHosting support?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "We provide first-class support for Python (Flask, Django, FastAPI) and Node.js applications. Our auto-detection system handles requirements.txt and package.json automatically."
+            }
+        }, {
+            "@type": "Question",
+            "name": "Can I deploy private GitHub repositories?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, premium users can deploy private repositories by providing a GitHub Personal Access Token during the deployment setup."
+            }
+        }, {
+            "@type": "Question",
+            "name": "How does the referral program work?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Invite friends using your unique referral code. When they purchase a premium credit plan, you receive a 30% commission directly into your wallet balance."
+            }
+        }, {
+            "@type": "Question",
+            "name": "Is there a free trial available?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "New users receive a 3-hour free deployment window to test our platform. After that, you can purchase credits starting at just ₹99."
+            }
+        }]
+    }
+    </script>
 </head>
 <body>
 
@@ -56,7 +154,7 @@
             <span class="logo-text">EliteHosting</span>
         </a>
         <div class="header-right">
-            <a href="/login" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/login" class="btn btn-secondary btn-sm" aria-label="Login to your account">Login</a>
             <button class="hamburger" aria-label="Open navigation menu" aria-expanded="false">
                 <span></span><span></span><span></span>
             </button>
@@ -133,6 +231,30 @@
             </div>
         </section>
 
+        <!-- ===== HOW IT WORKS ===== -->
+        <section class="section reveal" aria-labelledby="how-it-works-heading">
+            <div class="section-label">Process</div>
+            <h2 id="how-it-works-heading" class="section-title">How It Works</h2>
+            <p class="section-desc">Deploying your application on EliteHosting is a simple 3-step process designed for maximum efficiency.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">1</div>
+                    <h3>Connect or Upload</h3>
+                    <p>Connect your GitHub repository or upload your project files as a ZIP archive directly to our secure servers.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">2</div>
+                    <h3>Auto-Config</h3>
+                    <p>Our intelligent deployment engine automatically detects your project type (Python, Node.js) and installs necessary dependencies.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">3</div>
+                    <h3>Go Live</h3>
+                    <p>Your application is assigned a dedicated port and starts running instantly. Monitor performance with real-time logs.</p>
+                </div>
+            </div>
+        </section>
+
         <!-- ===== PRICING ===== -->
         <section class="section reveal" id="pricing" aria-labelledby="pricing-heading">
             <div class="section-label">Pricing</div>
@@ -174,6 +296,31 @@
                         <li><i class="fas fa-check"></i> Dedicated Support</li>
                     </ul>
                     <a href="/register" class="btn btn-secondary btn-block">Get Started</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FAQ ===== -->
+        <section class="section reveal" id="faq" aria-labelledby="faq-heading">
+            <div class="section-label">Support</div>
+            <h2 id="faq-heading" class="section-title">Frequently Asked Questions</h2>
+            <p class="section-desc">Common questions about the EliteHosting cloud deployment platform.</p>
+            <div class="features-grid" style="text-align: left;">
+                <div class="faq-item">
+                    <h3>What technologies does EliteHosting support?</h3>
+                    <p>We provide first-class support for Python (Flask, Django, FastAPI) and Node.js applications. Our auto-detection system handles requirements.txt and package.json automatically.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Can I deploy private GitHub repositories?</h3>
+                    <p>Yes, premium users can deploy private repositories by providing a GitHub Personal Access Token during the deployment setup.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>How does the referral program work?</h3>
+                    <p>Invite friends using your unique referral code. When they purchase a premium credit plan, you receive a 30% commission directly into your wallet balance.</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Is there a free trial available?</h3>
+                    <p>New users receive a 3-hour free deployment window to test our platform. After that, you can purchase credits starting at just ₹99.</p>
                 </div>
             </div>
         </section>
