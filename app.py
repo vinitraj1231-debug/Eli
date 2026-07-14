@@ -553,7 +553,7 @@ def blogs_page():
     seo = {
         'title': 'Developer Blogs & Tech Insights | EliteHosting',
         'description': 'Read the latest technical write-ups, cloud tutorials, and developer updates from the EliteHosting Team.',
-        'canonical': 'https://elitehosting.com/blogs'
+        'canonical': 'https://elitehosting.in/blogs'
     }
     return render_template('index.html', page='blogs', blogs=posts, seo=seo)
 
@@ -563,7 +563,7 @@ def blog_detail_page(slug):
     seo = {
         'title': f'{post.title} | EliteHosting Developer Blog',
         'description': post.excerpt or post.content[:150],
-        'canonical': f'https://elitehosting.com/blogs/{post.slug}'
+        'canonical': f'https://elitehosting.in/blogs/{post.slug}'
     }
     return render_template('index.html', page='blog_detail', blog=post, seo=seo)
 
@@ -572,7 +572,7 @@ def terms_page():
     seo = {
         'title': 'Terms of Service | EliteHosting',
         'description': 'Terms of Service, deployment policies, and user agreements for the EliteHosting deployment platform.',
-        'canonical': 'https://elitehosting.com/terms'
+        'canonical': 'https://elitehosting.in/terms'
     }
     return render_template('index.html', page='terms', seo=seo)
 
@@ -581,7 +581,7 @@ def privacy_page():
     seo = {
         'title': 'Privacy Policy | EliteHosting',
         'description': 'Privacy policy, cookies policies, and personal data isolation safeguards at EliteHosting.',
-        'canonical': 'https://elitehosting.com/privacy'
+        'canonical': 'https://elitehosting.in/privacy'
     }
     return render_template('index.html', page='privacy', seo=seo)
 
@@ -601,12 +601,12 @@ def sitemap_xml():
     for rule in app.url_map.iter_rules():
         if "GET" in rule.methods and len(rule.arguments) == 0:
             if not str(rule.rule).startswith(('/api', '/raj', '/dashboard')):
-                pages.append(["https://elitehosting.com" + str(rule.rule), now])
+                pages.append(["https://elitehosting.in" + str(rule.rule), now])
 
     # Dynamic blog posts
     posts = BlogPost.query.all()
     for post in posts:
-        pages.append(["https://elitehosting.com/blogs/" + post.slug, post.created_at.strftime("%Y-%m-%d")])
+        pages.append(["https://elitehosting.in/blogs/" + post.slug, post.created_at.strftime("%Y-%m-%d")])
 
     sitemap_template = render_template('sitemap.xml', pages=pages)
     response = app.make_response(sitemap_template)
