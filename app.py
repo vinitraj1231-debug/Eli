@@ -496,6 +496,10 @@ def terms_page():
 def privacy_page():
     return render_template('index.html', page='privacy')
 
+@app.route('/telegram-bot-hosting')
+def telegram_bot_hosting_page():
+    return render_template('telegram-bot-hosting.html')
+
 @app.route('/robots.txt')
 def robots_txt():
     return send_from_directory(app.static_folder, 'robots.txt')
