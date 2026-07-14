@@ -543,6 +543,8 @@ function switchAdminSection(section) {
         case 'users': loadAdminUsers(); break;
         case 'deployments': loadAdminDeployments(); break;
         case 'payments': loadAdminPayments(); break;
+        case 'blogs': loadAdminBlogs(); break;
+        case 'transactions': loadAdminTransactions(); break;
         case 'chats': loadAdminChats(); break;
         case 'banned': loadAdminBanned(); break;
     }
@@ -577,21 +579,23 @@ function renderAdminUsers(users) {
     el.innerHTML = users.map(u => `
         <tr>
             <td>${u.id}</td>
-            <td style="color:#fff" title="Referred by: ${u.referred_by || 'Nobody'}">${esc(u.username)} ${u.is_banned ? '🚫' : ''}</td>
+            <td style="color:#fff" title="Referred by ID: ${u.referred_by || 'Nobody'}">${esc(u.username)} ${u.is_banned ? '🚫' : ''}</td>
             <td style="font-size:11px">${esc(u.email)}</td>
             <td>₹${u.wallet_balance.toFixed(1)}</td>
             <td>${u.credits}</td>
             <td><a href="#" onclick="filterDepsByUid(${u.id}); return false;" style="color:var(--accent)">${u.deployments}</a></td>
             <td style="font-size:10px">${new Date(u.created_at).toLocaleDateString()}</td>
             <td>
-                <div class="flex gap-1">
+                <div class="flex gap-1" style="flex-wrap: wrap; max-width: 180px;">
                     <button class="admin-action-btn" onclick="openAdminChat(${u.id})" title="Chat"><i class="fas fa-comments"></i></button>
-                    <button class="admin-action-btn" onclick="promptBalance(${u.id}, ${u.wallet_balance})" title="Wallet"><i class="fas fa-wallet"></i></button>
-                    <button class="admin-action-btn" onclick="promptCredits(${u.id}, ${u.credits})" title="Credits"><i class="fas fa-coins"></i></button>
+                    <button class="admin-action-btn" onclick="promptBalance(${u.id}, ${u.wallet_balance})" title="Quick Wallet"><i class="fas fa-wallet"></i></button>
+                    <button class="admin-action-btn" onclick="promptCredits(${u.id}, ${u.credits})" title="Quick Credits"><i class="fas fa-coins"></i></button>
+                    <button class="admin-action-btn" onclick="openAdminUserEditModal(${u.id})" title="Advanced Edit User"><i class="fas fa-user-pen"></i></button>
                     ${u.is_banned
-                        ? `<button class="admin-action-btn success" onclick="adminUnban(${u.id})"><i class="fas fa-check"></i></button>`
-                        : `<button class="admin-action-btn danger" onclick="adminBan(${u.id})"><i class="fas fa-ban"></i></button>`
+                        ? `<button class="admin-action-btn success" onclick="adminUnban(${u.id})" title="Unban"><i class="fas fa-check"></i></button>`
+                        : `<button class="admin-action-btn danger" onclick="adminBan(${u.id})" title="Ban"><i class="fas fa-ban"></i></button>`
                     }
+                    <button class="admin-action-btn danger" onclick="adminDeleteUser(${u.id})" title="Delete User Permanently"><i class="fas fa-user-xmark"></i></button>
                 </div>
             </td>
         </tr>
@@ -614,6 +618,86 @@ function promptCredits(uid, current) {
         .catch(() => {});
 }
 
+async function adminBan(id) { if (!confirm('Ban this user?')) return; try { await api(`/api/admin/users/${id}/ban`, { method: 'POST' }); toast('Banned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
+async function adminUnban(id) { try { await api(`/api/admin/users/${id}/unban`, { method: 'POST' }); toast('Unbanned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
+
+function promptBalance(uid, current) {
+    const amt = prompt(`Current balance: ₹${current}\nEnter amount (negative to remove):`);
+    if (amt === null) return;
+    const val = parseFloat(amt);
+    if (isNaN(val)) { toast('Invalid amount', 'error'); return; }
+    api(`/api/admin/users/${uid}/balance`, { method: 'POST', body: JSON.stringify({ amount: val }) })
+        .then(() => { toast('Balance updated', 'success'); loadAdminUsers(); })
+        .catch(() => {});
+}
+
+/* Advanced User Edit Modal handlers */
+async function openAdminUserEditModal(uid) {
+    try {
+        const u = await api(`/api/admin/users/${uid}`);
+        document.getElementById('editUserId').value = u.id;
+        document.getElementById('editUsername').value = u.username;
+        document.getElementById('editEmail').value = u.email;
+        document.getElementById('editPlan').value = u.plan;
+        document.getElementById('editCredits').value = u.credits;
+        document.getElementById('editWalletBalance').value = u.wallet_balance;
+        document.getElementById('editReferralCode').value = u.referral_code || '';
+        document.getElementById('editReferredBy').value = u.referred_by || '';
+
+        if (u.free_deploy_until) {
+            // Format ISO date for datetime-local input (YYYY-MM-DDTHH:MM)
+            const dt = new Date(u.free_deploy_until);
+            const formatted = dt.toISOString().slice(0, 16);
+            document.getElementById('editFreeUntil').value = formatted;
+        } else {
+            document.getElementById('editFreeUntil').value = '';
+        }
+
+        document.getElementById('adminUserEditModal').classList.add('show');
+    } catch (err) {}
+}
+
+function closeAdminUserEditModal() {
+    document.getElementById('adminUserEditModal').classList.remove('show');
+}
+
+async function submitAdminUserEdit(e) {
+    e.preventDefault();
+    const uid = document.getElementById('editUserId').value;
+    const payload = {
+        username: document.getElementById('editUsername').value,
+        email: document.getElementById('editEmail').value,
+        plan: document.getElementById('editPlan').value,
+        credits: parseInt(document.getElementById('editCredits').value),
+        wallet_balance: parseFloat(document.getElementById('editWalletBalance').value),
+        referral_code: document.getElementById('editReferralCode').value,
+        referred_by: document.getElementById('editReferredBy').value,
+        free_deploy_until: document.getElementById('editFreeUntil').value || null
+    };
+
+    try {
+        await api(`/api/admin/users/${uid}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+        toast('User details updated successfully!', 'success');
+        closeAdminUserEditModal();
+        loadAdminUsers();
+        loadAdminStats();
+    } catch (err) {}
+}
+
+async function adminDeleteUser(uid) {
+    if (!confirm('CRITICAL WARNING: Are you sure you want to permanently delete this user, ALL of their deployments, chat messages, payment history, and referrals? This cannot be undone!')) return;
+    try {
+        await api(`/api/admin/users/${uid}`, { method: 'DELETE' });
+        toast('User and all associated data deleted successfully', 'success');
+        loadAdminUsers();
+        loadAdminStats();
+    } catch (err) {}
+}
+
+/* Deployments handlers */
 let allAdminDeps = [];
 async function loadAdminDeployments(filterUid = null) {
     const el = document.getElementById('adminDepsTable');
@@ -642,10 +726,15 @@ function renderAdminDeps(deps) {
             <td><span class="status-badge status-${d.status}">${d.status}</span></td>
             <td>${d.port || '-'}</td>
             <td>
-                <div class="flex gap-1">
-                    ${d.status === 'running' ? `<button class="admin-action-btn danger" onclick="adminStopDep(${d.id})" title="Stop"><i class="fas fa-stop"></i></button>` : ''}
+                <div class="flex gap-1" style="flex-wrap: wrap; max-width: 220px;">
+                    ${d.status === 'running'
+                        ? `<button class="admin-action-btn danger" onclick="adminStopDep(${d.id})" title="Stop"><i class="fas fa-stop"></i></button>`
+                        : `<button class="admin-action-btn success" onclick="adminStartDep(${d.id})" title="Start"><i class="fas fa-play"></i></button>`
+                    }
+                    <button class="admin-action-btn success" onclick="adminRestartDep(${d.id})" title="Restart"><i class="fas fa-arrows-rotate"></i></button>
                     <button class="admin-action-btn" onclick="adminViewDepLogs(${d.id})" title="Logs"><i class="fas fa-terminal"></i></button>
                     <button class="admin-action-btn" onclick="adminShowDepInfo(${d.id})" title="Info"><i class="fas fa-info-circle"></i></button>
+                    <button class="admin-action-btn" onclick="openAdminDepEditModal(${d.id})" title="Edit Settings"><i class="fas fa-sliders"></i></button>
                     <button class="admin-action-btn danger" onclick="adminDeleteDep(${d.id})" title="Delete"><i class="fas fa-trash"></i></button>
                 </div>
             </td>
@@ -675,46 +764,215 @@ function adminShowDepInfo(id) {
     alert(info);
 }
 
-async function adminBan(id) { if (!confirm('Ban this user?')) return; try { await api(`/api/admin/users/${id}/ban`, { method: 'POST' }); toast('Banned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
-async function adminUnban(id) { try { await api(`/api/admin/users/${id}/unban`, { method: 'POST' }); toast('Unbanned', 'success'); loadAdminUsers(); loadAdminStats(); } catch {} }
-
-function promptBalance(uid, current) {
-    const amt = prompt(`Current balance: ₹${current}\nEnter amount (negative to remove):`);
-    if (amt === null) return;
-    const val = parseFloat(amt);
-    if (isNaN(val)) { toast('Invalid amount', 'error'); return; }
-    api(`/api/admin/users/${uid}/balance`, { method: 'POST', body: JSON.stringify({ amount: val }) })
-        .then(() => { toast('Balance updated', 'success'); loadAdminUsers(); })
-        .catch(() => {});
-}
-
-async function loadAdminDeployments() {
-    const el = document.getElementById('adminDepsTable');
-    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+async function adminStartDep(id) {
     try {
-        const deps = await api('/api/admin/deployments');
-        if (!deps.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No deployments</td></tr>'; return; }
-        el.innerHTML = deps.map(d => `
-            <tr>
-                <td>${d.id}</td>
-                <td style="color:#fff">${esc(d.username)}</td>
-                <td>${esc(d.name)}</td>
-                <td>${d.type}</td>
-                <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.repo_url || '-')}</td>
-                <td><span class="status-badge status-${d.status}">${d.status}</span></td>
-                <td>${d.port || '-'}</td>
-                <td>
-                    ${d.status === 'running' ? `<button class="admin-action-btn danger" onclick="adminStopDep(${d.id})">Stop</button>` : ''}
-                    <button class="admin-action-btn" onclick="adminViewDepLogs(${d.id})">Logs</button>
-                    <button class="admin-action-btn danger" onclick="adminDeleteDep(${d.id})">Del</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error</td></tr>'; }
+        await api(`/api/admin/deployments/${id}/start`, { method: 'POST' });
+        toast('Start command issued', 'success');
+        setTimeout(() => loadAdminDeployments(), 1000);
+    } catch {}
 }
 
-async function adminStopDep(id) { try { await api(`/api/admin/deployments/${id}/stop`, { method: 'POST' }); toast('Stopped', 'success'); loadAdminDeployments(); } catch {} }
-async function adminDeleteDep(id) { if (!confirm('Delete?')) return; try { await api(`/api/admin/deployments/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadAdminDeployments(); } catch {} }
+async function adminRestartDep(id) {
+    try {
+        await api(`/api/admin/deployments/${id}/restart`, { method: 'POST' });
+        toast('Restart command issued', 'success');
+        setTimeout(() => loadAdminDeployments(), 1000);
+    } catch {}
+}
+
+async function adminStopDep(id) {
+    try {
+        await api(`/api/admin/deployments/${id}/stop`, { method: 'POST' });
+        toast('Stopped', 'success');
+        loadAdminDeployments();
+    } catch {}
+}
+
+async function adminDeleteDep(id) {
+    if (!confirm('Are you sure you want to permanently delete this deployment and clean up its directories?')) return;
+    try {
+        await api(`/api/admin/deployments/${id}/delete`, { method: 'DELETE' });
+        toast('Deleted', 'success');
+        loadAdminDeployments();
+    } catch {}
+}
+
+/* Edit Deployment handlers */
+async function openAdminDepEditModal(id) {
+    try {
+        const d = await api(`/api/admin/deployments/${id}`);
+        document.getElementById('editDepId').value = d.id;
+        document.getElementById('editDepName').value = d.name;
+        document.getElementById('editDepRepo').value = d.repo_url || '';
+        document.getElementById('editDepBranch').value = d.branch || 'main';
+        document.getElementById('editDepBuild').value = d.build_command || '';
+        document.getElementById('editDepDeploy').value = d.deploy_command || '';
+        document.getElementById('editDepEnv').value = d.env_vars || '';
+
+        document.getElementById('adminDepEditModal').classList.add('show');
+    } catch (err) {}
+}
+
+function closeAdminDepEditModal() {
+    document.getElementById('adminDepEditModal').classList.remove('show');
+}
+
+async function submitAdminDepEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('editDepId').value;
+    const payload = {
+        name: document.getElementById('editDepName').value,
+        repo_url: document.getElementById('editDepRepo').value,
+        branch: document.getElementById('editDepBranch').value,
+        build_command: document.getElementById('editDepBuild').value,
+        deploy_command: document.getElementById('editDepDeploy').value,
+        env_vars: document.getElementById('editDepEnv').value
+    };
+
+    try {
+        await api(`/api/admin/deployments/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+        toast('Deployment settings updated successfully!', 'success');
+        closeAdminDepEditModal();
+        loadAdminDeployments();
+    } catch (err) {}
+}
+
+/* Blog Management handlers */
+async function loadAdminBlogs() {
+    const el = document.getElementById('adminBlogsTable');
+    el.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        const blogs = await api('/api/admin/blogs');
+        renderAdminBlogs(blogs);
+    } catch { el.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center">Error loading blogs</td></tr>'; }
+}
+
+function renderAdminBlogs(blogs) {
+    const el = document.getElementById('adminBlogsTable');
+    if (!blogs.length) { el.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:20px">No blog posts found</td></tr>'; return; }
+    el.innerHTML = blogs.map(b => `
+        <tr>
+            <td>${b.id}</td>
+            <td style="color:#fff; font-weight: 500">${esc(b.title)}</td>
+            <td><code>${esc(b.slug)}</code></td>
+            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${esc(b.excerpt || '-')}</td>
+            <td>${new Date(b.created_at).toLocaleDateString()}</td>
+            <td>
+                <div class="flex gap-1">
+                    <button class="admin-action-btn" onclick="openBlogEditModal(${b.id})" title="Edit Blog"><i class="fas fa-pen"></i></button>
+                    <button class="admin-action-btn danger" onclick="adminDeleteBlog(${b.id})" title="Delete Blog"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openBlogCreateModal() {
+    document.getElementById('editBlogId').value = '';
+    document.getElementById('editBlogTitle').value = '';
+    document.getElementById('editBlogSlug').value = '';
+    document.getElementById('editBlogExcerpt').value = '';
+    document.getElementById('editBlogContent').value = '';
+    document.getElementById('blogModalTitle').innerHTML = '<i class="fas fa-pen-nib" style="color:var(--accent);margin-right:8px"></i>Create Blog Post';
+    document.getElementById('blogSubmitBtn').textContent = 'Publish Post';
+    document.getElementById('adminBlogEditModal').classList.add('show');
+}
+
+async function openBlogEditModal(bid) {
+    try {
+        // Find blog inside local list or fetch blogs again
+        const blogs = await api('/api/admin/blogs');
+        const b = blogs.find(item => item.id === bid);
+        if (!b) return;
+
+        document.getElementById('editBlogId').value = b.id;
+        document.getElementById('editBlogTitle').value = b.title;
+        document.getElementById('editBlogSlug').value = b.slug;
+        document.getElementById('editBlogExcerpt').value = b.excerpt || '';
+        document.getElementById('editBlogContent').value = b.content;
+
+        document.getElementById('blogModalTitle').innerHTML = '<i class="fas fa-pen-nib" style="color:var(--accent);margin-right:8px"></i>Edit Blog Post';
+        document.getElementById('blogSubmitBtn').textContent = 'Save Changes';
+        document.getElementById('adminBlogEditModal').classList.add('show');
+    } catch (err) {}
+}
+
+function closeAdminBlogEditModal() {
+    document.getElementById('adminBlogEditModal').classList.remove('show');
+}
+
+async function submitAdminBlogEdit(e) {
+    e.preventDefault();
+    const bid = document.getElementById('editBlogId').value;
+    const payload = {
+        title: document.getElementById('editBlogTitle').value,
+        slug: document.getElementById('editBlogSlug').value,
+        excerpt: document.getElementById('editBlogExcerpt').value,
+        content: document.getElementById('editBlogContent').value
+    };
+
+    const isEdit = !!bid;
+    const url = isEdit ? `/api/admin/blogs/${bid}` : '/api/admin/blogs';
+    const method = isEdit ? 'PUT' : 'POST';
+
+    try {
+        await api(url, {
+            method: method,
+            body: JSON.stringify(payload)
+        });
+        toast(isEdit ? 'Blog post updated!' : 'Blog post published!', 'success');
+        closeAdminBlogEditModal();
+        loadAdminBlogs();
+    } catch (err) {}
+}
+
+async function adminDeleteBlog(bid) {
+    if (!confirm('Are you sure you want to permanently delete this blog post?')) return;
+    try {
+        await api(`/api/admin/blogs/${bid}`, { method: 'DELETE' });
+        toast('Blog post deleted successfully', 'success');
+        loadAdminBlogs();
+    } catch (err) {}
+}
+
+/* Global Transactions handlers */
+let allAdminTransactions = [];
+async function loadAdminTransactions() {
+    const el = document.getElementById('adminTransactionsTable');
+    el.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        allAdminTransactions = await api('/api/admin/transactions');
+        renderAdminTransactions(allAdminTransactions);
+    } catch { el.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center">Error loading transactions</td></tr>'; }
+}
+
+function renderAdminTransactions(txs) {
+    const el = document.getElementById('adminTransactionsTable');
+    if (!txs.length) { el.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:20px">No transaction records</td></tr>'; return; }
+    el.innerHTML = txs.map(t => `
+        <tr>
+            <td>${t.id}</td>
+            <td style="color:#fff">${esc(t.username)}</td>
+            <td><code>${t.tx_type}</code></td>
+            <td class="${t.amount >= 0 ? 'text-accent' : 'text-danger'}">₹${t.amount.toFixed(2)}</td>
+            <td>${esc(t.description || '-')}</td>
+            <td style="font-size:11px">${new Date(t.created_at).toLocaleString()}</td>
+        </tr>
+    `).join('');
+}
+
+function filterTransactions() {
+    const q = document.getElementById('txSearch').value.toLowerCase();
+    const filtered = allAdminTransactions.filter(t =>
+        t.username.toLowerCase().includes(q) ||
+        (t.description && t.description.toLowerCase().includes(q)) ||
+        t.tx_type.toLowerCase().includes(q)
+    );
+    renderAdminTransactions(filtered);
+}
 
 async function loadAdminPayments() {
     const el = document.getElementById('adminPaymentsTable');

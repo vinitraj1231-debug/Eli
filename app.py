@@ -1140,6 +1140,262 @@ def api_admin_unban_ip(bid):
     db.session.commit()
     return jsonify({'message': f'IP {auth.ip_address} unbanned'})
 
+# ===================== ADVANCED ADMIN ENDPOINTS =====================
+
+@app.route('/api/admin/users/<int:uid>', methods=['GET'])
+@admin_required
+def api_admin_get_user(uid):
+    user = User.query.get_or_404(uid)
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'plan': user.plan,
+        'wallet_balance': user.wallet_balance,
+        'credits': user.credits,
+        'is_banned': user.is_banned,
+        'referral_code': user.referral_code,
+        'referred_by': user.referred_by,
+        'free_deploy_until': user.free_deploy_until.isoformat() if user.free_deploy_until else None,
+        'created_at': user.created_at.isoformat()
+    })
+
+@app.route('/api/admin/users/<int:uid>', methods=['PUT'])
+@admin_required
+def api_admin_update_user(uid):
+    user = User.query.get_or_404(uid)
+    data = request.get_json()
+
+    if 'username' in data:
+        username = data['username'].strip().lower()
+        if username and username != user.username:
+            if User.query.filter_by(username=username).first():
+                return jsonify({'error': 'Username already taken'}), 400
+            user.username = username
+
+    if 'email' in data:
+        email = data['email'].strip().lower()
+        if email and email != user.email:
+            if User.query.filter_by(email=email).first():
+                return jsonify({'error': 'Email already registered'}), 400
+            user.email = email
+
+    if 'plan' in data:
+        user.plan = data['plan']
+
+    if 'credits' in data:
+        user.credits = int(data['credits'])
+
+    if 'wallet_balance' in data:
+        user.wallet_balance = float(data['wallet_balance'])
+
+    if 'referral_code' in data:
+        ref_code = data['referral_code'].strip().upper()
+        if ref_code and ref_code != user.referral_code:
+            if User.query.filter_by(referral_code=ref_code).first():
+                return jsonify({'error': 'Referral code already taken'}), 400
+            user.referral_code = ref_code
+
+    if 'referred_by' in data:
+        ref_by = data['referred_by']
+        if ref_by == "":
+            user.referred_by = None
+        else:
+            user.referred_by = int(ref_by)
+
+    if 'free_deploy_until' in data:
+        val = data['free_deploy_until']
+        if not val:
+            user.free_deploy_until = None
+        else:
+            try:
+                user.free_deploy_until = datetime.fromisoformat(val.replace('Z', ''))
+            except ValueError:
+                return jsonify({'error': 'Invalid date format'}), 400
+
+    db.session.commit()
+    return jsonify({'message': f'User {user.username} updated successfully'})
+
+@app.route('/api/admin/users/<int:uid>', methods=['DELETE'])
+@admin_required
+def api_admin_delete_user(uid):
+    user = User.query.get_or_404(uid)
+
+    # 1. Stop and Delete all deployments of this user
+    deps = Deployment.query.filter_by(user_id=uid).all()
+    for d in deps:
+        try:
+            engine = DeployEngine(d.id)
+            engine.delete()
+        except Exception as e:
+            pass
+
+    # 2. Delete chat messages
+    ChatMessage.query.filter_by(user_id=uid).delete()
+
+    # 3. Delete transactions
+    Transaction.query.filter_by(user_id=uid).delete()
+
+    # 4. Delete payments
+    PaymentRequest.query.filter_by(user_id=uid).delete()
+
+    # 5. Delete referrals where user is referred or referrer
+    Referral.query.filter((Referral.referrer_id == uid) | (Referral.referred_id == uid)).delete()
+
+    # 6. Delete user
+    db.session.delete(user)
+    db.session.commit()
+
+    return jsonify({'message': f'User {user.username} and all their data permanently deleted'})
+
+@app.route('/api/admin/deployments/<int:dep_id>', methods=['GET'])
+@admin_required
+def api_admin_get_dep(dep_id):
+    dep = Deployment.query.get_or_404(dep_id)
+    return jsonify({
+        'id': dep.id,
+        'user_id': dep.user_id,
+        'username': User.query.get(dep.user_id).username if User.query.get(dep.user_id) else 'Unknown',
+        'name': dep.name,
+        'deploy_type': dep.deploy_type,
+        'repo_url': dep.repo_url,
+        'branch': dep.branch,
+        'build_command': dep.build_command,
+        'deploy_command': dep.deploy_command,
+        'env_vars': dep.env_vars,
+        'status': dep.status,
+        'is_free': dep.is_free,
+        'port': dep.port,
+        'created_at': dep.created_at.isoformat()
+    })
+
+@app.route('/api/admin/deployments/<int:dep_id>', methods=['PUT'])
+@admin_required
+def api_admin_update_dep(dep_id):
+    dep = Deployment.query.get_or_404(dep_id)
+    data = request.get_json()
+
+    if 'name' in data:
+        dep.name = data['name'].strip()
+    if 'repo_url' in data:
+        dep.repo_url = data['repo_url'].strip() or None
+    if 'branch' in data:
+        dep.branch = data['branch'].strip() or 'main'
+    if 'build_command' in data:
+        dep.build_command = data['build_command'].strip() or None
+    if 'deploy_command' in data:
+        dep.deploy_command = data['deploy_command'].strip() or None
+    if 'env_vars' in data:
+        dep.env_vars = data['env_vars']
+
+    db.session.commit()
+    return jsonify({'message': f'Deployment {dep.name} updated successfully'})
+
+@app.route('/api/admin/deployments/<int:dep_id>/start', methods=['POST'])
+@admin_required
+def api_admin_start_dep_endpoint(dep_id):
+    dep = Deployment.query.get_or_404(dep_id)
+    engine = DeployEngine(dep_id)
+    success = engine.start()
+    return jsonify({'message': 'Started' if success else 'Failed', 'status': dep.status})
+
+@app.route('/api/admin/deployments/<int:dep_id>/restart', methods=['POST'])
+@admin_required
+def api_admin_restart_dep(dep_id):
+    dep = Deployment.query.get_or_404(dep_id)
+    engine = DeployEngine(dep_id)
+    engine.stop()
+    success = engine.start()
+    return jsonify({'message': 'Restarted' if success else 'Failed', 'status': dep.status})
+
+# --- BLOGS MANAGEMENT ROUTE (CRUD) ---
+
+@app.route('/api/admin/blogs', methods=['GET'])
+@admin_required
+def api_admin_blogs_list():
+    blogs = BlogPost.query.order_by(BlogPost.created_at.desc()).all()
+    return jsonify([{
+        'id': b.id,
+        'title': b.title,
+        'slug': b.slug,
+        'content': b.content,
+        'excerpt': b.excerpt,
+        'created_at': b.created_at.isoformat()
+    } for b in blogs])
+
+@app.route('/api/admin/blogs', methods=['POST'])
+@admin_required
+def api_admin_create_blog():
+    data = request.get_json()
+    title = data.get('title', '').strip()
+    content = data.get('content', '').strip()
+    excerpt = data.get('excerpt', '').strip() or None
+
+    if not title or not content:
+        return jsonify({'error': 'Title and Content are required'}), 400
+
+    # Auto generate slug if not provided or just generate clean one
+    slug = data.get('slug', '').strip().lower()
+    if not slug:
+        slug = title.replace(' ', '-').replace('/', '-').replace('?', '').replace('&', '')
+        slug = ''.join(c for c in slug if c.isalnum() or c == '-')
+
+    # Check uniqueness of slug
+    if BlogPost.query.filter_by(slug=slug).first():
+        slug = f"{slug}-{uuid.uuid4().hex[:4]}"
+
+    blog = BlogPost(title=title, slug=slug, content=content, excerpt=excerpt)
+    db.session.add(blog)
+    db.session.commit()
+    return jsonify({'message': 'Blog post created successfully', 'id': blog.id})
+
+@app.route('/api/admin/blogs/<int:bid>', methods=['PUT'])
+@admin_required
+def api_admin_update_blog(bid):
+    blog = BlogPost.query.get_or_404(bid)
+    data = request.get_json()
+
+    if 'title' in data:
+        blog.title = data['title'].strip()
+    if 'content' in data:
+        blog.content = data['content'].strip()
+    if 'excerpt' in data:
+        blog.excerpt = data['excerpt'].strip() or None
+    if 'slug' in data:
+        slug = data['slug'].strip().lower()
+        if slug and slug != blog.slug:
+            if BlogPost.query.filter_by(slug=slug).first():
+                return jsonify({'error': 'Slug already in use'}), 400
+            blog.slug = slug
+
+    db.session.commit()
+    return jsonify({'message': 'Blog post updated successfully'})
+
+@app.route('/api/admin/blogs/<int:bid>', methods=['DELETE'])
+@admin_required
+def api_admin_delete_blog(bid):
+    blog = BlogPost.query.get_or_404(bid)
+    db.session.delete(blog)
+    db.session.commit()
+    return jsonify({'message': 'Blog post deleted successfully'})
+
+# --- GLOBAL TRANSACTION HISTORY ---
+
+@app.route('/api/admin/transactions', methods=['GET'])
+@admin_required
+def api_admin_transactions_list():
+    txs = Transaction.query.order_by(Transaction.created_at.desc()).all()
+    return jsonify([{
+        'id': t.id,
+        'user_id': t.user_id,
+        'username': User.query.get(t.user_id).username if User.query.get(t.user_id) else 'Unknown',
+        'tx_type': t.tx_type,
+        'amount': t.amount,
+        'description': t.description,
+        'created_at': t.created_at.isoformat()
+    } for t in txs])
+
+
 # ===================== RUN =====================
 
 if __name__ == '__main__':
