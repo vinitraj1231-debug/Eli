@@ -92,6 +92,12 @@ class AdminAuth(db.Model):
     failed_attempts = db.Column(db.Integer, default=0)
     is_banned = db.Column(db.Boolean, default=False)
 
+class RateLimit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(50), nullable=False)
+    endpoint = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -133,6 +139,52 @@ def admin_required(f):
             return jsonify({'error': 'Admin login required'}), 401
         return f(*args, **kwargs)
     return decorated
+
+def rate_limit(limit=5, period=60):
+    """
+    Decorator to apply rate limiting to endpoints.
+    Allows 'limit' requests per 'period' seconds from the same IP address.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            ip = get_client_ip()
+            endpoint = request.path
+            now = datetime.utcnow()
+            cutoff = now - timedelta(seconds=period)
+
+            # Clean up old rate limit records occasionally
+            # Clean up records older than 1 hour to keep DB clean
+            try:
+                RateLimit.query.filter(RateLimit.timestamp < (now - timedelta(hours=1))).delete()
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            # Count requests in the current period
+            count = RateLimit.query.filter(
+                RateLimit.ip_address == ip,
+                RateLimit.endpoint == endpoint,
+                RateLimit.timestamp >= cutoff
+            ).count()
+
+            if count >= limit:
+                return jsonify({
+                    'error': 'Too many requests. Please try again later.',
+                    'retry_after_seconds': period
+                }), 429
+
+            # Log current request
+            try:
+                rl_record = RateLimit(ip_address=ip, endpoint=endpoint, timestamp=now)
+                db.session.add(rl_record)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
 
 def generate_referral_code():
     code = uuid.uuid4().hex[:8].upper()
@@ -486,15 +538,40 @@ def admin_page():
 @app.route('/blogs')
 def blogs_page():
     posts = BlogPost.query.order_by(BlogPost.created_at.desc()).all()
-    return render_template('index.html', blogs=posts)
+    seo = {
+        'title': 'Developer Blogs & Tech Insights | EliteHosting',
+        'description': 'Read the latest technical write-ups, cloud tutorials, and developer updates from the EliteHosting Team.',
+        'canonical': 'https://elitehosting.com/blogs'
+    }
+    return render_template('index.html', page='blogs', blogs=posts, seo=seo)
+
+@app.route('/blogs/<string:slug>')
+def blog_detail_page(slug):
+    post = BlogPost.query.filter_by(slug=slug).first_or_404()
+    seo = {
+        'title': f'{post.title} | EliteHosting Developer Blog',
+        'description': post.excerpt or post.content[:150],
+        'canonical': f'https://elitehosting.com/blogs/{post.slug}'
+    }
+    return render_template('index.html', page='blog_detail', blog=post, seo=seo)
 
 @app.route('/terms')
 def terms_page():
-    return render_template('index.html', page='terms')
+    seo = {
+        'title': 'Terms of Service | EliteHosting',
+        'description': 'Terms of Service, deployment policies, and user agreements for the EliteHosting deployment platform.',
+        'canonical': 'https://elitehosting.com/terms'
+    }
+    return render_template('index.html', page='terms', seo=seo)
 
 @app.route('/privacy')
 def privacy_page():
-    return render_template('index.html', page='privacy')
+    seo = {
+        'title': 'Privacy Policy | EliteHosting',
+        'description': 'Privacy policy, cookies policies, and personal data isolation safeguards at EliteHosting.',
+        'canonical': 'https://elitehosting.com/privacy'
+    }
+    return render_template('index.html', page='privacy', seo=seo)
 
 @app.route('/telegram-bot-hosting')
 def telegram_bot_hosting_page():
@@ -526,7 +603,20 @@ def sitemap_xml():
 
 # ===================== ROUTES — AUTH API =====================
 
+import re
+
+def is_valid_email(email):
+    # Simple regex verification for email format
+    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return bool(re.match(pattern, email))
+
+def is_valid_username(username):
+    # Only alphanumeric characters and underscores are allowed
+    pattern = r'^\w+$'
+    return bool(re.match(pattern, username))
+
 @app.route('/api/auth/register', methods=['POST'])
+@rate_limit(limit=3, period=60)  # max 3 registration requests per minute from same IP
 def api_register():
     data = request.get_json()
     username = data.get('username', '').strip().lower()
@@ -536,10 +626,14 @@ def api_register():
 
     if not username or not email or not password:
         return jsonify({'error': 'All fields required'}), 400
-    if len(username) < 3:
-        return jsonify({'error': 'Username min 3 chars'}), 400
-    if len(password) < 6:
-        return jsonify({'error': 'Password min 6 chars'}), 400
+    if len(username) < 3 or len(username) > 30:
+        return jsonify({'error': 'Username must be between 3 and 30 characters'}), 400
+    if not is_valid_username(username):
+        return jsonify({'error': 'Username must contain only letters, numbers, and underscores'}), 400
+    if not is_valid_email(email):
+        return jsonify({'error': 'Invalid email address format'}), 400
+    if len(password) < 6 or len(password) > 100:
+        return jsonify({'error': 'Password must be between 6 and 100 characters'}), 400
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Username taken'}), 409
     if User.query.filter_by(email=email).first():
@@ -569,10 +663,14 @@ def api_register():
     }), 201
 
 @app.route('/api/auth/login', methods=['POST'])
+@rate_limit(limit=5, period=60)  # max 5 login requests per minute from same IP
 def api_login():
     data = request.get_json()
     username = data.get('username', '').strip().lower()
     password = data.get('password', '')
+
+    if not username or not password:
+        return jsonify({'error': 'Username/email and password are required'}), 400
 
     user = User.query.filter((User.username == username) | (User.email == username)).first()
     if not user or not check_password_hash(user.password_hash, password):
@@ -1397,6 +1495,18 @@ def api_admin_transactions_list():
 
 
 # ===================== RUN =====================
+
+@app.after_request
+def add_security_headers(response):
+    """
+    Appends security headers to all HTTP responses.
+    """
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Content-Security-Policy'] = "default-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline';"
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

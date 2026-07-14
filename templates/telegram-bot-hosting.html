@@ -309,6 +309,83 @@
             gap: 24px;
             margin-top: 30px;
         }
+
+        /* Security & Isolation Section Styles */
+        .security-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-top: 30px;
+        }
+        @media (min-width: 768px) {
+            .security-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .security-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.3s ease;
+        }
+        .security-card:hover {
+            border-color: rgba(0, 230, 118, 0.4);
+            background: var(--card-hover);
+            transform: translateY(-2px);
+        }
+        .security-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .security-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            background: var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .security-header h3 {
+            font-family: var(--font-heading);
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+        }
+        .security-body {
+            font-size: 13px;
+            color: var(--muted-light);
+            line-height: 1.7;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .security-body p {
+            margin: 0;
+        }
+        .security-body code {
+            background: rgba(255,255,255,0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #fff;
+            font-size: 12px;
+        }
+        .tech-detail {
+            border-left: 2px solid var(--accent);
+            padding-left: 14px;
+            color: var(--text-dim);
+            font-size: 12.5px;
+        }
         .step-item {
             display: flex;
             gap: 20px;
@@ -502,7 +579,84 @@
             </div>
         </section>
 
-        <!-- ===== SECTION 4: TECHNICAL DEEP DIVE ===== -->
+        <!-- ===== SECTION 4: ENTERPRISE-GRADE SECURITY & DATA ISOLATION ===== -->
+        <section class="section reveal" aria-labelledby="security-heading">
+            <div class="section-label">ENTERPRISE-GRADE SECURITY</div>
+            <h2 id="security-heading" class="section-title">Security &amp; Data Isolation</h2>
+            <p class="section-desc">Protecting a bot developer's most critical assets through hardened architecture, encrypted execution loops, and strict network isolation.</p>
+
+            <div class="security-grid">
+                <!-- Vector 1: Secret Injection & API Protection -->
+                <div class="security-card">
+                    <div class="security-header">
+                        <div class="security-icon">
+                            <i class="fas fa-vault"></i>
+                        </div>
+                        <h3>Secret Injection &amp; API Protection</h3>
+                    </div>
+                    <div class="security-body">
+                        <p>Credentials such as Telegram Bot Tokens, Webhook secrets, MongoDB URIs, and Supabase API keys should never exist in plaintext files or public Git repositories.</p>
+                        <p>EliteHosting secures these critical variables through runtime environment injection. Environment variables configured in our dashboard UI are encrypted in transit and at rest within our configuration store. During container startup, these variables are strictly injected as in-memory environment variables (via system env scopes), ensuring that plaintext <code>.env</code> files are never serialized onto the physical filesystem.</p>
+                        <div class="tech-detail">
+                            <strong>Technical Vector:</strong> Prevents unauthorized reading of system secrets via symlink directory traversals, arbitrary file read exploits, or accidental repository exposure.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vector 2: Session String & Container Isolation -->
+                <div class="security-card">
+                    <div class="security-header">
+                        <div class="security-icon">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <h3>Session String &amp; Container Isolation</h3>
+                    </div>
+                    <div class="security-body">
+                        <p>Telegram frameworks like Pyrogram and Telethon persist state using sqlite-based <code>.session</code> files or unique cryptographic string sessions. If leaked, these authorize direct account hijack.</p>
+                        <p>EliteHosting enforces complete containerized process isolation. Each deployment operates in a heavily restricted environment with namespace isolation, dedicated UID/GIDs, and restricted virtual mount-points. Cross-tenant access is architecturally impossible. No process running inside Tenant A's context can query memory maps, file descriptors, or directory trees belonging to Tenant B.</p>
+                        <div class="tech-detail">
+                            <strong>Technical Vector:</strong> Uses Linux cgroups and namespace virtualization to guarantee total security of sensitive session files and credentials.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vector 3: Network-Level Filtering -->
+                <div class="security-card">
+                    <div class="security-header">
+                        <div class="security-icon">
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <h3>Network-Level Filtering</h3>
+                    </div>
+                    <div class="security-body">
+                        <p>Bots exposed to public webhooks are prime targets for malicious Layer 7 DDoS attacks, HTTP request flooding, and memory buffer exploits.</p>
+                        <p>We deploy high-performance reverse-proxy layers upstream of all webhook endpoints. This gateway automatically filters traffic, dropping non-Telegram requests, dropping malformed packet payloads, and rate-limiting incoming traffic. This drop occurs at the reverse-proxy stage before hitting the bot's asynchronous event loop, preserving precious RAM and CPU thread availability.</p>
+                        <div class="tech-detail">
+                            <strong>Technical Vector:</strong> Prevents malicious traffic from exhausting the bot's runtime loop, mitigating Layer 7 attacks and memory-exhaustion exploits.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vector 4: Terminal / Execution Safety -->
+                <div class="security-card">
+                    <div class="security-header">
+                        <div class="security-icon">
+                            <i class="fas fa-terminal"></i>
+                        </div>
+                        <h3>Terminal / Execution Safety</h3>
+                    </div>
+                    <div class="security-body">
+                        <p>Developers writing, building, and deploying scripts via mobile terminal environments, Termux, or SSH clients require assurance of sandboxed safety.</p>
+                        <p>All user deployments are strictly sandboxed at the kernel level. Executions are bound via scheduler priority and hard limit allocations for RAM and CPU. Even in the event of an infinite loop, recursive subprocess calls, or unauthorized system binary execution, the process is contained. Our host agent intercepts illegal syscalls and halts runaway threads immediately.</p>
+                        <div class="tech-detail">
+                            <strong>Technical Vector:</strong> Implements strict micro-isolation boundaries (CPU quota limits and hard RAM bounds) to prevent global service degradation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== SECTION 4.5: TECHNICAL DEEP DIVE ===== -->
         <section class="section reveal" aria-labelledby="code-heading">
             <div class="section-label">TECHNICAL DEEP DIVE</div>
             <h2 id="code-heading" class="section-title">How Secrets Injection Works Natively</h2>
