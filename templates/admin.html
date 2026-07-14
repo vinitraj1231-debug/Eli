@@ -50,6 +50,8 @@
                 <button class="admin-nav-item" data-section="users"><i class="fas fa-users"></i> Users</button>
                 <button class="admin-nav-item" data-section="deployments"><i class="fas fa-server"></i> Deployments</button>
                 <button class="admin-nav-item" data-section="payments"><i class="fas fa-indian-rupee-sign"></i> Payments</button>
+                <button class="admin-nav-item" data-section="blogs"><i class="fas fa-blog"></i> Manage Blogs</button>
+                <button class="admin-nav-item" data-section="transactions"><i class="fas fa-receipt"></i> Global Tx Log</button>
                 <button class="admin-nav-item" data-section="chats"><i class="fas fa-comments"></i> Chats</button>
                 <button class="admin-nav-item" data-section="banned"><i class="fas fa-ban"></i> Banned IPs</button>
                 <div class="admin-nav-spacer"></div>
@@ -133,6 +135,34 @@
                     </div>
                 </div>
 
+                <!-- Section: Blogs -->
+                <div id="admin-blogs" class="admin-section hidden">
+                    <div class="admin-top">
+                        <h1>Manage Blogs</h1>
+                        <button class="btn btn-primary btn-sm" onclick="openBlogCreateModal()"><i class="fas fa-plus"></i> Create Blog</button>
+                    </div>
+                    <div class="admin-table-wrap" style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead><tr><th>ID</th><th>Title</th><th>Slug</th><th>Excerpt</th><th>Created At</th><th>Actions</th></tr></thead>
+                            <tbody id="adminBlogsTable"><tr><td colspan="6" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section: Transactions -->
+                <div id="admin-transactions" class="admin-section hidden">
+                    <div class="admin-top">
+                        <h1>Global Transaction Log</h1>
+                        <input type="text" id="txSearch" class="form-input" placeholder="Search transactions..." oninput="filterTransactions()" style="max-width:250px; font-size:12px">
+                    </div>
+                    <div class="admin-table-wrap" style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead><tr><th>ID</th><th>Username</th><th>Type</th><th>Amount</th><th>Description</th><th>Created At</th></tr></thead>
+                            <tbody id="adminTransactionsTable"><tr><td colspan="6" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Section: Banned IPs -->
                 <div id="admin-banned" class="admin-section hidden">
                     <div class="admin-top"><h1>Banned Devices</h1></div>
@@ -150,6 +180,137 @@
                 <button onclick="closeAdminLogModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px"><i class="fas fa-xmark"></i></button>
             </div>
             <div class="log-terminal" id="adminLogContent">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Admin Edit User Modal -->
+    <div class="modal-overlay" id="adminUserEditModal" onclick="if(event.target===this)closeAdminUserEditModal()">
+        <div class="modal" style="max-width:450px">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="margin:0"><i class="fas fa-user-gear" style="color:var(--accent);margin-right:8px"></i>Edit User Details</h3>
+                <button onclick="closeAdminUserEditModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px"><i class="fas fa-xmark"></i></button>
+            </div>
+            <form id="adminUserEditForm" onsubmit="submitAdminUserEdit(event)">
+                <input type="hidden" id="editUserId">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="editUsername" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="editEmail" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Plan</label>
+                    <select id="editPlan" class="form-input" style="background:var(--surface);color:#fff">
+                        <option value="free">Free</option>
+                        <option value="premium">Premium</option>
+                        <option value="pro">Pro</option>
+                        <option value="enterprise">Enterprise</option>
+                    </select>
+                </div>
+                <div class="form-row flex gap-2" style="margin-bottom:16px">
+                    <div class="form-group flex-1">
+                        <label>Credits</label>
+                        <input type="number" id="editCredits" class="form-input" min="0" required>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Wallet Balance (₹)</label>
+                        <input type="number" id="editWalletBalance" class="form-input" min="0" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Referral Code</label>
+                    <input type="text" id="editReferralCode" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Referred By (User ID)</label>
+                    <input type="number" id="editReferredBy" class="form-input" placeholder="e.g. 1 (optional)">
+                </div>
+                <div class="form-group">
+                    <label>Free Deployment Until (ISO Date)</label>
+                    <input type="datetime-local" id="editFreeUntil" class="form-input" style="color-scheme:dark">
+                    <small class="text-muted" style="font-size:10px">Leave blank if expired/none</small>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-secondary flex-1" onclick="closeAdminUserEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-1">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Edit Deployment Modal -->
+    <div class="modal-overlay" id="adminDepEditModal" onclick="if(event.target===this)closeAdminDepEditModal()">
+        <div class="modal" style="max-width:480px">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="margin:0"><i class="fas fa-sliders" style="color:var(--accent);margin-right:8px"></i>Edit Deployment</h3>
+                <button onclick="closeAdminDepEditModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px"><i class="fas fa-xmark"></i></button>
+            </div>
+            <form id="adminDepEditForm" onsubmit="submitAdminDepEdit(event)">
+                <input type="hidden" id="editDepId">
+                <div class="form-group">
+                    <label>Deployment Name</label>
+                    <input type="text" id="editDepName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Repository URL (GitHub)</label>
+                    <input type="url" id="editDepRepo" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Branch</label>
+                    <input type="text" id="editDepBranch" class="form-input" placeholder="main">
+                </div>
+                <div class="form-group">
+                    <label>Build Command</label>
+                    <input type="text" id="editDepBuild" class="form-input" placeholder="pip install -r requirements.txt">
+                </div>
+                <div class="form-group">
+                    <label>Deploy Command</label>
+                    <input type="text" id="editDepDeploy" class="form-input" placeholder="python3 main.py">
+                </div>
+                <div class="form-group">
+                    <label>Environment Variables (JSON List or Object)</label>
+                    <textarea id="editDepEnv" class="form-input" style="height:120px; font-family:monospace; font-size:11px" placeholder='[{"id": "TOKEN", "key": "123"}]'></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-secondary flex-1" onclick="closeAdminDepEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-1">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Edit/Create Blog Modal -->
+    <div class="modal-overlay" id="adminBlogEditModal" onclick="if(event.target===this)closeAdminBlogEditModal()">
+        <div class="modal" style="max-width:550px">
+            <div class="flex justify-between items-center mb-4">
+                <h3 style="margin:0" id="blogModalTitle"><i class="fas fa-pen-nib" style="color:var(--accent);margin-right:8px"></i>Create Blog Post</h3>
+                <button onclick="closeAdminBlogEditModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px"><i class="fas fa-xmark"></i></button>
+            </div>
+            <form id="adminBlogEditForm" onsubmit="submitAdminBlogEdit(event)">
+                <input type="hidden" id="editBlogId">
+                <div class="form-group">
+                    <label>Blog Title</label>
+                    <input type="text" id="editBlogTitle" class="form-input" required placeholder="e.g. Setting up your Bot">
+                </div>
+                <div class="form-group">
+                    <label>Slug (URL Segment, optional)</label>
+                    <input type="text" id="editBlogSlug" class="form-input" placeholder="e.g. setting-up-your-bot">
+                </div>
+                <div class="form-group">
+                    <label>Excerpt / Short Summary</label>
+                    <input type="text" id="editBlogExcerpt" class="form-input" placeholder="Short description of the post...">
+                </div>
+                <div class="form-group">
+                    <label>Content (supports HTML/Text)</label>
+                    <textarea id="editBlogContent" class="form-input" style="height:200px" required placeholder="Full blog post content..."></textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-secondary flex-1" onclick="closeAdminBlogEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-1" id="blogSubmitBtn">Publish Post</button>
+                </div>
+            </form>
         </div>
     </div>
 
