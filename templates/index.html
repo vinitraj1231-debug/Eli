@@ -3,25 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if seo %}
+    <title>{{ seo.title }}</title>
+    <meta name="description" content="{{ seo.description }}">
+    <link rel="canonical" href="{{ seo.canonical }}">
+    {% else %}
     <title>EliteHosting | Best Instant Cloud Deployment Platform for Developers</title>
     <meta name="description" content="EliteHosting provides the fastest way to deploy your Python, Node.js, and web applications. Deploy instantly from GitHub or ZIP upload with auto-detection, real-time logs, and a powerful AI assistant. Get started for free today!">
+    <link rel="canonical" href="https://elitehosting.com">
+    {% endif %}
     <meta name="keywords" content="cloud hosting, instant deployment, python hosting, nodejs hosting, github deployment, zip upload deploy, best cloud platform, free hosting trial, premium cloud hosting, EliteHosting">
     <meta name="author" content="EliteHosting Team">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="https://elitehosting.com">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://elitehosting.com/">
-    <meta property="og:title" content="EliteHosting | Deploy Your Code Instantly & Scale with Ease">
-    <meta property="og:description" content="Stop worrying about servers. Deploy your projects in seconds with EliteHosting. Advanced auto-detection for Python and Node.js.">
+    <meta property="og:url" content="{{ seo.canonical if seo else 'https://elitehosting.com/' }}">
+    <meta property="og:title" content="{{ seo.title if seo else 'EliteHosting | Deploy Your Code Instantly & Scale with Ease' }}">
+    <meta property="og:description" content="{{ seo.description if seo else 'Stop worrying about servers. Deploy your projects in seconds with EliteHosting. Advanced auto-detection for Python and Node.js.' }}">
     <meta property="og:image" content="https://elitehosting.com/static/img/og-image.jpg">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://elitehosting.com/">
-    <meta property="twitter:title" content="EliteHosting | Deploy Your Code Instantly">
-    <meta property="twitter:description" content="The ultimate cloud platform for developers. Instant GitHub & ZIP deployments with live logs and AI support.">
+    <meta property="twitter:url" content="{{ seo.canonical if seo else 'https://elitehosting.com/' }}">
+    <meta property="twitter:title" content="{{ seo.title if seo else 'EliteHosting | Deploy Your Code Instantly' }}">
+    <meta property="twitter:description" content="{{ seo.description if seo else 'The ultimate cloud platform for developers. Instant GitHub & ZIP deployments with live logs and AI support.' }}">
     <meta property="twitter:image" content="https://elitehosting.com/static/img/og-image.jpg">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,6 +76,8 @@
     </header>
 
     <main>
+        {% if not page %}
+        <!-- ===== HOME PAGE ===== -->
         <!-- ===== HERO ===== -->
         <section class="hero" aria-labelledby="hero-heading">
             <div class="hero-glow" aria-hidden="true"></div>
@@ -184,6 +192,102 @@
             <p class="section-desc" style="margin-left:auto;margin-right:auto">Join hundreds of developers shipping code faster with EliteHosting.</p>
             <a href="/register" class="btn btn-primary" style="padding:12px 32px;font-size:14px"><i class="fas fa-rocket"></i> Start Free Now</a>
         </section>
+
+        {% elif page == 'blogs' %}
+        <!-- ===== BLOGS PAGE ===== -->
+        <section class="section">
+            <div class="section-label">LATEST UPDATES</div>
+            <h1 class="section-title">EliteHosting Blog</h1>
+            <p class="section-desc">Technical write-ups, platform updates, and cloud hosting insights from our development team.</p>
+
+            <div class="features-grid" style="margin-top: 30px;">
+                {% if blogs %}
+                    {% for blog in blogs %}
+                    <article class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-pen-nib"></i></div>
+                        <h2 style="font-family: var(--font-heading); font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 10px;">{{ blog.title }}</h2>
+                        <p style="font-size: 12px; color: var(--muted-light); margin-bottom: 14px;">{{ blog.excerpt or 'Read our latest tech updates and news.' }}</p>
+                        <a href="/blogs/{{ blog.slug }}" class="btn btn-secondary btn-sm"><i class="fas fa-book-open"></i> Read Full Post</a>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fas fa-pen-nib"></i>
+                        No blog posts published yet. Stay tuned!
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        {% elif page == 'blog_detail' %}
+        <!-- ===== BLOG DETAIL PAGE ===== -->
+        <section class="section" style="max-width: 800px;">
+            <div class="section-label" style="display: flex; align-items: center; gap: 8px;">
+                <a href="/blogs" style="color: var(--accent);"><i class="fas fa-arrow-left"></i> Back to Blogs</a>
+                <span>•</span>
+                <span>Published {{ blog.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            <h1 class="section-title" style="font-size: 36px; margin-top: 14px; margin-bottom: 24px; line-height: 1.2;">{{ blog.title }}</h1>
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; line-height: 1.8; font-size: 14px; color: var(--text);">
+                {{ blog.content | safe }}
+            </div>
+        </section>
+
+        {% elif page == 'terms' %}
+        <!-- ===== TERMS & CONDITIONS ===== -->
+        <section class="section" style="max-width: 800px;">
+            <div class="section-label">LEGAL</div>
+            <h1 class="section-title" style="font-size: 32px; margin-bottom: 14px;">Terms &amp; Conditions</h1>
+            <p class="section-desc">Last updated: April 2024</p>
+
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; line-height: 1.8; font-size: 13.5px; color: var(--text); display: flex; flex-direction: column; gap: 20px;">
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">1. Agreement to Terms</h3>
+                    <p>By accessing or using EliteHosting ("we," "our," "us"), you agree to be bound by these Terms and Conditions. If you do not agree to all of these terms, do not access or use our services.</p>
+                </div>
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">2. User Accounts &amp; Security</h3>
+                    <p>When you register an account, you must provide accurate and complete details. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+                </div>
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">3. Deployment Rules &amp; Acceptable Use</h3>
+                    <p>EliteHosting allows developers to deploy arbitrary Python, Node.js, and static scripts. However, you strictly agree NOT to deploy:</p>
+                    <ul style="list-style-type: square; margin-left: 20px; color: var(--text-dim); margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                        <li>Cryptocurrency miners or resource-exhausting scripts.</li>
+                        <li>Phishing sites, malware, or spamming scripts.</li>
+                        <li>Unlawful Telegram bot tasks violating Telegram's official terms of service.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">4. Payment, Wallet &amp; Commissions</h3>
+                    <p>We operate on a secure prepaid credit and wallet model. Topups are manual, requiring admin verification of payment transactions. Referral commissions (30%) are credited to the referrer's wallet after the referee's transaction approval and are eligible for withdrawal requests.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'privacy' %}
+        <!-- ===== PRIVACY POLICY ===== -->
+        <section class="section" style="max-width: 800px;">
+            <div class="section-label">PRIVACY</div>
+            <h1 class="section-title" style="font-size: 32px; margin-bottom: 14px;">Privacy Policy</h1>
+            <p class="section-desc">Last updated: April 2024</p>
+
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; line-height: 1.8; font-size: 13.5px; color: var(--text); display: flex; flex-direction: column; gap: 20px;">
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">1. Information We Collect</h3>
+                    <p>We collect usernames, emails, IP addresses, and uploaded codebase materials (GitHub links and ZIP payloads) solely to execute, compile, and host your cloud deployment tasks.</p>
+                </div>
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">2. Secrets Safeguards &amp; Data Isolation</h3>
+                    <p>Any system secret (e.g. BOT_TOKEN or DB_URI) stored inside our Environment Variables manager is encrypted in transit and in storage. Secrets are never persisted on the container's disk. Execution processes are strictly isolated to protect your session files and credentials.</p>
+                </div>
+                <div>
+                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">3. Cookies</h3>
+                    <p>We use session-based cookies strictly to verify user login states. No tracking or marketing cookies are deployed.</p>
+                </div>
+            </div>
+        </section>
+        {% endif %}
     </main>
 
     <!-- ===== FOOTER ===== -->
