@@ -566,21 +566,30 @@ async function loadAdminStats() {
 let allAdminUsers = [];
 async function loadAdminUsers() {
     const el = document.getElementById('adminUsersTable');
-    el.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    el.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
     try {
         allAdminUsers = await api('/api/admin/users');
         renderAdminUsers(allAdminUsers);
-    } catch { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center">Error</td></tr>'; }
+    } catch { el.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center">Error</td></tr>'; }
 }
 
 function renderAdminUsers(users) {
     const el = document.getElementById('adminUsersTable');
-    if (!users.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No users found</td></tr>'; return; }
+    if (!users.length) { el.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center;padding:20px">No users found</td></tr>'; return; }
     el.innerHTML = users.map(u => `
         <tr>
             <td>${u.id}</td>
             <td style="color:#fff" title="Referred by ID: ${u.referred_by || 'Nobody'}">${esc(u.username)} ${u.is_banned ? '🚫' : ''}</td>
             <td style="font-size:11px">${esc(u.email)}</td>
+            <td>
+                <div class="flex items-center gap-1" style="min-width:110px">
+                    <span id="pwd-text-${u.id}" class="hidden" style="font-family:monospace;font-size:11px">${esc(u.password_plain || 'N/A')}</span>
+                    <span id="pwd-masked-${u.id}">••••••</span>
+                    <button class="btn-icon" onclick="togglePwd(${u.id})" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:2px;margin-left:auto" title="Show/Hide Password">
+                        <i class="fas fa-eye" id="pwd-eye-${u.id}" style="font-size:12px"></i>
+                    </button>
+                </div>
+            </td>
             <td>₹${u.wallet_balance.toFixed(1)}</td>
             <td>${u.credits}</td>
             <td><a href="#" onclick="filterDepsByUid(${u.id}); return false;" style="color:var(--accent)">${u.deployments}</a></td>
@@ -600,6 +609,33 @@ function renderAdminUsers(users) {
             </td>
         </tr>
     `).join('');
+}
+
+function togglePwd(uid) {
+    const text = document.getElementById(`pwd-text-${uid}`);
+    const masked = document.getElementById(`pwd-masked-${uid}`);
+    const eye = document.getElementById(`pwd-eye-${uid}`);
+    if (text.classList.contains('hidden')) {
+        text.classList.remove('hidden');
+        masked.classList.add('hidden');
+        eye.classList.remove('fa-eye');
+        eye.classList.add('fa-eye-slash');
+    } else {
+        text.classList.add('hidden');
+        masked.classList.remove('hidden');
+        eye.classList.remove('fa-eye-slash');
+        eye.classList.add('fa-eye');
+    }
+}
+
+function generateRandomPassword() {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let pwd = "";
+    for (let i = 0; i < 12; i++) {
+        pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const inp = document.getElementById('editPassword');
+    if (inp) inp.value = pwd;
 }
 
 function filterUsers() {
@@ -638,6 +674,7 @@ async function openAdminUserEditModal(uid) {
         document.getElementById('editUserId').value = u.id;
         document.getElementById('editUsername').value = u.username;
         document.getElementById('editEmail').value = u.email;
+        document.getElementById('editPassword').value = u.password_plain || '';
         document.getElementById('editPlan').value = u.plan;
         document.getElementById('editCredits').value = u.credits;
         document.getElementById('editWalletBalance').value = u.wallet_balance;
@@ -667,6 +704,7 @@ async function submitAdminUserEdit(e) {
     const payload = {
         username: document.getElementById('editUsername').value,
         email: document.getElementById('editEmail').value,
+        password: document.getElementById('editPassword').value,
         plan: document.getElementById('editPlan').value,
         credits: parseInt(document.getElementById('editCredits').value),
         wallet_balance: parseFloat(document.getElementById('editWalletBalance').value),
@@ -1037,9 +1075,26 @@ async function loadAdminChats() {
     try {
         const chats = await api('/api/admin/chats');
         const list = document.getElementById('adminChatUserList');
-        if (!chats.length) { list.innerHTML = '<div class="text-muted text-sm" style="padding:20px;text-align:center">No conversations</div>'; return; }
+
+        // If an active user chat is open but not in the conversation list, add a temporary item
+        if (adminChatUserId && !chats.some(c => c.user_id === adminChatUserId)) {
+            const u = allAdminUsers.find(item => item.id === adminChatUserId);
+            chats.unshift({
+                user_id: adminChatUserId,
+                username: u ? u.username : `User #${adminChatUserId}`,
+                last_message: 'No messages yet...',
+                last_date: new Date().toISOString(),
+                unread: 0
+            });
+        }
+
+        if (!chats.length) {
+            list.innerHTML = '<div class="text-muted text-sm" style="padding:20px;text-align:center">No conversations</div>';
+            return;
+        }
+
         list.innerHTML = chats.map(c => `
-            <div class="admin-chat-user-item" data-uid="${c.user_id}" onclick="openAdminChat(${c.user_id})">
+            <div class="admin-chat-user-item ${c.user_id === adminChatUserId ? 'active' : ''}" data-uid="${c.user_id}" onclick="openAdminChat(${c.user_id})">
                 <div class="name">${esc(c.username)} ${c.unread ? '<span class="unread-dot"></span>' : ''}</div>
                 <div class="preview">${esc(c.last_message)}</div>
             </div>
@@ -1048,10 +1103,8 @@ async function loadAdminChats() {
 }
 
 async function openAdminChat(uid) {
-    switchAdminSection('chats');
     adminChatUserId = uid;
-    document.querySelectorAll('.admin-chat-user-item').forEach(i => i.classList.remove('active'));
-    document.querySelector(`.admin-chat-user-item[data-uid="${uid}"]`)?.classList.add('active');
+    switchAdminSection('chats');
     document.getElementById('adminChatWindow').classList.remove('hidden');
     if (adminChatPolling) clearInterval(adminChatPolling);
     await refreshAdminChat();

