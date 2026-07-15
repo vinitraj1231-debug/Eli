@@ -13,12 +13,32 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = 'eh-x7k9m2pLqRvWzYnBfJcDgAsTeUiOp'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'eh-x7k9m2pLqRvWzYnBfJcDgAsTeUiOp')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///elitehosting.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DEPLOY_FOLDER'] = 'deploys'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+
+# ===================== CONFIGURATIONS =====================
+AUTH_LIMIT_CONFIG = {
+    'ip_threshold': int(os.environ.get('AUTH_IP_THRESHOLD', 5)),
+    'account_threshold': int(os.environ.get('AUTH_ACCOUNT_THRESHOLD', 3)),
+    'backoff_base': float(os.environ.get('AUTH_BACKOFF_BASE', 2.0)),
+    'backoff_multiplier': float(os.environ.get('AUTH_BACKOFF_MULTIPLIER', 2.0)),
+    'max_backoff': float(os.environ.get('AUTH_MAX_BACKOFF', 900.0)),
+    'window_minutes': int(os.environ.get('AUTH_WINDOW_MINUTES', 15))
+}
+
+PUBLIC_LIMIT_CONFIG = {
+    'limit': int(os.environ.get('PUBLIC_LIMIT', 60)),
+    'period': int(os.environ.get('PUBLIC_PERIOD', 60))
+}
+
+AUTH_ACTION_LIMIT_CONFIG = {
+    'limit': int(os.environ.get('AUTH_ACTION_LIMIT', 120)),
+    'period': int(os.environ.get('AUTH_ACTION_PERIOD', 60))
+}
 
 db = SQLAlchemy(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -97,6 +117,7 @@ class RateLimit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ip_address = db.Column(db.String(50), nullable=False)
     endpoint = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(100), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 class ChatMessage(db.Model):
@@ -115,20 +136,57 @@ class BlogPost(db.Model):
     excerpt = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+import time
+
+def free_trial_monitor_loop():
+    """
+    Background loop that runs periodically to check and stop expired free deployments.
+    """
+    while True:
+        try:
+            with app.app_context():
+                now = datetime.utcnow()
+                # Query all running free deployments
+                free_deps = Deployment.query.filter_by(status='running', is_free=True).all()
+                for dep in free_deps:
+                    user = User.query.get(dep.user_id)
+                    if not user or user.is_banned or (user.free_deploy_until and user.free_deploy_until <= now):
+                        engine = DeployEngine(dep.id)
+                        engine.stop()
+                        engine._log("Free trial period expired. Deployment automatically stopped by system scheduler.")
+        except Exception as e:
+            print(f"Free trial monitor loop warning: {e}")
+        time.sleep(60) # check every minute
+
 with app.app_context():
     db.create_all()
-    # Automated SQLite Schema Migration for password_plain
+    # Automated SQLite Schema Migration for password_plain and RateLimit.username
     try:
         connection = db.engine.connect()
         from sqlalchemy import text
+
+        # User migration
         result = connection.execute(text("PRAGMA table_info(user)"))
         columns = [row[1] for row in result.fetchall()]
         if 'password_plain' not in columns:
             connection.execute(text("ALTER TABLE user ADD COLUMN password_plain VARCHAR(256)"))
             connection.commit()
+
+        # RateLimit migration
+        result2 = connection.execute(text("PRAGMA table_info(rate_limit)"))
+        rl_columns = [row[1] for row in result2.fetchall()]
+        if 'username' not in rl_columns:
+            connection.execute(text("ALTER TABLE rate_limit ADD COLUMN username VARCHAR(100)"))
+            connection.commit()
+
         connection.close()
     except Exception as e:
         print(f"Migration warning: {e}")
+
+    # Start free trial monitor background thread
+    import threading
+    t_monitor = threading.Thread(target=free_trial_monitor_loop, daemon=True)
+    t_monitor.start()
 
 # ===================== HELPERS =====================
 
@@ -152,10 +210,10 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-def rate_limit(limit=5, period=60):
+def rate_limit(limit_type='public'):
     """
-    Decorator to apply rate limiting to endpoints.
-    Allows 'limit' requests per 'period' seconds from the same IP address.
+    Configurable dynamic rate limit decorator.
+    Can be 'public' (moderate limits) or 'auth_action' (looser limits).
     """
     def decorator(f):
         @wraps(f)
@@ -163,17 +221,24 @@ def rate_limit(limit=5, period=60):
             ip = get_client_ip()
             endpoint = request.path
             now = datetime.utcnow()
+
+            if limit_type == 'auth_action':
+                limit = AUTH_ACTION_LIMIT_CONFIG['limit']
+                period = AUTH_ACTION_LIMIT_CONFIG['period']
+            else:
+                limit = PUBLIC_LIMIT_CONFIG['limit']
+                period = PUBLIC_LIMIT_CONFIG['period']
+
             cutoff = now - timedelta(seconds=period)
 
-            # Clean up old rate limit records occasionally
-            # Clean up records older than 1 hour to keep DB clean
+            # Clean up old records occasionally
             try:
                 RateLimit.query.filter(RateLimit.timestamp < (now - timedelta(hours=1))).delete()
                 db.session.commit()
             except Exception:
                 db.session.rollback()
 
-            # Count requests in the current period
+            # Count requests in current period
             count = RateLimit.query.filter(
                 RateLimit.ip_address == ip,
                 RateLimit.endpoint == endpoint,
@@ -181,10 +246,13 @@ def rate_limit(limit=5, period=60):
             ).count()
 
             if count >= limit:
-                return jsonify({
-                    'error': 'Too many requests. Please try again later.',
-                    'retry_after_seconds': period
-                }), 429
+                if request.path.startswith('/api/'):
+                    return jsonify({
+                        'error': 'Too many requests. Please try again later.',
+                        'retry_after_seconds': period
+                    }), 429
+                else:
+                    return f"<h1>429 Too Many Requests</h1><p>Please try again in {period} seconds.</p>", 429
 
             # Log current request
             try:
@@ -195,6 +263,133 @@ def rate_limit(limit=5, period=60):
                 db.session.rollback()
 
             return f(*args, **kwargs)
+        return decorated
+    return decorator
+
+def auth_rate_limit():
+    """
+    Stricter rate limiting decorator for authentication endpoints.
+    Checks both per-IP and per-account limits with exponential backoff.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            ip = get_client_ip()
+            endpoint = request.path
+            now = datetime.utcnow()
+
+            # Extract username/email from payload if any
+            username = None
+            try:
+                data = request.get_json(silent=True)
+                if data:
+                    username = data.get('username', '').strip().lower()
+            except Exception:
+                pass
+
+            # Configuration
+            window_minutes = AUTH_LIMIT_CONFIG['window_minutes']
+            cutoff = now - timedelta(minutes=window_minutes)
+
+            # Clean up old records
+            try:
+                RateLimit.query.filter(RateLimit.timestamp < (now - timedelta(hours=2))).delete()
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            # Count recent failed attempts for this IP
+            c_ip = RateLimit.query.filter(
+                RateLimit.ip_address == ip,
+                RateLimit.endpoint == endpoint,
+                RateLimit.timestamp >= cutoff
+            ).count()
+
+            # Count recent failed attempts for this Account (username)
+            c_acc = 0
+            if username:
+                c_acc = RateLimit.query.filter(
+                    RateLimit.username == username,
+                    RateLimit.endpoint == endpoint,
+                    RateLimit.timestamp >= cutoff
+                ).count()
+
+            # Calculate backoffs
+            backoff_ip = 0.0
+            ip_threshold = AUTH_LIMIT_CONFIG['ip_threshold']
+            if c_ip >= ip_threshold:
+                backoff_ip = AUTH_LIMIT_CONFIG['backoff_base'] * (AUTH_LIMIT_CONFIG['backoff_multiplier'] ** (c_ip - ip_threshold))
+
+            backoff_acc = 0.0
+            account_threshold = AUTH_LIMIT_CONFIG['account_threshold']
+            if username and c_acc >= account_threshold:
+                backoff_acc = AUTH_LIMIT_CONFIG['backoff_base'] * (AUTH_LIMIT_CONFIG['backoff_multiplier'] ** (c_acc - account_threshold))
+
+            backoff = max(backoff_ip, backoff_acc)
+            if backoff > AUTH_LIMIT_CONFIG['max_backoff']:
+                backoff = AUTH_LIMIT_CONFIG['max_backoff']
+
+            if backoff > 0:
+                # Find the most recent failed attempt
+                filters = [RateLimit.endpoint == endpoint, RateLimit.timestamp >= cutoff]
+                if username:
+                    latest_record = RateLimit.query.filter(
+                        db.or_(RateLimit.ip_address == ip, RateLimit.username == username),
+                        *filters
+                    ).order_by(RateLimit.timestamp.desc()).first()
+                else:
+                    latest_record = RateLimit.query.filter(
+                        RateLimit.ip_address == ip,
+                        *filters
+                    ).order_by(RateLimit.timestamp.desc()).first()
+
+                if latest_record:
+                    next_allowed = latest_record.timestamp + timedelta(seconds=backoff)
+                    if next_allowed > now:
+                        retry_after = int((next_allowed - now).total_seconds())
+                        if retry_after > 0:
+                            return jsonify({
+                                'error': f'Too many failed attempts. Please try again in {retry_after} seconds (exponential backoff).',
+                                'retry_after_seconds': retry_after
+                            }), 429
+
+            # Log current attempt
+            rl_record = None
+            try:
+                rl_record = RateLimit(ip_address=ip, endpoint=endpoint, username=username, timestamp=now)
+                db.session.add(rl_record)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            # Execute view function
+            response = f(*args, **kwargs)
+
+            # Check response status code
+            status_code = 200
+            if isinstance(response, tuple) and len(response) > 1:
+                status_code = response[1]
+            elif hasattr(response, 'status_code'):
+                status_code = response.status_code
+
+            # If successful (status < 300), we clear failed attempts for this IP and username
+            if status_code < 300:
+                try:
+                    filters = [RateLimit.endpoint == endpoint]
+                    if username:
+                        RateLimit.query.filter(
+                            db.or_(RateLimit.ip_address == ip, RateLimit.username == username),
+                            *filters
+                        ).delete()
+                    else:
+                        RateLimit.query.filter(
+                            RateLimit.ip_address == ip,
+                            *filters
+                        ).delete()
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+            return response
         return decorated
     return decorator
 
@@ -209,6 +404,105 @@ def get_client_ip():
         return request.headers.getlist('X-Forwarded-For')[0]
     return request.remote_addr
 
+def validate_payload(schema, data):
+    """
+    Validates input data dictionary against a strict schema.
+    Returns (cleaned_data, error_msg). If valid, error_msg is None.
+    """
+    if not isinstance(data, dict):
+        return None, "Request payload must be a JSON object"
+
+    cleaned = {}
+    for field, rules in schema.items():
+        val = data.get(field)
+
+        # Check required
+        if rules.get('required') and val is None:
+            return None, f"Field '{field}' is required"
+
+        if val is not None:
+            # Check type
+            expected_type = rules.get('type')
+            if expected_type:
+                if expected_type == float and isinstance(val, int):
+                    val = float(val)
+                elif not isinstance(val, expected_type):
+                    return None, f"Field '{field}' must be of type {expected_type.__name__}"
+
+            # If string, strip it
+            if isinstance(val, str):
+                val = val.strip()
+
+            # Check min length/value
+            if 'min' in rules:
+                limit = rules['min']
+                if isinstance(val, str) or isinstance(val, list) or isinstance(val, dict):
+                    if len(val) < limit:
+                        return None, f"Field '{field}' must be at least {limit} characters/items long"
+                elif isinstance(val, (int, float)):
+                    if val < limit:
+                        return None, f"Field '{field}' must be at least {limit}"
+
+            # Check max length/value
+            if 'max' in rules:
+                limit = rules['max']
+                if isinstance(val, str) or isinstance(val, list) or isinstance(val, dict):
+                    if len(val) > limit:
+                        return None, f"Field '{field}' must be at most {limit} characters/items long"
+                elif isinstance(val, (int, float)):
+                    if val > limit:
+                        return None, f"Field '{field}' must be at most {limit}"
+
+            # Check regex format
+            if 'regex' in rules and isinstance(val, str):
+                import re
+                if not re.match(rules['regex'], val):
+                    return None, f"Field '{field}' has an invalid format"
+
+            # Check choices
+            if 'choices' in rules:
+                if val not in rules['choices']:
+                    return None, f"Field '{field}' must be one of {rules['choices']}"
+
+            # Check JSON content
+            if rules.get('is_json') and isinstance(val, str):
+                try:
+                    json.loads(val)
+                except Exception:
+                    return None, f"Field '{field}' must be valid JSON content"
+
+            cleaned[field] = val
+        else:
+            # Set default if provided
+            if 'default' in rules:
+                cleaned[field] = rules['default']
+
+    return cleaned, None
+
+def is_safe_upload_content(file_stream, filename):
+    """
+    Validates file content by inspecting magic bytes.
+    Returns (is_safe, error_msg).
+    """
+    try:
+        # Read the first 4 bytes
+        file_stream.seek(0)
+        header = file_stream.read(4)
+        file_stream.seek(0) # reset pointer
+
+        # Check executable formats (PE/ELF/Java Class)
+        if header.startswith(b'MZ') or header.startswith(b'\x7fELF') or header.startswith(b'\xca\xfe\xba\xbe'):
+            return False, "Executable binaries are strictly prohibited."
+
+        # If file claims to be a ZIP or has .zip extension
+        if filename.lower().endswith('.zip'):
+            if not header.startswith(b'PK\x03\x04'):
+                return False, "Invalid ZIP archive content (magic bytes mismatch)."
+
+        return True, None
+    except Exception as e:
+        return False, f"Content verification failed: {str(e)}"
+
 # ===================== DEPLOY ENGINE =====================
 
 class DeployEngine:
@@ -218,8 +512,17 @@ class DeployEngine:
         self.log_file = os.path.join(self.deploy_path, 'process.log')
 
     def _log(self, msg):
+        clean_msg = str(msg)
+        try:
+            deploy_dir = os.path.abspath(app.config['DEPLOY_FOLDER'])
+            upload_dir = os.path.abspath(app.config['UPLOAD_FOLDER'])
+            clean_msg = clean_msg.replace(deploy_dir, '[DEPLOY_DIR]')
+            clean_msg = clean_msg.replace(upload_dir, '[UPLOAD_DIR]')
+        except Exception:
+            pass
+
         ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
-        self.deployment.logs += f"[{ts}] {msg}\n"
+        self.deployment.logs += f"[{ts}] {clean_msg}\n"
         db.session.commit()
 
     def github_deploy(self, token=None):
@@ -273,9 +576,21 @@ class DeployEngine:
 
         import zipfile
         if zipfile.is_zipfile(zip_path):
-            self._log("Extracting ZIP archive...")
+            self._log("Extracting ZIP archive safely (Zip Slip protection)...")
             try:
-                shutil.unpack_archive(zip_path, self.deploy_path)
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    for member in zip_ref.infolist():
+                        member_name = member.filename
+                        # Rejection of traversal characters
+                        if member_name.startswith('/') or '..' in member_name or '../' in member_name:
+                            raise Exception(f"Directory traversal attempt detected in ZIP: {member_name}")
+
+                        target_path = os.path.abspath(os.path.join(self.deploy_path, member_name))
+                        abs_deploy_dir = os.path.abspath(self.deploy_path)
+                        if not target_path.startswith(abs_deploy_dir + os.sep) and target_path != abs_deploy_dir:
+                            raise Exception(f"Directory traversal attempt detected in ZIP: {member_name}")
+
+                    zip_ref.extractall(self.deploy_path)
             except Exception as e:
                 self._log(f"ZIP extract failed: {str(e)}")
                 self.deployment.status = 'error'
@@ -525,29 +840,35 @@ def run_deploy_background(dep_id, dep_type, **kwargs):
 # ===================== ROUTES — PAGES =====================
 
 @app.route('/')
+@rate_limit('public')
 def index():
     return render_template('index.html')
 
 @app.route('/login')
+@rate_limit('public')
 def login_page():
     return render_template('auth.html', mode='login')
 
 @app.route('/register')
+@rate_limit('public')
 def register_page():
     ref = request.args.get('ref', '')
     return render_template('auth.html', mode='register', ref=ref)
 
 @app.route('/dashboard')
+@rate_limit('public')
 def dashboard_page():
     if 'user_id' not in session:
         return redirect('/login')
     return render_template('dashboard.html')
 
 @app.route('/raj')
+@rate_limit('public')
 def admin_page():
     return render_template('admin.html')
 
 @app.route('/blogs')
+@rate_limit('public')
 def blogs_page():
     posts = BlogPost.query.order_by(BlogPost.created_at.desc()).all()
     seo = {
@@ -558,6 +879,7 @@ def blogs_page():
     return render_template('index.html', page='blogs', blogs=posts, seo=seo)
 
 @app.route('/blogs/<string:slug>')
+@rate_limit('public')
 def blog_detail_page(slug):
     post = BlogPost.query.filter_by(slug=slug).first_or_404()
     seo = {
@@ -568,6 +890,7 @@ def blog_detail_page(slug):
     return render_template('index.html', page='blog_detail', blog=post, seo=seo)
 
 @app.route('/terms')
+@rate_limit('public')
 def terms_page():
     seo = {
         'title': 'Terms of Service | EliteHosting',
@@ -577,6 +900,7 @@ def terms_page():
     return render_template('index.html', page='terms', seo=seo)
 
 @app.route('/privacy')
+@rate_limit('public')
 def privacy_page():
     seo = {
         'title': 'Privacy Policy | EliteHosting',
@@ -586,14 +910,22 @@ def privacy_page():
     return render_template('index.html', page='privacy', seo=seo)
 
 @app.route('/telegram-bot-hosting')
+@rate_limit('public')
 def telegram_bot_hosting_page():
     return render_template('telegram-bot-hosting.html')
 
 @app.route('/robots.txt')
+@rate_limit('public')
 def robots_txt():
     return send_from_directory(app.static_folder, 'robots.txt')
 
+@app.route('/llm.txt')
+@rate_limit('public')
+def llm_txt():
+    return send_from_directory(app.static_folder, 'llm.txt')
+
 @app.route('/sitemap.xml')
+@rate_limit('public')
 def sitemap_xml():
     pages = []
     # Static pages
@@ -628,24 +960,24 @@ def is_valid_username(username):
     return bool(re.match(pattern, username))
 
 @app.route('/api/auth/register', methods=['POST'])
-@rate_limit(limit=3, period=60)  # max 3 registration requests per minute from same IP
+@auth_rate_limit()
 def api_register():
-    data = request.get_json()
-    username = data.get('username', '').strip().lower()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
-    referral = data.get('referral', '').strip().upper()
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'username': {'type': str, 'required': True, 'min': 3, 'max': 30, 'regex': r'^\w+$'},
+        'email': {'type': str, 'required': True, 'max': 120, 'regex': r'^[\w\.-]+@[\w\.-]+\.\w+$'},
+        'password': {'type': str, 'required': True, 'min': 6, 'max': 100},
+        'referral': {'type': str, 'required': False, 'max': 20}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
 
-    if not username or not email or not password:
-        return jsonify({'error': 'All fields required'}), 400
-    if len(username) < 3 or len(username) > 30:
-        return jsonify({'error': 'Username must be between 3 and 30 characters'}), 400
-    if not is_valid_username(username):
-        return jsonify({'error': 'Username must contain only letters, numbers, and underscores'}), 400
-    if not is_valid_email(email):
-        return jsonify({'error': 'Invalid email address format'}), 400
-    if len(password) < 6 or len(password) > 100:
-        return jsonify({'error': 'Password must be between 6 and 100 characters'}), 400
+    username = cleaned.get('username').lower()
+    email = cleaned.get('email').lower()
+    password = cleaned.get('password')
+    referral = cleaned.get('referral', '').upper() if cleaned.get('referral') else ''
+
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Username taken'}), 409
     if User.query.filter_by(email=email).first():
@@ -676,14 +1008,19 @@ def api_register():
     }), 201
 
 @app.route('/api/auth/login', methods=['POST'])
-@rate_limit(limit=5, period=60)  # max 5 login requests per minute from same IP
+@auth_rate_limit()
 def api_login():
-    data = request.get_json()
-    username = data.get('username', '').strip().lower()
-    password = data.get('password', '')
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'username': {'type': str, 'required': True, 'min': 3, 'max': 120},
+        'password': {'type': str, 'required': True, 'min': 6, 'max': 100}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
 
-    if not username or not password:
-        return jsonify({'error': 'Username/email and password are required'}), 400
+    username = cleaned.get('username').lower()
+    password = cleaned.get('password')
 
     user = User.query.filter((User.username == username) | (User.email == username)).first()
     if not user or not check_password_hash(user.password_hash, password):
@@ -703,6 +1040,7 @@ def api_logout():
     return jsonify({'message': 'Logged out'})
 
 @app.route('/api/auth/me', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_me():
     user = User.query.get(session['user_id'])
@@ -715,6 +1053,7 @@ def api_me():
 # ===================== ROUTES — DASHBOARD API =====================
 
 @app.route('/api/dashboard/stats', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_stats():
     uid = session['user_id']
@@ -734,6 +1073,7 @@ def api_stats():
 # ===================== ROUTES — DEPLOY API =====================
 
 @app.route('/api/deployments', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_list_deployments():
     deps = Deployment.query.filter_by(user_id=session['user_id']).order_by(Deployment.created_at.desc()).all()
@@ -744,20 +1084,31 @@ def api_list_deployments():
     } for d in deps])
 
 @app.route('/api/deploy/github', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_deploy_github():
     user = User.query.get(session['user_id'])
-    data = request.get_json()
-    name = data.get('name', '').strip()
-    repo_url = data.get('repo_url', '').strip()
-    branch = data.get('branch', 'main').strip()
-    build_cmd = data.get('build_command', '').strip() or None
-    deploy_cmd = data.get('deploy_command', '').strip() or None
-    token = data.get('github_token', '').strip() or None
-    env_vars = data.get('env_vars', '').strip() or None
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'name': {'type': str, 'required': True, 'min': 3, 'max': 100},
+        'repo_url': {'type': str, 'required': True, 'min': 10, 'max': 500, 'regex': r'^https?://.+'},
+        'branch': {'type': str, 'required': False, 'max': 50, 'default': 'main'},
+        'build_command': {'type': str, 'required': False, 'max': 1000},
+        'deploy_command': {'type': str, 'required': False, 'max': 1000},
+        'github_token': {'type': str, 'required': False, 'max': 200},
+        'env_vars': {'type': str, 'required': False, 'max': 5000, 'is_json': True}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
 
-    if not name or not repo_url:
-        return jsonify({'error': 'Name and repo URL required'}), 400
+    name = cleaned.get('name')
+    repo_url = cleaned.get('repo_url')
+    branch = cleaned.get('branch', 'main')
+    build_cmd = cleaned.get('build_command') or None
+    deploy_cmd = cleaned.get('deploy_command') or None
+    token = cleaned.get('github_token') or None
+    env_vars = cleaned.get('env_vars') or None
 
     # Check free tier or credits
     is_free = False
@@ -786,17 +1137,40 @@ def api_deploy_github():
     return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': user.credits}), 201
 
 @app.route('/api/deploy/zip', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_deploy_zip():
     user = User.query.get(session['user_id'])
-    name = request.form.get('name', '').strip()
-    build_cmd = request.form.get('build_command', '').strip() or None
-    deploy_cmd = request.form.get('deploy_command', '').strip() or None
-    env_vars = request.form.get('env_vars', '').strip() or None
-    zip_file = request.files.get('zip_file')
 
-    if not name or not zip_file:
-        return jsonify({'error': 'Name and ZIP file required'}), 400
+    form_data = {
+        'name': request.form.get('name'),
+        'build_command': request.form.get('build_command'),
+        'deploy_command': request.form.get('deploy_command'),
+        'env_vars': request.form.get('env_vars')
+    }
+    schema = {
+        'name': {'type': str, 'required': True, 'min': 3, 'max': 100},
+        'build_command': {'type': str, 'required': False, 'max': 1000},
+        'deploy_command': {'type': str, 'required': False, 'max': 1000},
+        'env_vars': {'type': str, 'required': False, 'max': 5000, 'is_json': True}
+    }
+    cleaned, err = validate_payload(schema, form_data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    name = cleaned.get('name')
+    build_cmd = cleaned.get('build_command') or None
+    deploy_cmd = cleaned.get('deploy_command') or None
+    env_vars = cleaned.get('env_vars') or None
+
+    zip_file = request.files.get('zip_file')
+    if not zip_file:
+        return jsonify({'error': 'ZIP/Script file required'}), 400
+
+    # Content verification & magic bytes check
+    is_safe, content_err = is_safe_upload_content(zip_file, zip_file.filename)
+    if not is_safe:
+        return jsonify({'error': content_err}), 400
 
     # Check free tier or credits
     is_free = False
@@ -828,6 +1202,7 @@ def api_deploy_zip():
     return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': user.credits}), 201
 
 @app.route('/api/deploy/<int:dep_id>/start', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_start_deploy(dep_id):
     dep = Deployment.query.get_or_404(dep_id)
@@ -838,6 +1213,7 @@ def api_start_deploy(dep_id):
     return jsonify({'message': 'Started' if success else 'Failed', 'status': dep.status})
 
 @app.route('/api/deploy/<int:dep_id>/stop', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_stop_deploy(dep_id):
     dep = Deployment.query.get_or_404(dep_id)
@@ -848,6 +1224,7 @@ def api_stop_deploy(dep_id):
     return jsonify({'message': 'Stopped', 'status': dep.status})
 
 @app.route('/api/deploy/<int:dep_id>/logs', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_get_logs(dep_id):
     dep = Deployment.query.get_or_404(dep_id)
@@ -857,6 +1234,7 @@ def api_get_logs(dep_id):
     return jsonify({'logs': engine.get_logs(), 'status': dep.status})
 
 @app.route('/api/deploy/<int:dep_id>', methods=['DELETE'])
+@rate_limit('auth_action')
 @login_required
 def api_delete_deploy(dep_id):
     dep = Deployment.query.get_or_404(dep_id)
@@ -869,6 +1247,7 @@ def api_delete_deploy(dep_id):
 # ===================== ROUTES — REFERRAL & WALLET =====================
 
 @app.route('/api/referral/info', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_referral_info():
     user = User.query.get(session['user_id'])
@@ -890,12 +1269,21 @@ def api_referral_info():
     })
 
 @app.route('/api/referral/withdraw', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_withdraw():
     user = User.query.get(session['user_id'])
-    amount = float(request.get_json().get('amount', 0))
-    if amount <= 0 or amount > user.wallet_balance:
-        return jsonify({'error': 'Invalid amount'}), 400
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'amount': {'type': float, 'required': True, 'min': 1.0, 'max': 100000.0}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    amount = cleaned.get('amount')
+    if amount > user.wallet_balance:
+        return jsonify({'error': 'Insufficient wallet balance'}), 400
     user.wallet_balance -= amount
     tx = Transaction(user_id=user.id, tx_type='withdrawal', amount=amount, description='Wallet withdrawal')
     db.session.add(tx)
@@ -903,16 +1291,24 @@ def api_withdraw():
     return jsonify({'message': f'Withdrawal of ₹{amount} requested', 'balance': user.wallet_balance})
 
 @app.route('/api/payments/request', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_payment_request():
-    data = request.get_json()
-    name = data.get('name', '').strip()
-    number = data.get('number', '').strip()
-    tx_id = data.get('transaction_id', '').strip()
-    amount = float(data.get('amount', 0))
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'name': {'type': str, 'required': True, 'min': 2, 'max': 100},
+        'number': {'type': str, 'required': True, 'min': 10, 'max': 20, 'regex': r'^\+?[0-9 ]+$'},
+        'transaction_id': {'type': str, 'required': True, 'min': 5, 'max': 100, 'regex': r'^[a-zA-Z0-9_\-]+$'},
+        'amount': {'type': float, 'required': True, 'min': 99.0, 'max': 100000.0}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
 
-    if not name or not number or not tx_id or amount <= 0:
-        return jsonify({'error': 'All fields are required'}), 400
+    name = cleaned.get('name')
+    number = cleaned.get('number')
+    tx_id = cleaned.get('transaction_id')
+    amount = cleaned.get('amount')
 
     if PaymentRequest.query.filter_by(transaction_id=tx_id).first():
         return jsonify({'error': 'Transaction ID already submitted'}), 400
@@ -982,6 +1378,7 @@ def api_admin_reject_payment(rid):
     return jsonify({'message': 'Payment rejected'})
 
 @app.route('/api/transactions', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_transactions():
     txs = Transaction.query.filter_by(user_id=session['user_id']).order_by(Transaction.created_at.desc()).limit(50).all()
@@ -993,6 +1390,7 @@ def api_transactions():
 # ===================== ROUTES — CHAT API =====================
 
 @app.route('/api/chat', methods=['GET'])
+@rate_limit('auth_action')
 @login_required
 def api_get_chat():
     msgs = ChatMessage.query.filter_by(user_id=session['user_id']).order_by(ChatMessage.created_at.asc()).all()
@@ -1002,12 +1400,18 @@ def api_get_chat():
     } for m in msgs])
 
 @app.route('/api/chat', methods=['POST'])
+@rate_limit('auth_action')
 @login_required
 def api_send_chat():
-    data = request.get_json()
-    msg = data.get('message', '').strip()
-    if not msg:
-        return jsonify({'error': 'Message required'}), 400
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'message': {'type': str, 'required': True, 'min': 1, 'max': 2000}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    msg = cleaned.get('message')
     m = ChatMessage(user_id=session['user_id'], message=msg, sender_type='user')
     db.session.add(m)
     db.session.commit()
@@ -1015,11 +1419,12 @@ def api_send_chat():
 
 # ===================== ROUTES — ADMIN AUTH =====================
 
-ADMIN_USER = 'rajpapa'
-ADMIN_PASS = '28@RajPapa'
+ADMIN_USER = os.environ.get('ADMIN_USER', 'rajpapa')
+ADMIN_PASS = os.environ.get('ADMIN_PASS', '28@RajPapa')
 MAX_ADMIN_ATTEMPTS = 3
 
 @app.route('/api/admin/login', methods=['POST'])
+@auth_rate_limit()
 def api_admin_login():
     ip = get_client_ip()
     auth = AdminAuth.query.filter_by(ip_address=ip).first()
@@ -1027,9 +1432,17 @@ def api_admin_login():
     if auth and auth.is_banned:
         return jsonify({'error': 'Device banned. Contact administrator.'}), 403
 
-    data = request.get_json()
-    username = data.get('username', '')
-    password = data.get('password', '')
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'username': {'type': str, 'required': True, 'min': 3, 'max': 50},
+        'password': {'type': str, 'required': True, 'min': 3, 'max': 100}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    username = cleaned.get('username')
+    password = cleaned.get('password')
 
     if username == ADMIN_USER and password == ADMIN_PASS:
         if auth:
@@ -1511,7 +1924,53 @@ def api_admin_transactions_list():
     } for t in txs])
 
 
+# ===================== ERROR HANDLING =====================
+
+import logging
+from traceback import format_exc
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the full exception traceback server-side
+    logger.error("Unhandled exception occurred: %s\n%s", str(e), format_exc())
+
+    # Determine the status code
+    from werkzeug.exceptions import HTTPException
+    code = 500
+    if isinstance(e, HTTPException):
+        code = e.code
+
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'error': 'An internal server error occurred. Please try again later.' if code == 500 else str(e)
+        }), code
+    else:
+        # Generic user-facing HTML message
+        if code == 404:
+            return "<h1>404 Not Found</h1><p>The requested URL was not found on the server.</p>", 404
+        return "<h1>500 Internal Server Error</h1><p>An internal error occurred. Please try again later.</p>", 500
+
 # ===================== RUN =====================
+
+@app.before_request
+def auto_stop_expired_free_deployments():
+    # Stop expired trial deployments dynamically for the logged-in user
+    if 'user_id' in session:
+        try:
+            uid = session['user_id']
+            user = User.query.get(uid)
+            if user and user.free_deploy_until and user.free_deploy_until <= datetime.utcnow():
+                # Stop any active free deployment for this user
+                free_deps = Deployment.query.filter_by(user_id=uid, status='running', is_free=True).all()
+                for dep in free_deps:
+                    engine = DeployEngine(dep.id)
+                    engine.stop()
+                    engine._log("Free trial period expired. Deployment automatically stopped.")
+        except Exception:
+            pass
 
 @app.after_request
 def add_security_headers(response):

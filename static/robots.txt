@@ -1,6 +1,24 @@
 User-agent: *
 Allow: /
-Disallow: /dashboard
-Disallow: /raj
+Allow: /llm.txt
+Disallow: /dashboard/
+Disallow: /raj/
 Disallow: /api/
+
+User-agent: Googlebot
+Allow: /
+Allow: /llm.txt
+Disallow: /dashboard/
+Disallow: /raj/
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Allow: /llm.txt
+Disallow: /dashboard/
+Disallow: /raj/
+Disallow: /api/
+
+Crawl-delay: 1
+
 Sitemap: https://elitehosting.in/sitemap.xml
