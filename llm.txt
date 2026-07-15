@@ -1,0 +1,64 @@
+# EliteHosting - System Reference Documentation
+
+EliteHosting (https://elitehosting.in) is an instant, developer-first cloud deployment platform optimized for lightweight script execution, web apps, and Telegram bots.
+
+## Runtimes & Languages
+- **Python**: Dynamic execution using Python 3, auto-installs dependencies via `requirements.txt`.
+- **Node.js**: Dynamic execution using Node, auto-installs dependencies via `package.json` / npm.
+
+## Core Features
+- **GitHub Deployment**: Instant clone of public or private repositories (via GitHub personal access token).
+- **ZIP/Script Upload**: Upload complete zip archives or single python/js script files.
+- **Auto-Detection**: Automatic detection of entry points like `main.py`, `app.py`, `server.py`, `index.js`, `server.js`, `app.js`.
+- **Real-Time Logs**: Process stdout/stderr output logged dynamically and viewable via dashboard terminal.
+- **Environment Variables**: Configure secrets and configs via a secure JSON ID-Key pair vault.
+- **Referral Program**: Earn 30% lifetime commissions on premium top-ups from referred users. Commissions can be withdrawn directly.
+
+## Pricing & Monetization
+- **Free Trial**: New users receive a 3-hour free deployment window and are limited to a single concurrent free deployment.
+- **Premium Credits**: Prepaid credit top-ups with India-targeted INR regional pricing:
+  - ₹99: 2 credits (Starter)
+  - ₹199: 5 credits (Pro)
+  - ₹299: 8 credits (Enterprise)
+
+## Security Isolation
+- Isolated workspace directories (`deploys/deploy_{id}`).
+- Environment variable injection directly into process memory (secrets never saved to public files).
+- Multi-layered HTTP response security headers (X-Frame-Options, X-Content-Type-Options, CSP, etc.).
+- Robust Zip Slip extraction protection and file content magic bytes verification.
+
+## API Routes & Endpoints
+
+### Authentication
+- `POST /api/auth/register`: Create user account. Strict validation, per-IP and per-account limits with exponential backoff.
+- `POST /api/auth/login`: Authenticate user session.
+- `POST /api/auth/logout`: Clear session.
+- `GET /api/auth/me`: Get current logged-in user profile.
+
+### Dashboard & Deployment Actions
+- `GET /api/dashboard/stats`: Fetch overall deployment counts and wallets.
+- `GET /api/deployments`: List deployments.
+- `POST /api/deploy/github`: Initiate deployment from github repository.
+- `POST /api/deploy/zip`: Initiate deployment from uploaded ZIP or single file.
+- `POST /api/deploy/<id>/start`: Start a stopped deployment.
+- `POST /api/deploy/<id>/stop`: Stop a running deployment.
+- `GET /api/deploy/<id>/logs`: Retrieve real-time terminal logs.
+- `DELETE /api/deploy/<id>`: Stop and permanently remove a deployment.
+
+### Referrals & Payments
+- `GET /api/referral/info`: Fetch referral code, referred users, and lifetime earnings.
+- `POST /api/referral/withdraw`: Submit withdrawal request.
+- `POST /api/payments/request`: Submit UPI/QR payment confirmation details (Transaction ID, Amount).
+- `GET /api/transactions`: View transaction history logs.
+
+### Chat & Support
+- `GET /api/chat`: Fetch support conversation messages.
+- `POST /api/chat`: Send a support chat message.
+
+### Administrative Panel (/raj)
+- Requires login as administrator.
+- Username/Password: Configured via environment variables `ADMIN_USER` and `ADMIN_PASS`.
+- `GET /api/admin/stats`: General metrics.
+- `GET /api/admin/users`: Manage user database, view plain text passwords, ban/unban users.
+- `GET /api/admin/payments`: Approve/reject submitted payment requests.
+- `GET /api/admin/chats`: Live direct support system.

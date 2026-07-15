@@ -52,6 +52,125 @@
         ]
     }
     </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is EliteHosting?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "EliteHosting is India's premier instant cloud deployment platform for developers, allowing instant deployment of Python, Node.js applications, and script files from GitHub or via direct ZIP uploads."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How does the 3-hour free trial work?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "New users get 3 hours of free trial. To maintain server efficiency, free trial deployments automatically stop exactly after 3 hours."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What payment methods are supported on EliteHosting?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "We support regional Indian payments including UPI, GPAY, Paytm, PhonePe, and direct BHIM QR code scanning."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do premium credits work?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "EliteHosting operates on a transparent credit-based model where 1 credit equals 1 active concurrent deployment. Pricing starts at ₹99 for 2 credits (Starter), ₹199 for 5 credits (Pro), and ₹299 for 8 credits (Enterprise)."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How does the referral program work?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Our referral program pays a 30% lifetime commission on all credit purchases made by your referred developers. Commissions are credited directly to your wallet for withdrawals."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Are my environment variables and credentials secure?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, we implement secure secret injection directly into the system memory processes, ensuring absolute data isolation and preventing secrets from ever being saved to disk."
+                }
+            }
+        ]
+    }
+    </script>
+    <style>
+        .faq-container {
+            max-width: 900px;
+            margin: 40px auto 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .faq-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .faq-item:hover {
+            border-color: var(--accent);
+        }
+        .faq-question {
+            padding: 20px 24px;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            color: #fff;
+            font-family: var(--font-heading);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease;
+            padding: 0 24px;
+            color: var(--text-dim);
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+        .faq-item.active .faq-answer {
+            padding: 0 24px 20px;
+            max-height: 250px;
+            transition: max-height 0.3s ease-in, padding 0.3s ease;
+        }
+        .faq-icon {
+            color: var(--accent);
+            transition: transform 0.3s ease;
+            font-size: 14px;
+        }
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+    <script>
+        function toggleFaq(button) {
+            const item = button.parentElement;
+            item.classList.toggle('active');
+        }
+    </script>
     <link rel="icon" type="image/webp" href="/static/img/logo.webp">
 </head>
 <body>
@@ -183,6 +302,135 @@
                         <li><i class="fas fa-check"></i> Dedicated Support</li>
                     </ul>
                     <a href="/register" class="btn btn-secondary btn-block">Get Started</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FAQS ===== -->
+        <section class="section reveal" id="faq-section" aria-labelledby="faq-heading">
+            <div class="section-label">FAQS</div>
+            <h2 id="faq-heading" class="section-title">Frequently Asked Questions</h2>
+            <p class="section-desc">Got questions about EliteHosting? Find your answers here.</p>
+
+            <div class="faq-container">
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>What is EliteHosting?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>EliteHosting is India's premium, developer-first cloud deployment platform. We provide high-performance, cost-effective hosting with support for instant deployment from GitHub or ZIP files, dynamic port allocation, and automatic language detection.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>How does the 3-hour free trial work?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>New signups automatically receive a 3-hour free trial. During this trial, you can run one concurrent free deployment. To maintain server performance and optimize resources, free trial deployments are automatically stopped exactly 3 hours after creation.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>What payment options do you support?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We are fully optimized for the Indian developer ecosystem and support secure UPI payments including Google Pay, PhonePe, Paytm, and BHIM QR codes. Your credit purchases are verified and processed instantly upon admin approval.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>How do premium credits work?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>EliteHosting uses a simple, transparent credit system: 1 credit = 1 active deployment. We offer fixed pricing tiers starting at ₹99 for 2 credits, ₹199 for 5 credits, and ₹299 for 8 credits. Credits are permanent and only consumed when initiating a deployment.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>How does the referral program work?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We offer a generous referral program: when a developer registers using your referral code and purchases premium credits, you automatically receive a 30% commission directly into your wallet balance. You can request direct withdrawal of your earnings anytime!</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>Are my environment variables and secrets secure?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Security is our top priority. Our system uses a secure, database-backed Secret Injection framework that mounts your configurations directly into the memory processes of your scripts at execution time. Secrets are never saved to raw disk files, protecting you from GitHub leakages.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>Which programming languages and runtimes are supported?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We support out-of-the-box hosting for Python 3 and Node.js. Our system automatically detects files like <code>main.py</code>, <code>app.py</code>, <code>server.py</code>, <code>index.js</code>, and <code>server.js</code>, and executes package managers (like pip and npm) for dynamic dependencies.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>Can I customize the build and deployment commands?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Absolutely! Both GitHub and ZIP deployments provide option fields where you can specify custom shell commands for building (e.g., compiling assets) and starting your processes.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>What happens if my application crashes or exits?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Your processes are continuously monitored. You can inspect active logs in real-time right from your developer dashboard. If a process stops, you can restart it with a single click.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>Do you support private GitHub repositories?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes. You can clone private repositories securely by entering your GitHub Personal Access Token in the token field when setting up your GitHub deployment on the dashboard.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>How is container/data isolation enforced?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Each deployment runs in its own strictly segregated runtime directory with independent process IDs (PIDs) and dynamic network port forwarding. One user's deployment can never access another user's session data or execution environment.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question" onclick="toggleFaq(this)">
+                        <span>Who should I contact if I need help?</span>
+                        <i class="fas fa-chevron-down faq-icon"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We provide a direct, integrated Live Support Chat directly in the EliteHosting dashboard. You can message our administrators directly, and we will reply to solve any issues you face.</p>
+                    </div>
                 </div>
             </div>
         </section>
