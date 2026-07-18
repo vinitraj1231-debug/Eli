@@ -12,13 +12,13 @@
     --muted-light: #888888;
     --text: #e0e0e0;
     --text-dim: #999999;
-    --accent: #00e676;
-    --accent-dim: #00c853;
-    --accent-glow: rgba(0, 230, 118, 0.15);
+    --accent: #0091ff;
+    --accent-dim: #0077e6;
+    --accent-glow: rgba(0, 145, 255, 0.15);
     --danger: #ff4444;
     --danger-dim: rgba(255, 68, 68, 0.12);
     --warning: #ffaa00;
-    --success: #00e676;
+    --success: #0091ff;
     --font-heading: 'Space Grotesk', sans-serif;
     --font-body: 'DM Sans', sans-serif;
     --radius-sm: 6px;
@@ -38,7 +38,7 @@ body {
 }
 
 a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
-a:hover { color: #66ffaa; }
+a:hover { color: #66b3ff; }
 
 ::selection { background: var(--accent); color: #000; }
 
@@ -121,13 +121,13 @@ a:hover { color: #66ffaa; }
 .hero-glow {
     position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
     width: 600px; height: 600px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(0,230,118,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(0,145,255,0.08) 0%, transparent 70%);
     pointer-events: none;
 }
 .hero-content { text-align: center; position: relative; z-index: 2; max-width: 640px; }
 .hero-badge {
     display: inline-flex; align-items: center; gap: 6px;
-    background: var(--accent-glow); border: 1px solid rgba(0,230,118,0.15);
+    background: var(--accent-glow); border: 1px solid rgba(0,145,255,0.15);
     border-radius: 50px; padding: 5px 14px; font-size: 11px;
     color: var(--accent); margin-bottom: 24px;
 }
@@ -254,7 +254,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 }
 .dash-user-avatar {
     width: 28px; height: 28px; border-radius: 50%;
-    background: var(--accent-glow); border: 1px solid rgba(0,230,118,0.2);
+    background: var(--accent-glow); border: 1px solid rgba(0,145,255,0.2);
     display: flex; align-items: center; justify-content: center;
     color: var(--accent); font-size: 11px; font-weight: 600;
 }
@@ -297,7 +297,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s ease;
 }
 .credit-plan:hover { border-color: var(--accent); transform: translateY(-2px); }
-.credit-plan.active { border-color: var(--accent); background: rgba(0, 230, 118, 0.05); }
+.credit-plan.active { border-color: var(--accent); background: rgba(0, 145, 255, 0.05); }
 .credit-plan .price { font-size: 20px; font-weight: 700; color: #fff; }
 .credit-plan .label { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
@@ -333,7 +333,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     display: inline-flex; align-items: center; gap: 4px;
     padding: 2px 8px; border-radius: 50px; font-size: 10px; font-weight: 500;
 }
-.status-running { background: rgba(0,230,118,0.12); color: var(--accent); }
+.status-running { background: rgba(0,145,255,0.12); color: var(--accent); }
 .status-stopped { background: rgba(255,170,0,0.12); color: var(--warning); }
 .status-error { background: var(--danger-dim); color: var(--danger); }
 .status-building { background: rgba(0,150,255,0.12); color: #4da6ff; }
@@ -346,7 +346,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     background: #000; border: 1px solid var(--border);
     border-radius: var(--radius-md); padding: 14px;
     font-family: 'Courier New', monospace; font-size: 11px;
-    color: #00e676; max-height: 400px; overflow-y: auto;
+    color: #0091ff; max-height: 400px; overflow-y: auto;
     white-space: pre-wrap; word-break: break-all; line-height: 1.7;
 }
 
