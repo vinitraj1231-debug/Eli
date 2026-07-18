@@ -35,6 +35,9 @@
                     <label for="loginPass">Password</label>
                     <input type="password" id="loginPass" class="form-input" placeholder="Enter password" required autocomplete="current-password">
                 </div>
+                <div class="form-group" style="text-align:right;margin-top:4px;margin-bottom:12px">
+                    <a href="#" onclick="openForgotModal(); return false;" style="font-size:11px;color:var(--text-dim)">Forgot Password?</a>
+                </div>
                 <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;padding:11px">Login</button>
             </form>
             <div class="auth-switch">Don't have an account? <a href="/register">Create one</a></div>
@@ -66,7 +69,32 @@
         </div>
     </div>
 
+    <!-- Forgot Password Modal Overlay -->
+    <div class="modal-overlay" id="forgotPasswordModal">
+        <div class="modal" style="max-width:360px">
+            <h3 style="font-size:15px;margin-bottom:12px"><i class="fab fa-telegram" style="color:var(--accent);margin-right:8px"></i>Forgot Password?</h3>
+            <p style="font-size:12px;color:var(--text-dim);margin-bottom:20px;line-height:1.6">
+                For security reasons, password resets are processed manually. Please contact the administrator on Telegram with your username or email address.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:8px">
+                <a href="https://t.me/zolvid" target="_blank" class="btn btn-primary btn-block" style="justify-content:center;padding:11px;font-size:12px;font-weight:600">
+                    <i class="fab fa-telegram-plane" style="font-size:13px"></i> Contact Administrator (@zolvid)
+                </a>
+                <button type="button" class="btn btn-secondary btn-block" onclick="closeForgotModal()" style="padding:9px;font-size:11px">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/js/app.js"></script>
-    <script>document.addEventListener('DOMContentLoaded', initAuth);</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initAuth);
+
+        function openForgotModal() {
+            document.getElementById('forgotPasswordModal').classList.add('show');
+        }
+        function closeForgotModal() {
+            document.getElementById('forgotPasswordModal').classList.remove('show');
+        }
+    </script>
 </body>
 </html>
