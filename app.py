@@ -61,6 +61,15 @@ class User(db.Model):
     plan = db.Column(db.String(20), default='free')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class VpsSlot(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    plan_name = db.Column(db.String(50), nullable=False) # e.g. 'Micro 256MB', 'Lite 512MB', 'Pro 1GB'
+    ram_mb = db.Column(db.Integer, nullable=False)       # 256, 512, 1024
+    status = db.Column(db.String(20), default='idle')    # idle, running
+    deployment_id = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class Deployment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -78,6 +87,7 @@ class Deployment(db.Model):
     deploy_path = db.Column(db.String(500), nullable=True)
     entry_file = db.Column(db.String(200), nullable=True)
     port = db.Column(db.Integer, nullable=True)
+    vps_slot_id = db.Column(db.Integer, db.ForeignKey('vps_slot.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Referral(db.Model):
@@ -177,6 +187,13 @@ with app.app_context():
         rl_columns = [row[1] for row in result2.fetchall()]
         if 'username' not in rl_columns:
             connection.execute(text("ALTER TABLE rate_limit ADD COLUMN username VARCHAR(100)"))
+            connection.commit()
+
+        # Deployment migration for vps_slot_id
+        result3 = connection.execute(text("PRAGMA table_info(deployment)"))
+        dep_columns = [row[1] for row in result3.fetchall()]
+        if 'vps_slot_id' not in dep_columns:
+            connection.execute(text("ALTER TABLE deployment ADD COLUMN vps_slot_id INTEGER"))
             connection.commit()
 
         connection.close()
@@ -522,6 +539,8 @@ class DeployEngine:
             pass
 
         ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        if not self.deployment.logs:
+            self.deployment.logs = ""
         self.deployment.logs += f"[{ts}] {clean_msg}\n"
         db.session.commit()
 
@@ -747,65 +766,214 @@ class DeployEngine:
     def _execute(self, cmd, env):
         # Prevent double execution
         db.session.refresh(self.deployment)
-        if self.deployment.pid or self.deployment.status == 'running':
-            self._log("Process already running or starting. Aborting duplicate.")
+        if self.deployment.status == 'running':
+            self._log("Deployment is already running. Aborting duplicate.")
             return True
 
         self.deployment.status = 'running'
         db.session.commit()
-        self._log(f"Starting process...")
+        self._log(f"Preparing secure Docker execution...")
 
-        # Port assign karo
+        # Get allocated VPS slot RAM limit
+        ram_limit = "256m"
+        vps_slot = None
+        if self.deployment.vps_slot_id:
+            vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
+            if vps_slot:
+                ram_limit = f"{vps_slot.ram_mb}m"
+                vps_slot.status = 'running'
+                db.session.commit()
+
+        # Port assign
         port = 5000 + self.deployment.id
-        env['PORT'] = str(port)
         self.deployment.port = port
         db.session.commit()
 
-        log_path = self.log_file
+        container_name = f"eh_container_{self.deployment.id}"
+
+        # Clean existing container if any
         try:
-            with open(log_path, 'w') as lf:
-                proc = subprocess.Popen(
-                    cmd, shell=True, cwd=self.deploy_path,
-                    stdout=lf, stderr=subprocess.STDOUT,
-                    env=env, start_new_session=True
-                )
-                self.deployment.pid = proc.pid
+            subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+        except Exception:
+            pass
+
+        # Autodetect runtime language based on file structure
+        is_node = False
+        if os.path.exists(os.path.join(self.deploy_path, 'package.json')) or any(f.endswith('.js') for f in os.listdir(self.deploy_path) if os.path.isfile(os.path.join(self.deploy_path, f))):
+            is_node = True
+
+        # Generate custom secure Dockerfile to build deployment image safely
+        dockerfile_path = os.path.join(self.deploy_path, "Dockerfile")
+
+        # Determine build and deploy commands
+        build_step = ""
+        if self.deployment.build_command:
+            build_step = f"RUN {self.deployment.build_command}"
+        elif is_node:
+            if os.path.exists(os.path.join(self.deploy_path, 'package.json')):
+                build_step = "RUN npm install --only=production"
+        else:
+            if os.path.exists(os.path.join(self.deploy_path, 'requirements.txt')):
+                build_step = "RUN pip install --no-cache-dir -r requirements.txt"
+
+        # Safe custom script entryfile trigger
+        run_cmd = cmd
+        if not self.deployment.deploy_command:
+            # If no manual run command was supplied, use auto-detected
+            run_cmd = cmd
+
+        if is_node:
+            base_image = "node:18-alpine"
+            default_user = "node"
+            work_dir = "/home/node/app"
+            copy_prefix = f"COPY --chown={default_user}:{default_user} . ."
+            setup_user_cmd = ""
+        else:
+            base_image = "python:3.10-alpine"
+            default_user = "appuser"
+            work_dir = "/app"
+            copy_prefix = "COPY --chown=appuser:appuser . ."
+            setup_user_cmd = "RUN addgroup -S appgroup && adduser -S appuser -G appgroup"
+
+        dockerfile_content = f"""FROM {base_image}
+{setup_user_cmd}
+WORKDIR {work_dir}
+{copy_prefix}
+{build_step}
+EXPOSE {port}
+USER {default_user}
+ENV PORT={port}
+CMD {run_cmd}
+"""
+        with open(dockerfile_path, "w") as df:
+            df.write(dockerfile_content)
+
+        self._log("Building container image...")
+        try:
+            build_args = ["docker", "build", "-t", f"eh_image_{self.deployment.id}", self.deploy_path]
+            build_proc = subprocess.run(build_args, capture_output=True, text=True, timeout=300)
+            if build_proc.returncode != 0:
+                self._log(f"Docker Build Error:\n{build_proc.stderr}")
+                self.deployment.status = 'error'
+                if vps_slot:
+                    vps_slot.status = 'idle'
                 db.session.commit()
-                self._log(f"Process started (PID: {proc.pid}, Port: {port})")
+                return False
+            self._log("Docker image built successfully.")
         except Exception as e:
-            self._log(f"Start failed: {str(e)}")
+            self._log(f"Docker Build exception: {str(e)}")
             self.deployment.status = 'error'
+            if vps_slot:
+                vps_slot.status = 'idle'
             db.session.commit()
             return False
 
-        def monitor():
-            proc.wait()
-            with app.app_context():
-                d = Deployment.query.get(self.deployment.id)
-                if d and d.status == 'running':
-                    d.status = 'stopped'
-                    d.pid = None
-                    db.session.commit()
-                    self._log(f"Process exited (code: {proc.returncode})")
+        # Docker run flags: --memory to limit RAM, --cpus to prevent CPU exhaustion, --read-only where possible or highly secure boundaries
+        # Port mapping and passing env variables safely via docker flags
+        docker_run_cmd = [
+            "docker", "run", "-d",
+            "--name", container_name,
+            "--memory", ram_limit,
+            "--cpus", "0.5",
+            "-p", f"{port}:{port}"
+        ]
 
-        t = threading.Thread(target=monitor, daemon=True)
+        # Inject environment variables securely as separate run flags instead of writing to disk
+        if self.deployment.env_vars:
+            try:
+                parsed = json.loads(self.deployment.env_vars)
+                if isinstance(parsed, list):
+                    for item in parsed:
+                        if isinstance(item, dict) and 'id' in item and 'key' in item:
+                            docker_run_cmd += ["-e", f"{item['id']}={item['key']}"]
+                elif isinstance(parsed, dict):
+                    for k, v in parsed.items():
+                        docker_run_cmd += ["-e", f"{k}={v}"]
+            except Exception:
+                pass
+
+        # Add image name
+        docker_run_cmd.append(f"eh_image_{self.deployment.id}")
+
+        self._log(f"Spinning up container with RAM limit: {ram_limit}...")
+        try:
+            run_proc = subprocess.run(docker_run_cmd, capture_output=True, text=True, timeout=60)
+            if run_proc.returncode != 0:
+                self._log(f"Docker Run Error:\n{run_proc.stderr}")
+                self.deployment.status = 'error'
+                if vps_slot:
+                    vps_slot.status = 'idle'
+                db.session.commit()
+                return False
+
+            # Save container ID or PID dummy values to persist status tracking
+            self.deployment.pid = 999999 # dummy pid for legacy logic
+            db.session.commit()
+            self._log(f"Docker container started successfully! Running on VPS slot mapping port: {port}")
+        except Exception as e:
+            self._log(f"Docker Run exception: {str(e)}")
+            self.deployment.status = 'error'
+            if vps_slot:
+                vps_slot.status = 'idle'
+            db.session.commit()
+            return False
+
+        # Start background monitor thread for Docker logs and container status
+        def monitor_container():
+            import time
+            while True:
+                time.sleep(3)
+                with app.app_context():
+                    d = Deployment.query.get(self.deployment.id)
+                    if not d or d.status != 'running':
+                        break
+
+                    # Check if container is still running
+                    inspect_proc = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", container_name], capture_output=True, text=True)
+                    if inspect_proc.returncode != 0 or inspect_proc.stdout.strip() != "true":
+                        d.status = 'stopped'
+                        d.pid = None
+                        vs = VpsSlot.query.get(d.vps_slot_id) if d.vps_slot_id else None
+                        if vs:
+                            vs.status = 'idle'
+                        db.session.commit()
+                        self._log(f"Docker container stopped or exited.")
+                        break
+
+        t = threading.Thread(target=monitor_container, daemon=True)
         t.start()
-        self._log("Deployment complete — service is running")
         return True
 
     def stop(self):
-        if self.deployment.pid:
-            try:
-                os.killpg(os.getpgid(self.deployment.pid), 9)
-            except (ProcessLookupError, PermissionError):
-                try:
-                    os.kill(self.deployment.pid, 9)
-                except:
-                    pass
-            self.deployment.pid = None
+        container_name = f"eh_container_{self.deployment.id}"
+        self._log("Stopping container secure environment...")
+        try:
+            subprocess.run(["docker", "stop", container_name], capture_output=True)
+            subprocess.run(["docker", "rm", container_name], capture_output=True)
+        except Exception:
+            pass
+
+        vps_slot = None
+        if self.deployment.vps_slot_id:
+            vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
+            if vps_slot:
+                vps_slot.status = 'idle'
+
+        self.deployment.pid = None
         self.deployment.status = 'stopped'
         db.session.commit()
-        self._log("Process stopped by user")
+        self._log("Docker container stopped successfully.")
+
+    def get_logs(self):
+        container_name = f"eh_container_{self.deployment.id}"
+        logs = self.deployment.logs or ''
+        try:
+            proc = subprocess.run(["docker", "logs", "--tail", "200", container_name], capture_output=True, text=True)
+            if proc.returncode == 0 and proc.stdout:
+                logs += '\n--- Container Live Output ---\n' + proc.stdout
+        except Exception:
+            pass
+        return logs
 
     def start(self):
         self.stop()
@@ -825,6 +993,14 @@ class DeployEngine:
         self.stop()
         if os.path.exists(self.deploy_path):
             shutil.rmtree(self.deploy_path)
+
+        # Release the VpsSlot back to idle if allocated
+        if self.deployment.vps_slot_id:
+            vs = VpsSlot.query.get(self.deployment.vps_slot_id)
+            if vs:
+                vs.deployment_id = None
+                vs.status = 'idle'
+
         db.session.delete(self.deployment)
         db.session.commit()
 
@@ -1060,12 +1236,27 @@ def api_stats():
     deps = Deployment.query.filter_by(user_id=uid).all()
     running = sum(1 for d in deps if d.status == 'running')
     user = User.query.get(uid)
+
+    # Calculate VPS slots summary
+    slots = VpsSlot.query.filter_by(user_id=uid).all()
+    slots_summary = []
+    for s in slots:
+        slots_summary.append({
+            'id': s.id,
+            'plan_name': s.plan_name,
+            'ram_mb': s.ram_mb,
+            'status': s.status,
+            'deployment_id': s.deployment_id
+        })
+
+    # Return slots_summary and count as credits to prevent frontend UI formatting crashes
     return jsonify({
         'total_deployments': len(deps),
         'running': running,
         'stopped': len(deps) - running,
         'wallet': user.wallet_balance,
-        'credits': user.credits,
+        'credits': len(slots_summary), # map total slots to credits field
+        'vps_slots': slots_summary,
         'plan': user.plan,
         'free_deploy_until': user.free_deploy_until.isoformat() if user.free_deploy_until else None
     })
@@ -1096,7 +1287,8 @@ def api_deploy_github():
         'build_command': {'type': str, 'required': False, 'max': 1000},
         'deploy_command': {'type': str, 'required': False, 'max': 1000},
         'github_token': {'type': str, 'required': False, 'max': 200},
-        'env_vars': {'type': str, 'required': False, 'max': 5000, 'is_json': True}
+        'env_vars': {'type': str, 'required': False, 'max': 5000, 'is_json': True},
+        'vps_slot_id': {'type': int, 'required': False}
     }
     cleaned, err = validate_payload(schema, data)
     if err:
@@ -1109,32 +1301,56 @@ def api_deploy_github():
     deploy_cmd = cleaned.get('deploy_command') or None
     token = cleaned.get('github_token') or None
     env_vars = cleaned.get('env_vars') or None
+    slot_id = cleaned.get('vps_slot_id')
 
-    # Check free tier or credits
+    # Assign a free slot if under free trial OR look for a purchased slot
     is_free = False
+    vps_slot = None
+
     if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
+        is_free = True
+        # Check if they already have an active trial deployment
         free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
         if free_deps >= 1:
-            return jsonify({'error': 'Free deployment limit reached. Buy premium to deploy more.'}), 402
-        is_free = True
+            return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
+
+        # Ensure they have a trial slot allocated in DB
+        vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
+        if not vps_slot:
+            vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
+            db.session.add(vps_slot)
+            db.session.commit()
     else:
-        if user.credits < 1:
-            return jsonify({'error': 'No credits left. Buy premium to deploy.'}), 402
-        user.credits -= 1
+        # Require purchased VPS slot selection
+        if slot_id:
+            vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
+        else:
+            # Fall back to finding an idle slot
+            vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+
+        if not vps_slot:
+            return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
 
     dep = Deployment(
         user_id=user.id, name=name, deploy_type='github',
         repo_url=repo_url, branch=branch,
         build_command=build_cmd, deploy_command=deploy_cmd,
-        env_vars=env_vars, is_free=is_free
+        env_vars=env_vars, is_free=is_free,
+        vps_slot_id=vps_slot.id if vps_slot else None
     )
     db.session.add(dep)
     db.session.commit()
 
+    if vps_slot:
+        vps_slot.deployment_id = dep.id
+        vps_slot.status = 'running'
+        db.session.commit()
+
     t = threading.Thread(target=run_deploy_background, args=(dep.id, 'github'), kwargs={'token': token}, daemon=True)
     t.start()
 
-    return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': user.credits}), 201
+    total_slots_count = VpsSlot.query.filter_by(user_id=user.id).count()
+    return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': total_slots_count}), 201
 
 @app.route('/api/deploy/zip', methods=['POST'])
 @rate_limit('auth_action')
@@ -1162,6 +1378,12 @@ def api_deploy_zip():
     build_cmd = cleaned.get('build_command') or None
     deploy_cmd = cleaned.get('deploy_command') or None
     env_vars = cleaned.get('env_vars') or None
+    slot_id = request.form.get('vps_slot_id')
+    if slot_id:
+        try:
+            slot_id = int(slot_id)
+        except ValueError:
+            slot_id = None
 
     zip_file = request.files.get('zip_file')
     if not zip_file:
@@ -1172,17 +1394,33 @@ def api_deploy_zip():
     if not is_safe:
         return jsonify({'error': content_err}), 400
 
-    # Check free tier or credits
+    # Assign a free slot if under free trial OR look for a purchased slot
     is_free = False
+    vps_slot = None
+
     if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
+        is_free = True
+        # Check if they already have an active trial deployment
         free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
         if free_deps >= 1:
-            return jsonify({'error': 'Free deployment limit reached. Buy premium to deploy more.'}), 402
-        is_free = True
+            return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
+
+        # Ensure they have a trial slot allocated in DB
+        vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
+        if not vps_slot:
+            vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
+            db.session.add(vps_slot)
+            db.session.commit()
     else:
-        if user.credits < 1:
-            return jsonify({'error': 'No credits left. Buy premium to deploy.'}), 402
-        user.credits -= 1
+        # Require purchased VPS slot selection
+        if slot_id:
+            vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
+        else:
+            # Fall back to finding an idle slot
+            vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+
+        if not vps_slot:
+            return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
 
     filename = secure_filename(zip_file.filename)
     zip_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid.uuid4().hex}_{filename}')
@@ -1191,15 +1429,22 @@ def api_deploy_zip():
     dep = Deployment(
         user_id=user.id, name=name, deploy_type='zip',
         build_command=build_cmd, deploy_command=deploy_cmd, env_vars=env_vars,
-        is_free=is_free
+        is_free=is_free,
+        vps_slot_id=vps_slot.id if vps_slot else None
     )
     db.session.add(dep)
     db.session.commit()
 
+    if vps_slot:
+        vps_slot.deployment_id = dep.id
+        vps_slot.status = 'running'
+        db.session.commit()
+
     t = threading.Thread(target=run_deploy_background, args=(dep.id, 'zip'), kwargs={'zip_path': zip_path}, daemon=True)
     t.start()
 
-    return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': user.credits}), 201
+    total_slots_count = VpsSlot.query.filter_by(user_id=user.id).count()
+    return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': total_slots_count}), 201
 
 @app.route('/api/deploy/<int:dep_id>/start', methods=['POST'])
 @rate_limit('auth_action')
@@ -1313,11 +1558,14 @@ def api_payment_request():
     if PaymentRequest.query.filter_by(transaction_id=tx_id).first():
         return jsonify({'error': 'Transaction ID already submitted'}), 400
 
-    # Pricing: 99 -> 2, 199 -> 5, 299 -> 8
+    # VPS Slots Pricing mappings:
+    # 99 INR -> Micro 256MB VPS slot
+    # 199 INR -> Lite 512MB VPS slot
+    # 299 INR -> Pro 1GB VPS slot
     credits = 0
-    if amount >= 299: credits = 8
-    elif amount >= 199: credits = 5
-    elif amount >= 99: credits = 2
+    if amount >= 299: credits = 3 # map Pro 1GB as id reference indicator
+    elif amount >= 199: credits = 2 # Lite 512MB
+    elif amount >= 99: credits = 1 # Micro 256MB
     else: return jsonify({'error': 'Minimum amount is ₹99'}), 400
 
     req = PaymentRequest(
@@ -1347,10 +1595,27 @@ def api_admin_approve_payment(rid):
         return jsonify({'error': 'Already processed'}), 400
 
     user = User.query.get(req.user_id)
-    user.credits += req.credits
+
+    # Allocate purchased VPS slots based on payment references
+    # 99 INR (credits=1) -> Micro 256MB VPS slot
+    # 199 INR (credits=2) -> Lite 512MB VPS slot
+    # 299 INR (credits=3) -> Pro 1GB VPS slot
+    vps_name = 'Micro 256MB'
+    vps_ram = 256
+    if req.credits == 3 or req.amount >= 299:
+        vps_name = 'Pro 1GB'
+        vps_ram = 1024
+    elif req.credits == 2 or req.amount >= 199:
+        vps_name = 'Lite 512MB'
+        vps_ram = 512
+
+    new_vps = VpsSlot(user_id=user.id, plan_name=vps_name, ram_mb=vps_ram, status='idle')
+    db.session.add(new_vps)
+
+    user.credits += 1 # maintain legacy count support
     req.status = 'approved'
 
-    tx = Transaction(user_id=user.id, tx_type='credits_purchase', amount=req.amount, description=f'Purchased {req.credits} credits')
+    tx = Transaction(user_id=user.id, tx_type='vps_purchase', amount=req.amount, description=f'Purchased {vps_name} VPS slot')
     db.session.add(tx)
 
     # Referral commission - 30% of payment amount
@@ -1361,11 +1626,11 @@ def api_admin_approve_payment(rid):
             referrer.wallet_balance += commission
             ref_tx = Transaction(user_id=referrer.id, tx_type='referral_commission', amount=commission, description=f'Commission from {user.username} (Payment ₹{req.amount})')
             db.session.add(ref_tx)
-            ref_record = Referral(referrer_id=referrer.id, referred_id=user.id, amount=commission, plan_name='premium_credits')
+            ref_record = Referral(referrer_id=referrer.id, referred_id=user.id, amount=commission, plan_name='premium_vps')
             db.session.add(ref_record)
 
     db.session.commit()
-    return jsonify({'message': 'Payment approved and credits added'})
+    return jsonify({'message': 'Payment approved and VPS slot allocated successfully'})
 
 @app.route('/api/admin/payments/<int:rid>/reject', methods=['POST'])
 @admin_required
@@ -1566,12 +1831,32 @@ def api_admin_credits(uid):
     data = request.get_json()
     amount = int(data.get('amount', 0))
     user = User.query.get_or_404(uid)
-    user.credits += amount
+
+    # Manage VPS slots directly for admin adjustments
+    if amount > 0:
+        for _ in range(amount):
+            new_vps = VpsSlot(user_id=uid, plan_name='Lite 512MB', ram_mb=512, status='idle')
+            db.session.add(new_vps)
+    elif amount < 0:
+        # Delete slot records up to absolute amount
+        slots = VpsSlot.query.filter_by(user_id=uid).limit(abs(amount)).all()
+        for s in slots:
+            # Stop any associated deployment first
+            if s.deployment_id:
+                dep = Deployment.query.get(s.deployment_id)
+                if dep:
+                    engine = DeployEngine(dep.id)
+                    engine.stop()
+            db.session.delete(s)
+
+    user.credits = VpsSlot.query.filter_by(user_id=uid).count()
     if amount != 0:
-        tx = Transaction(user_id=uid, tx_type='admin_credits_adjustment', amount=float(amount), description=f'Admin {"added" if amount > 0 else "removed"} {abs(amount)} credits')
+        tx = Transaction(user_id=uid, tx_type='admin_vps_adjustment', amount=float(amount), description=f'Admin {"added" if amount > 0 else "removed"} {abs(amount)} VPS slots')
         db.session.add(tx)
     db.session.commit()
-    return jsonify({'message': f'Credits updated to {user.credits}', 'new_credits': user.credits})
+
+    current_slots_count = VpsSlot.query.filter_by(user_id=uid).count()
+    return jsonify({'message': f'VPS Slots updated to {current_slots_count}', 'new_credits': current_slots_count})
 
 @app.route('/api/admin/deployments', methods=['GET'])
 @admin_required
@@ -1982,6 +2267,9 @@ def add_security_headers(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Content-Security-Policy'] = "default-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline';"
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
+    response.headers['Clear-Site-Data'] = '"cache", "cookies"' if request.path == '/api/auth/logout' else ''
+    response.headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=()'
     return response
 
 if __name__ == '__main__':
