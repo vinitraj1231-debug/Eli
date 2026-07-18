@@ -20,6 +20,11 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DEPLOY_FOLDER'] = 'deploys'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
+# Session Cookie Security Hardening
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = True  # Enforce TLS transport-level cookies securely
+
 # ===================== CONFIGURATIONS =====================
 AUTH_LIMIT_CONFIG = {
     'ip_threshold': int(os.environ.get('AUTH_IP_THRESHOLD', 5)),
@@ -2480,6 +2485,7 @@ def add_security_headers(response):
     response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
     response.headers['Clear-Site-Data'] = '"cache", "cookies"' if request.path == '/api/auth/logout' else ''
     response.headers['Permissions-Policy'] = 'geolocation=(), camera=(), microphone=()'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
     return response
 
 if __name__ == '__main__':
