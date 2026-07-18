@@ -166,7 +166,10 @@
 
                 <!-- Section: Banned IPs -->
                 <div id="admin-banned" class="admin-section hidden">
-                    <div class="admin-top"><h1>Banned Devices</h1></div>
+                    <div class="admin-top">
+                        <h1>Banned Devices / IPs</h1>
+                        <button class="btn btn-primary btn-sm" onclick="manuallyBanIp()"><i class="fas fa-plus"></i> Ban New IP</button>
+                    </div>
                     <div id="adminBannedList"><div class="text-muted text-sm" style="padding:20px;text-align:center">Loading...</div></div>
                 </div>
             </div>

@@ -215,12 +215,20 @@ async function loadDeployments() {
             list.innerHTML = '<div class="empty-state"><i class="fas fa-rocket"></i>No deployments yet.<br>Go to Deploy tab to create one.</div>';
             return;
         }
-        list.innerHTML = deps.map(d => `
+        list.innerHTML = deps.map(d => {
+            let meta = d.type === 'github' ? '<i class="fab fa-github"></i> ' + esc(d.repo_url || '') : '<i class="fas fa-file-archive"></i> ZIP Upload';
+            if (d.is_website) {
+                const siteUrl = window.location.origin + '/site/' + d.slug;
+                meta = `<i class="fas fa-globe"></i> Website: <a href="${siteUrl}" target="_blank" style="color:var(--accent); text-decoration:underline;">${siteUrl}</a><br><span style="font-size:11px;color:var(--warning)"><i class="fas fa-eye"></i> Visitors: ${d.visitor_count || 0} hits</span>`;
+            } else if (d.port) {
+                meta += ' • Port: ' + d.port;
+            }
+            return `
             <div class="deploy-item">
                 <div class="deploy-item-header">
                     <div>
-                        <div class="deploy-item-name">${esc(d.name)}</div>
-                        <div class="deploy-item-meta">${d.type === 'github' ? '<i class="fab fa-github"></i> ' + esc(d.repo_url || '') : '<i class="fas fa-file-archive"></i> ZIP Upload'}${d.port ? ' • Port: ' + d.port : ''}</div>
+                        <div class="deploy-item-name">${esc(d.name)} ${d.is_website ? '<span class="status-badge" style="background:rgba(0,145,255,0.1); color:var(--accent); margin-left:6px; font-size:10px">HTML Web</span>' : ''}</div>
+                        <div class="deploy-item-meta">${meta}</div>
                     </div>
                     <span class="status-badge status-${d.status}">${statusDot(d.status)} ${d.status}</span>
                 </div>
@@ -230,7 +238,8 @@ async function loadDeployments() {
                     <button class="btn btn-sm btn-danger" onclick="deleteDep(${d.id})"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     } catch { list.innerHTML = '<div class="empty-state">Failed to load</div>'; }
 }
 
@@ -281,6 +290,16 @@ function initDeployForm() {
         document.getElementById('zipForm').classList.toggle('hidden', t.dataset.target !== 'zip');
     }));
 
+    const zipIsWebsite = document.getElementById('zipIsWebsite');
+    if (zipIsWebsite) {
+        zipIsWebsite.addEventListener('change', () => {
+            const isWeb = zipIsWebsite.value === 'true';
+            document.getElementById('zipBuildGroup').classList.toggle('hidden', isWeb);
+            document.getElementById('zipDeployGroup').classList.toggle('hidden', isWeb);
+            document.getElementById('zipEnvGroup').classList.toggle('hidden', isWeb);
+        });
+    }
+
     const ghForm = document.getElementById('ghDeployForm');
     if (ghForm) {
         ghForm.addEventListener('submit', async (e) => {
@@ -323,6 +342,13 @@ function initDeployForm() {
                 if (!res.ok) throw new Error(data.error);
                 toast('ZIP deployment started!', 'success');
                 zipForm.reset();
+                // Reset hidden state on select triggers
+                if (zipIsWebsite) {
+                    zipIsWebsite.value = 'false';
+                    document.getElementById('zipBuildGroup').classList.remove('hidden');
+                    document.getElementById('zipDeployGroup').classList.remove('hidden');
+                    document.getElementById('zipEnvGroup').classList.remove('hidden');
+                }
                 setTimeout(() => switchTab('manage'), 1000);
             } catch (err) { toast(err.message, 'error'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload"></i> Upload & Deploy'; }
         });
@@ -611,7 +637,7 @@ function renderAdminUsers(users) {
     el.innerHTML = users.map(u => `
         <tr>
             <td>${u.id}</td>
-            <td style="color:#fff" title="Referred by ID: ${u.referred_by || 'Nobody'}">${esc(u.username)} ${u.is_banned ? '🚫' : ''}</td>
+            <td style="color:#fff" title="Referred by ID: ${u.referred_by || 'Nobody'}">${esc(u.username)} ${u.is_banned ? '🚫' : ''}<br><span style="font-size:10px; color:var(--muted)">IP: ${esc(u.last_ip || 'N/A')}</span></td>
             <td style="font-size:11px">${esc(u.email)}</td>
             <td>
                 <div class="flex items-center gap-1" style="min-width:110px">
@@ -636,11 +662,22 @@ function renderAdminUsers(users) {
                         ? `<button class="admin-action-btn success" onclick="adminUnban(${u.id})" title="Unban"><i class="fas fa-check"></i></button>`
                         : `<button class="admin-action-btn danger" onclick="adminBan(${u.id})" title="Ban"><i class="fas fa-ban"></i></button>`
                     }
+                    ${u.last_ip ? `<button class="admin-action-btn danger" onclick="adminBanUserIp(${u.id})" title="Ban IP Device"><i class="fas fa-shield"></i></button>` : ''}
                     <button class="admin-action-btn danger" onclick="adminDeleteUser(${u.id})" title="Delete User Permanently"><i class="fas fa-user-xmark"></i></button>
                 </div>
             </td>
         </tr>
     `).join('');
+}
+
+async function adminBanUserIp(id) {
+    if (!confirm('Ban user IP device from accessing EliteHosting? This will also stop all their deployments.')) return;
+    try {
+        await api(`/api/admin/users/${id}/ban-ip`, { method: 'POST' });
+        toast('Device/IP and user banned!', 'success');
+        loadAdminUsers();
+        loadAdminStats();
+    } catch {}
 }
 
 function togglePwd(uid) {
@@ -786,15 +823,34 @@ async function loadAdminDeployments(filterUid = null) {
 function renderAdminDeps(deps) {
     const el = document.getElementById('adminDepsTable');
     if (!deps.length) { el.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px">No deployments found</td></tr>'; return; }
-    el.innerHTML = deps.map(d => `
+    el.innerHTML = deps.map(d => {
+        let type_label = d.type;
+        if (d.is_website) {
+            type_label = `<span class="status-badge" style="background:rgba(0,145,255,0.1); color:var(--accent)">HTML Web</span>`;
+        }
+        let port_or_url = d.port || '-';
+        if (d.is_website && d.slug) {
+            const siteUrl = window.location.origin + '/site/' + d.slug;
+            port_or_url = `<a href="${siteUrl}" target="_blank" style="color:var(--accent); text-decoration:underline;">/site/${d.slug}</a>`;
+        }
+
+        // Highlight high visitor deployments (visitors > 3)
+        let alert_badge = '';
+        if (d.is_website && d.visitor_count > 3) {
+            alert_badge = `<div style="margin-top:4px"><span class="status-badge status-error" style="font-size:10px; background:#ff4444; color:#fff"><i class="fas fa-triangle-exclamation"></i> Heavy Traffic: ${d.visitor_count} hits</span></div>`;
+        } else if (d.is_website) {
+            alert_badge = `<div style="margin-top:4px"><span class="status-badge status-idle" style="font-size:10px">${d.visitor_count || 0} hits</span></div>`;
+        }
+
+        return `
         <tr>
             <td>${d.id}</td>
             <td style="color:#fff">${esc(d.username)}</td>
-            <td>${esc(d.name)}</td>
-            <td>${d.type}</td>
+            <td>${esc(d.name)} ${alert_badge}</td>
+            <td>${type_label}</td>
             <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(d.repo_url)}">${esc(d.repo_url || '-')}</td>
             <td><span class="status-badge status-${d.status}">${d.status}</span></td>
-            <td>${d.port || '-'}</td>
+            <td>${port_or_url}</td>
             <td>
                 <div class="flex gap-1" style="flex-wrap: wrap; max-width: 220px;">
                     ${d.status === 'running'
@@ -809,7 +865,8 @@ function renderAdminDeps(deps) {
                 </div>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function filterDeps() {
@@ -1174,14 +1231,28 @@ async function loadAdminBanned() {
         if (!ips.length) { el.innerHTML = '<div class="text-muted text-sm" style="padding:20px;text-align:center">No banned devices</div>'; return; }
         el.innerHTML = ips.map(ip => `
             <div class="flex justify-between items-center mb-2" style="padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">
-                <div><span style="color:#fff;font-size:12px">${esc(ip.ip)}</span><br><span class="text-muted text-sm">${ip.attempts} failed attempts</span></div>
-                <button class="admin-action-btn success" onclick="unbanIp(${ip.id})">Unban</button>
+                <div><span style="color:#fff;font-size:12px">${esc(ip.ip)}</span><br><span class="text-muted text-sm">Reason: ${esc(ip.reason)} (${ip.attempts || 0} failed attempts)</span></div>
+                <button class="admin-action-btn success" onclick="unbanIp('${ip.id}')">Unban</button>
             </div>
         `).join('');
     } catch {}
 }
 
 async function unbanIp(id) { try { await api(`/api/admin/banned-ips/${id}/unban`, { method: 'POST' }); toast('IP unbanned', 'success'); loadAdminBanned(); } catch {} }
+
+async function manuallyBanIp() {
+    const ip = prompt("Enter IP Address to ban:");
+    if (!ip) return;
+    const reason = prompt("Enter ban reason:", "Manual administrative ban");
+    try {
+        await api('/api/admin/banned-ips/add', {
+            method: 'POST',
+            body: JSON.stringify({ ip: ip, reason: reason })
+        });
+        toast('IP banned successfully!', 'success');
+        loadAdminBanned();
+    } catch {}
+}
 
 async function adminLogout() {
     try { await api('/api/admin/logout', { method: 'POST' }); } catch {}

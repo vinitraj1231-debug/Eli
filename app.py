@@ -59,6 +59,13 @@ class User(db.Model):
     free_deploy_until = db.Column(db.DateTime, nullable=True)
     is_banned = db.Column(db.Boolean, default=False)
     plan = db.Column(db.String(20), default='free')
+    last_ip = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class BannedIP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(50), unique=True, nullable=False)
+    reason = db.Column(db.String(200), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class VpsSlot(db.Model):
@@ -88,6 +95,10 @@ class Deployment(db.Model):
     entry_file = db.Column(db.String(200), nullable=True)
     port = db.Column(db.Integer, nullable=True)
     vps_slot_id = db.Column(db.Integer, db.ForeignKey('vps_slot.id'), nullable=True)
+    is_website = db.Column(db.Boolean, default=False)
+    slug = db.Column(db.String(100), unique=True, nullable=True)
+    visitor_count = db.Column(db.Integer, default=0)
+    last_started_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Referral(db.Model):
@@ -151,6 +162,7 @@ import time
 def free_trial_monitor_loop():
     """
     Background loop that runs periodically to check and stop expired free deployments.
+    Now trials are strictly limited to 15 minutes of execution time.
     """
     while True:
         try:
@@ -160,13 +172,21 @@ def free_trial_monitor_loop():
                 free_deps = Deployment.query.filter_by(status='running', is_free=True).all()
                 for dep in free_deps:
                     user = User.query.get(dep.user_id)
-                    if not user or user.is_banned or (user.free_deploy_until and user.free_deploy_until <= now):
+                    # Check overall trial expiration date (3 hours) or 15 minutes session duration
+                    is_expired_session = False
+                    if dep.last_started_at and (now - dep.last_started_at) >= timedelta(minutes=15):
+                        is_expired_session = True
+
+                    if not user or user.is_banned or (user.free_deploy_until and user.free_deploy_until <= now) or is_expired_session:
                         engine = DeployEngine(dep.id)
                         engine.stop()
-                        engine._log("Free trial period expired. Deployment automatically stopped by system scheduler.")
+                        if is_expired_session:
+                            engine._log("Free trial 15-minute runtime session limit reached. Deployment automatically stopped. Please restart manually to run again.")
+                        else:
+                            engine._log("Free trial period expired. Deployment automatically stopped by system scheduler.")
         except Exception as e:
             print(f"Free trial monitor loop warning: {e}")
-        time.sleep(60) # check every minute
+        time.sleep(15) # check more frequently for precise 15 min shutoffs
 
 with app.app_context():
     db.create_all()
@@ -181,6 +201,9 @@ with app.app_context():
         if 'password_plain' not in columns:
             connection.execute(text("ALTER TABLE user ADD COLUMN password_plain VARCHAR(256)"))
             connection.commit()
+        if 'last_ip' not in columns:
+            connection.execute(text("ALTER TABLE user ADD COLUMN last_ip VARCHAR(50)"))
+            connection.commit()
 
         # RateLimit migration
         result2 = connection.execute(text("PRAGMA table_info(rate_limit)"))
@@ -189,11 +212,23 @@ with app.app_context():
             connection.execute(text("ALTER TABLE rate_limit ADD COLUMN username VARCHAR(100)"))
             connection.commit()
 
-        # Deployment migration for vps_slot_id
+        # Deployment migration for vps_slot_id and website columns
         result3 = connection.execute(text("PRAGMA table_info(deployment)"))
         dep_columns = [row[1] for row in result3.fetchall()]
         if 'vps_slot_id' not in dep_columns:
             connection.execute(text("ALTER TABLE deployment ADD COLUMN vps_slot_id INTEGER"))
+            connection.commit()
+        if 'is_website' not in dep_columns:
+            connection.execute(text("ALTER TABLE deployment ADD COLUMN is_website BOOLEAN DEFAULT 0"))
+            connection.commit()
+        if 'slug' not in dep_columns:
+            connection.execute(text("ALTER TABLE deployment ADD COLUMN slug VARCHAR(100)"))
+            connection.commit()
+        if 'visitor_count' not in dep_columns:
+            connection.execute(text("ALTER TABLE deployment ADD COLUMN visitor_count INTEGER DEFAULT 0"))
+            connection.commit()
+        if 'last_started_at' not in dep_columns:
+            connection.execute(text("ALTER TABLE deployment ADD COLUMN last_started_at DATETIME"))
             connection.commit()
 
         connection.close()
@@ -667,6 +702,13 @@ class DeployEngine:
         return env
 
     def _run_deploy(self):
+        if self.deployment.is_website:
+            self._log("Static website deployment detected. Skipping Docker execution. Active at /site/" + (self.deployment.slug or ""))
+            self.deployment.status = 'running'
+            self.deployment.last_started_at = datetime.utcnow()
+            db.session.commit()
+            return True
+
         env = self._setup_env()
         files = []
         for root, dirs, filenames in os.walk(self.deploy_path):
@@ -771,6 +813,7 @@ class DeployEngine:
             return True
 
         self.deployment.status = 'running'
+        self.deployment.last_started_at = datetime.utcnow()
         db.session.commit()
         self._log(f"Preparing secure Docker execution...")
 
@@ -945,6 +988,18 @@ CMD {run_cmd}
         return True
 
     def stop(self):
+        if self.deployment.is_website:
+            self._log("Stopping static website deployment...")
+            vps_slot = None
+            if self.deployment.vps_slot_id:
+                vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
+                if vps_slot:
+                    vps_slot.status = 'idle'
+            self.deployment.status = 'stopped'
+            db.session.commit()
+            self._log("Static website deployment stopped successfully.")
+            return
+
         container_name = f"eh_container_{self.deployment.id}"
         self._log("Stopping container secure environment...")
         try:
@@ -1090,6 +1145,46 @@ def privacy_page():
 def telegram_bot_hosting_page():
     return render_template('telegram-bot-hosting.html')
 
+@app.route('/site/<string:slug>')
+@app.route('/site/<string:slug>/')
+@app.route('/site/<string:slug>/<path:filename>')
+def serve_website(slug, filename=None):
+    dep = Deployment.query.filter_by(slug=slug, is_website=True).first_or_404()
+    if dep.status != 'running':
+        return "<h1>404 Not Found</h1><p>This website deployment is currently stopped or not active.</p>", 404
+
+    # Increment visitor count securely
+    dep.visitor_count += 1
+    db.session.commit()
+
+    deploy_path = os.path.join(app.config['DEPLOY_FOLDER'], f'deploy_{dep.id}')
+    if not os.path.exists(deploy_path):
+        return "<h1>500 Internal Error</h1><p>Website deployment directory was not found on the server.</p>", 500
+
+    # Default entry file to serve is index.html
+    if not filename:
+        filename = 'index.html'
+
+    # If filename is a directory, serve index.html inside it
+    target_filepath = os.path.join(deploy_path, filename)
+    if os.path.isdir(target_filepath):
+        filename = os.path.join(filename, 'index.html')
+
+    # Security check to prevent path traversal
+    abs_deploy_dir = os.path.abspath(deploy_path)
+    abs_target_path = os.path.abspath(os.path.join(deploy_path, filename))
+    if not abs_target_path.startswith(abs_deploy_dir):
+        return "<h1>403 Forbidden</h1><p>Directory traversal is strictly prohibited.</p>", 403
+
+    if not os.path.exists(abs_target_path):
+        # Fall back to root index.html or raise 404
+        if os.path.exists(os.path.join(deploy_path, 'index.html')):
+            return send_from_directory(deploy_path, 'index.html')
+        return "<h1>404 Not Found</h1><p>The requested asset was not found on this website.</p>", 404
+
+    directory, name = os.path.split(abs_target_path)
+    return send_from_directory(directory, name)
+
 @app.route('/robots.txt')
 @rate_limit('public')
 def robots_txt():
@@ -1165,6 +1260,7 @@ def api_register():
         if not referrer:
             return jsonify({'error': 'Invalid referral code'}), 400
 
+    ip = get_client_ip()
     user = User(
         username=username,
         email=email,
@@ -1172,7 +1268,8 @@ def api_register():
         password_plain=password,
         referral_code=generate_referral_code(),
         referred_by=referrer.id if referrer else None,
-        free_deploy_until=datetime.utcnow() + timedelta(hours=3)
+        free_deploy_until=datetime.utcnow() + timedelta(hours=3),
+        last_ip=ip
     )
     db.session.add(user)
     db.session.commit()
@@ -1203,6 +1300,10 @@ def api_login():
         return jsonify({'error': 'Invalid credentials'}), 401
     if user.is_banned:
         return jsonify({'error': 'Account is banned'}), 403
+
+    ip = get_client_ip()
+    user.last_ip = ip
+    db.session.commit()
 
     session['user_id'] = user.id
     return jsonify({
@@ -1271,7 +1372,9 @@ def api_list_deployments():
     return jsonify([{
         'id': d.id, 'name': d.name, 'type': d.deploy_type,
         'repo_url': d.repo_url, 'status': d.status, 'port': d.port,
-        'entry_file': d.entry_file, 'created_at': d.created_at.isoformat()
+        'entry_file': d.entry_file, 'is_website': d.is_website,
+        'slug': d.slug, 'visitor_count': d.visitor_count,
+        'created_at': d.created_at.isoformat()
     } for d in deps])
 
 @app.route('/api/deploy/github', methods=['POST'])
@@ -1306,6 +1409,7 @@ def api_deploy_github():
     # Assign a free slot if under free trial OR look for a purchased slot
     is_free = False
     vps_slot = None
+    is_website = (request.form.get('is_website') == 'true')
 
     if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
         is_free = True
@@ -1357,6 +1461,7 @@ def api_deploy_github():
 @login_required
 def api_deploy_zip():
     user = User.query.get(session['user_id'])
+    is_website = (request.form.get('is_website') == 'true')
 
     form_data = {
         'name': request.form.get('name'),
@@ -1426,11 +1531,19 @@ def api_deploy_zip():
     zip_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid.uuid4().hex}_{filename}')
     zip_file.save(zip_path)
 
+    # Generate unique website slug if it is a website
+    slug_val = None
+    if is_website:
+        slug_val = uuid.uuid4().hex[:8]
+
     dep = Deployment(
         user_id=user.id, name=name, deploy_type='zip',
         build_command=build_cmd, deploy_command=deploy_cmd, env_vars=env_vars,
         is_free=is_free,
-        vps_slot_id=vps_slot.id if vps_slot else None
+        vps_slot_id=vps_slot.id if vps_slot else None,
+        is_website=is_website,
+        slug=slug_val,
+        last_started_at=datetime.utcnow()
     )
     db.session.add(dep)
     db.session.commit()
@@ -1444,7 +1557,7 @@ def api_deploy_zip():
     t.start()
 
     total_slots_count = VpsSlot.query.filter_by(user_id=user.id).count()
-    return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': total_slots_count}), 201
+    return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': total_slots_count, 'slug': slug_val, 'is_website': is_website}), 201
 
 @app.route('/api/deploy/<int:dep_id>/start', methods=['POST'])
 @rate_limit('auth_action')
@@ -1941,17 +2054,89 @@ def api_admin_reply(uid):
 @app.route('/api/admin/banned-ips', methods=['GET'])
 @admin_required
 def api_admin_banned_ips():
-    banned = AdminAuth.query.filter_by(is_banned=True).all()
-    return jsonify([{'id': b.id, 'ip': b.ip_address, 'attempts': b.failed_attempts} for b in banned])
+    # Both device failed logins (AdminAuth banned) and general BannedIP
+    admin_banned = AdminAuth.query.filter_by(is_banned=True).all()
+    general_banned = BannedIP.query.all()
 
-@app.route('/api/admin/banned-ips/<int:bid>/unban', methods=['POST'])
+    ips = []
+    for b in admin_banned:
+        ips.append({
+            'id': f"admin_{b.id}",
+            'ip': b.ip_address,
+            'reason': f"Admin failed attempts: {b.failed_attempts}",
+            'attempts': b.failed_attempts,
+            'type': 'admin'
+        })
+    for g in general_banned:
+        ips.append({
+            'id': f"general_{g.id}",
+            'ip': g.ip_address,
+            'reason': g.reason or "Manually banned by admin",
+            'attempts': 0,
+            'type': 'general'
+        })
+    return jsonify(ips)
+
+@app.route('/api/admin/banned-ips/<string:bid>/unban', methods=['POST'])
 @admin_required
 def api_admin_unban_ip(bid):
-    auth = AdminAuth.query.get_or_404(bid)
-    auth.is_banned = False
-    auth.failed_attempts = 0
+    if bid.startswith("admin_"):
+        real_id = int(bid.replace("admin_", ""))
+        auth = AdminAuth.query.get_or_404(real_id)
+        auth.is_banned = False
+        auth.failed_attempts = 0
+        db.session.commit()
+        return jsonify({'message': f'IP {auth.ip_address} unbanned'})
+    elif bid.startswith("general_"):
+        real_id = int(bid.replace("general_", ""))
+        banned = BannedIP.query.get_or_404(real_id)
+        ip = banned.ip_address
+        db.session.delete(banned)
+        db.session.commit()
+        return jsonify({'message': f'IP {ip} unbanned'})
+    return jsonify({'error': 'Invalid ID format'}), 400
+
+@app.route('/api/admin/banned-ips/add', methods=['POST'])
+@admin_required
+def api_admin_ban_ip_manually():
+    data = request.get_json() or {}
+    ip = data.get('ip', '').strip()
+    reason = data.get('reason', '').strip() or "Manual ban"
+    if not ip:
+        return jsonify({'error': 'IP address is required'}), 400
+
+    existing = BannedIP.query.filter_by(ip_address=ip).first()
+    if existing:
+        return jsonify({'error': 'IP is already banned'}), 400
+
+    new_ban = BannedIP(ip_address=ip, reason=reason)
+    db.session.add(new_ban)
     db.session.commit()
-    return jsonify({'message': f'IP {auth.ip_address} unbanned'})
+    return jsonify({'message': f'IP {ip} successfully banned'})
+
+@app.route('/api/admin/users/<int:uid>/ban-ip', methods=['POST'])
+@admin_required
+def api_admin_ban_user_ip(uid):
+    user = User.query.get_or_404(uid)
+    if not user.last_ip:
+        return jsonify({'error': 'User has no recorded IP address yet.'}), 400
+
+    existing = BannedIP.query.filter_by(ip_address=user.last_ip).first()
+    if not existing:
+        new_ban = BannedIP(ip_address=user.last_ip, reason=f"Banned user IP for: {user.username}")
+        db.session.add(new_ban)
+
+    user.is_banned = True
+    # Stop user deployments
+    for d in Deployment.query.filter_by(user_id=uid, status='running').all():
+        try:
+            engine = DeployEngine(d.id)
+            engine.stop()
+        except:
+            pass
+
+    db.session.commit()
+    return jsonify({'message': f'Successfully banned IP {user.last_ip} and user {user.username}'})
 
 # ===================== ADVANCED ADMIN ENDPOINTS =====================
 
@@ -2241,19 +2426,44 @@ def handle_exception(e):
 # ===================== RUN =====================
 
 @app.before_request
-def auto_stop_expired_free_deployments():
+def check_ip_banned_and_expired():
+    # Check if client IP is banned
+    ip = get_client_ip()
+    banned = BannedIP.query.filter_by(ip_address=ip).first()
+    if banned:
+        return "<h1>403 Forbidden - Device Banned</h1><p>Your device IP address has been banned from accessing EliteHosting. If you believe this is a mistake, please contact support.</p>", 403
+
     # Stop expired trial deployments dynamically for the logged-in user
     if 'user_id' in session:
         try:
             uid = session['user_id']
             user = User.query.get(uid)
-            if user and user.free_deploy_until and user.free_deploy_until <= datetime.utcnow():
-                # Stop any active free deployment for this user
+            if user:
+                if user.is_banned:
+                    session.clear()
+                    return "<h1>403 Forbidden - Account Banned</h1><p>Your account has been banned.</p>", 403
+
+                # Check if user's last_ip or registration IP is banned
+                if user.last_ip:
+                    ubanned = BannedIP.query.filter_by(ip_address=user.last_ip).first()
+                    if ubanned:
+                        return "<h1>403 Forbidden - Device Banned</h1><p>Your device IP address has been banned from accessing EliteHosting.</p>", 403
+
+                now = datetime.utcnow()
+                # Stop expired free trial deployments
                 free_deps = Deployment.query.filter_by(user_id=uid, status='running', is_free=True).all()
                 for dep in free_deps:
-                    engine = DeployEngine(dep.id)
-                    engine.stop()
-                    engine._log("Free trial period expired. Deployment automatically stopped.")
+                    is_expired_session = False
+                    if dep.last_started_at and (now - dep.last_started_at) >= timedelta(minutes=15):
+                        is_expired_session = True
+
+                    if (user.free_deploy_until and user.free_deploy_until <= now) or is_expired_session:
+                        engine = DeployEngine(dep.id)
+                        engine.stop()
+                        if is_expired_session:
+                            engine._log("Free trial 15-minute runtime session limit reached. Deployment automatically stopped. Please restart manually to run again.")
+                        else:
+                            engine._log("Free trial period expired. Deployment automatically stopped.")
         except Exception:
             pass
 

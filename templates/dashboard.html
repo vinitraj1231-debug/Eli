@@ -49,6 +49,7 @@
                 <div class="stat-card">
                     <div class="label">Free VPS Tier</div>
                     <div class="value" id="statFreeTimer" style="font-size:14px;color:var(--warning)">--:--:--</div>
+                    <small style="font-size:9px;color:var(--danger)">Trial apps stop after 15 min. Restart required!</small>
                 </div>
                 <div class="stat-card">
                     <div class="label">Wallet Balance</div>
@@ -153,6 +154,13 @@
             <div id="zipForm" class="dash-card hidden">
                 <form id="zipDeployForm">
                     <div class="form-group">
+                        <label>Deployment Type</label>
+                        <select name="is_website" id="zipIsWebsite" class="form-input" style="background:var(--surface);color:#fff">
+                            <option value="false">Backend Application/Service (Docker VPS Container)</option>
+                            <option value="true">Static Website / HTML Code Deploy (No Port Needed, Global URL)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>Target VPS Slot</label>
                         <select id="zipVpsSlot" name="vps_slot_id" class="form-input" style="background:var(--surface);color:#fff">
                             <option value="">Auto-select Idle Slot (or Free Trial)</option>
@@ -164,18 +172,18 @@
                     </div>
                     <div class="form-group">
                         <label>ZIP File or Project Script</label>
-                        <input type="file" name="zip_file" accept=".zip,.py,.js" class="form-input" required style="padding:8px">
-                        <div style="font-size:10px;color:var(--muted);margin-top:4px">Upload a .zip, .py, or .js file. Single files will be run directly.</div>
+                        <input type="file" name="zip_file" accept=".zip,.py,.js,.html" class="form-input" required style="padding:8px">
+                        <div style="font-size:10px;color:var(--muted);margin-top:4px">Upload a .zip, .py, .js or .html file. Websites must include index.html in the root.</div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="zipBuildGroup">
                         <label>Build Command <span style="color:var(--muted)">(optional)</span></label>
                         <input type="text" name="build_command" class="form-input" placeholder="npm install">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="zipDeployGroup">
                         <label>Deploy Command <span style="color:var(--muted)">(optional — auto-detected if empty)</span></label>
                         <input type="text" name="deploy_command" class="form-input" placeholder="node index.js">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="zipEnvGroup">
                         <label>Environment Variables</label>
                         <div id="zipEnvList" class="env-list">
                             <div class="env-row">
