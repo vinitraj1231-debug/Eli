@@ -43,11 +43,11 @@
                     <div class="value" id="statTotal">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Available Credits</div>
+                    <div class="label">Active VPS Slots</div>
                     <div class="value" id="statCredits" style="color:var(--accent)">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Free Tier</div>
+                    <div class="label">Free VPS Tier</div>
                     <div class="value" id="statFreeTimer" style="font-size:14px;color:var(--warning)">--:--:--</div>
                 </div>
                 <div class="stat-card">
@@ -56,21 +56,29 @@
                 </div>
             </div>
 
+            <!-- Purchased VPS slots overview -->
             <div class="dash-card">
-                <div class="dash-card-title"><i class="fas fa-crown"></i> Premium Credits</div>
-                <p style="font-size:11px;color:var(--muted);margin-bottom:15px">Free tier expires in 3 hours. Buy credits to keep deploying.</p>
+                <div class="dash-card-title"><i class="fas fa-server"></i> Your VPS Slots</div>
+                <div id="vpsSlotsContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                    <p style="font-size: 11px; color: var(--muted)">No active VPS slots. Buy a high-performance VPS below to deploy!</p>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-card-title"><i class="fas fa-crown"></i> High-Performance VPS Plans</div>
+                <p style="font-size:11px;color:var(--muted);margin-bottom:15px">Free trial expires in 3 hours. Get continuous, highly-isolated VPS slots below.</p>
                 <div class="flex justify-between items-center" style="gap:10px;flex-wrap:wrap">
-                    <div class="credit-plan" onclick="openPaymentModal(99, 2)">
+                    <div class="credit-plan" onclick="openPaymentModal(99, 1)">
                         <div class="price">₹99</div>
-                        <div class="label">2 Credits</div>
+                        <div class="label">Micro 256MB VPS</div>
                     </div>
-                    <div class="credit-plan active" onclick="openPaymentModal(199, 5)">
+                    <div class="credit-plan active" onclick="openPaymentModal(199, 2)">
                         <div class="price">₹199</div>
-                        <div class="label">5 Credits</div>
+                        <div class="label">Lite 512MB VPS</div>
                     </div>
-                    <div class="credit-plan" onclick="openPaymentModal(299, 8)">
+                    <div class="credit-plan" onclick="openPaymentModal(299, 3)">
                         <div class="price">₹299</div>
-                        <div class="label">8 Credits</div>
+                        <div class="label">Pro 1GB VPS</div>
                     </div>
                 </div>
             </div>
@@ -96,6 +104,12 @@
             <!-- GitHub Form -->
             <div id="githubForm" class="dash-card">
                 <form id="ghDeployForm">
+                    <div class="form-group">
+                        <label>Target VPS Slot</label>
+                        <select id="ghVpsSlot" class="form-input" style="background:var(--surface);color:#fff">
+                            <option value="">Auto-select Idle Slot (or Free Trial)</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>Deployment Name</label>
                         <input type="text" id="ghName" class="form-input" placeholder="My API Server" required>
@@ -138,6 +152,12 @@
             <!-- ZIP Form -->
             <div id="zipForm" class="dash-card hidden">
                 <form id="zipDeployForm">
+                    <div class="form-group">
+                        <label>Target VPS Slot</label>
+                        <select id="zipVpsSlot" name="vps_slot_id" class="form-input" style="background:var(--surface);color:#fff">
+                            <option value="">Auto-select Idle Slot (or Free Trial)</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label>Deployment Name</label>
                         <input type="text" name="name" class="form-input" placeholder="My Project" required>

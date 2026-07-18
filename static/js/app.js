@@ -157,6 +157,36 @@ async function loadStats() {
                 window.timerInterval = setInterval(() => updateTimer(s.free_deploy_until), 1000);
             }
         }
+
+        // Render VPS slots list dynamically
+        const vpsContainer = document.getElementById('vpsSlotsContainer');
+        const ghSelect = document.getElementById('ghVpsSlot');
+        const zipSelect = document.getElementById('zipVpsSlot');
+
+        if (vpsContainer && s.vps_slots) {
+            if (!s.vps_slots.length) {
+                vpsContainer.innerHTML = '<p style="font-size: 11px; color: var(--muted)">No active VPS slots. Buy a high-performance VPS below to deploy!</p>';
+            } else {
+                vpsContainer.innerHTML = s.vps_slots.map(vs => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; border-radius: var(--radius-md)">
+                        <div>
+                            <span style="font-weight: 600; color: #fff; font-size:12px">${esc(vs.plan_name)}</span>
+                            <span style="font-size: 10px; color: var(--muted)"> • Dedicated RAM: ${vs.ram_mb}MB</span>
+                        </div>
+                        <span class="status-badge status-${vs.status === 'running' ? 'running' : 'idle'}">${vs.status}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Populate Target VPS dropdowns
+        if (ghSelect && zipSelect && s.vps_slots) {
+            const options = s.vps_slots.map(vs => `<option value="${vs.id}">${vs.plan_name} (${vs.status})</option>`).join('');
+            const defaultOpt = `<option value="">Auto-select Idle Slot (or Free Trial)</option>`;
+            ghSelect.innerHTML = defaultOpt + options;
+            zipSelect.innerHTML = defaultOpt + options;
+        }
+
     } catch {}
 }
 
@@ -258,6 +288,7 @@ function initDeployForm() {
             const btn = ghForm.querySelector('button[type="submit"]');
             btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Deploying...';
             try {
+                const vpsSlotIdVal = document.getElementById('ghVpsSlot').value;
                 const data = await api('/api/deploy/github', {
                     method: 'POST',
                     body: JSON.stringify({
@@ -267,7 +298,8 @@ function initDeployForm() {
                         build_command: document.getElementById('ghBuild').value,
                         deploy_command: document.getElementById('ghDeploy').value,
                         github_token: document.getElementById('ghToken').value,
-                        env_vars: getEnvData('ghEnvList')
+                        env_vars: getEnvData('ghEnvList'),
+                        vps_slot_id: vpsSlotIdVal ? parseInt(vpsSlotIdVal) : null
                     })
                 });
                 toast('Deployment started!', 'success');
@@ -1024,7 +1056,7 @@ async function loadAdminPayments() {
                 <td>${esc(r.username)}</td>
                 <td style="font-size:11px">${esc(r.name)}<br>${esc(r.number)}</td>
                 <td>₹${r.amount}</td>
-                <td>${r.credits}</td>
+                <td>${r.credits === 3 ? 'Pro 1GB VPS' : r.credits === 2 ? 'Lite 512MB VPS' : 'Micro 256MB VPS'}</td>
                 <td><code style="font-size:10px">${esc(r.transaction_id)}</code></td>
                 <td><span class="status-badge status-${r.status}">${r.status}</span></td>
                 <td>
