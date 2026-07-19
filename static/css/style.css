@@ -31,10 +31,41 @@ html { font-size: 13px; scroll-behavior: smooth; }
 body {
     font-family: var(--font-body);
     background: var(--bg);
+    background-image:
+        radial-gradient(at 50% 0%, rgba(0, 145, 255, 0.12) 0px, transparent 50%),
+        linear-gradient(rgba(0, 145, 255, 0.03) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, rgba(0, 145, 255, 0.03) 1.5px, transparent 1.5px);
+    background-size: 100% 100%, 30px 30px, 30px 30px;
     color: var(--text);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+}
+
+/* Premium modern glassmorphism styling, glowing hover animations, and floating 3D motions */
+.feature-card, .price-card, .dash-card, .stat-card, .credit-plan {
+    background: rgba(17, 17, 17, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+}
+
+.feature-card:hover, .price-card:hover, .dash-card:hover, .stat-card:hover, .credit-plan:hover {
+    transform: translateY(-5px) scale(1.02) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 12px 40px 0 rgba(0, 145, 255, 0.25) !important;
+}
+
+/* Float Animation keyframes */
+@keyframes floatAnimation {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+
+.hero-content {
+    animation: floatAnimation 6s ease-in-out infinite;
 }
 
 a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
