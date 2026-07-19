@@ -217,9 +217,18 @@ async function loadDeployments() {
         }
         list.innerHTML = deps.map(d => {
             let meta = d.type === 'github' ? '<i class="fab fa-github"></i> ' + esc(d.repo_url || '') : '<i class="fas fa-file-archive"></i> ZIP Upload';
+            let slugSection = '';
             if (d.is_website) {
                 const siteUrl = window.location.origin + '/site/' + d.slug;
-                meta = `<i class="fas fa-globe"></i> Website: <a href="${siteUrl}" target="_blank" style="color:var(--accent); text-decoration:underline;">${siteUrl}</a><br><span style="font-size:11px;color:var(--warning)"><i class="fas fa-eye"></i> Visitors: ${d.visitor_count || 0} hits</span>`;
+                meta = `<i class="fas fa-globe"></i> Website: <a href="${siteUrl}" target="_blank" style="color:var(--accent); text-decoration:underline;" id="site-link-${d.id}">${siteUrl}</a><br><span style="font-size:11px;color:var(--warning)"><i class="fas fa-eye"></i> Visitors: ${d.visitor_count || 0} hits</span>`;
+                slugSection = `
+                <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); display:flex; flex-direction:column; gap:6px;">
+                    <div style="font-size:11px; color:var(--muted-light); font-weight:500;">Change Website URL Slug:</div>
+                    <div class="flex gap-2">
+                        <input type="text" id="slug-input-${d.id}" class="form-input text-sm" style="padding:6px 10px; max-width:200px;" value="${esc(d.slug)}" placeholder="new-slug">
+                        <button class="btn btn-primary btn-sm" onclick="changeSlug(${d.id})" id="slug-btn-${d.id}">Save URL</button>
+                    </div>
+                </div>`;
             } else if (d.port) {
                 meta += ' • Port: ' + d.port;
             }
@@ -232,7 +241,8 @@ async function loadDeployments() {
                     </div>
                     <span class="status-badge status-${d.status}">${statusDot(d.status)} ${d.status}</span>
                 </div>
-                <div class="deploy-actions">
+                ${slugSection}
+                <div class="deploy-actions" style="margin-top: 10px;">
                     ${d.status === 'running' ? `<button class="btn btn-sm btn-secondary" onclick="stopDep(${d.id})"><i class="fas fa-stop"></i> Stop</button>` : `<button class="btn btn-sm btn-primary" onclick="startDep(${d.id})"><i class="fas fa-play"></i> Start</button>`}
                     <button class="btn btn-sm btn-secondary" onclick="viewLogs(${d.id})"><i class="fas fa-terminal"></i> Logs</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteDep(${d.id})"><i class="fas fa-trash"></i></button>
@@ -241,6 +251,34 @@ async function loadDeployments() {
             `;
         }).join('');
     } catch { list.innerHTML = '<div class="empty-state">Failed to load</div>'; }
+}
+
+async function changeSlug(id) {
+    const inp = document.getElementById(`slug-input-${id}`);
+    const btn = document.getElementById(`slug-btn-${id}`);
+    const slug = inp.value.trim().toLowerCase();
+    if (!slug) { toast('Slug cannot be empty', 'error'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    try {
+        const data = await api(`/api/deployments/${id}/slug`, {
+            method: 'POST',
+            body: JSON.stringify({ slug })
+        });
+        toast('URL slug updated successfully!', 'success');
+        const siteUrl = window.location.origin + '/site/' + data.slug;
+        const link = document.getElementById(`site-link-${id}`);
+        if (link) {
+            link.href = siteUrl;
+            link.textContent = siteUrl;
+        }
+    } catch (err) {
+        // toast handles error already
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save URL';
+    }
 }
 
 function statusDot(s) {

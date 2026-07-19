@@ -781,20 +781,20 @@ class DeployEngine:
 
     def _auto_detect(self, files, has_req):
         checks = [
-            ('main.py', 'pip install -r requirements.txt 2>/dev/null; python3 main.py'),
-            ('app.py', 'pip install -r requirements.txt 2>/dev/null; python3 app.py'),
-            ('server.py', 'pip install -r requirements.txt 2>/dev/null; python3 server.py'),
-            ('index.js', 'npm install 2>/dev/null; node index.js'),
-            ('server.js', 'npm install 2>/dev/null; node server.js'),
-            ('app.js', 'npm install 2>/dev/null; node app.js'),
+            ('main.py', 'python3 main.py'),
+            ('app.py', 'python3 app.py'),
+            ('server.py', 'python3 server.py'),
+            ('index.js', 'node index.js'),
+            ('server.js', 'node server.js'),
+            ('app.js', 'node app.js'),
         ]
         for fname, cmd in checks:
             if fname in files:
                 self.deployment.entry_file = fname
                 self._log(f"Auto-detected: {fname}")
-                if not has_req and fname.endswith('.py'):
+                if fname.endswith('.py'):
                     cmd = f'python3 {fname}'
-                if not has_req and fname.endswith('.js'):
+                if fname.endswith('.js'):
                     cmd = f'node {fname}'
                 return cmd
 
@@ -804,8 +804,6 @@ class DeployEngine:
             entry = py_files[0]
             self.deployment.entry_file = entry
             self._log(f"Fallback to: {entry}")
-            if has_req:
-                return f'pip install -r requirements.txt 2>/dev/null; python3 {entry}'
             return f'python3 {entry}'
 
         return None
@@ -875,13 +873,13 @@ class DeployEngine:
             default_user = "node"
             work_dir = "/home/node/app"
             copy_prefix = f"COPY --chown={default_user}:{default_user} . ."
-            setup_user_cmd = ""
+            setup_user_cmd = f"RUN mkdir -p {work_dir} && chown -R {default_user}:{default_user} /home/node"
         else:
             base_image = "python:3.10-alpine"
             default_user = "appuser"
             work_dir = "/app"
-            copy_prefix = "COPY --chown=appuser:appuser . ."
-            setup_user_cmd = "RUN addgroup -S appgroup && adduser -S appuser -G appgroup"
+            copy_prefix = "COPY --chown=appuser:appgroup . ."
+            setup_user_cmd = f"RUN addgroup -S appgroup && adduser -S appuser -G appgroup && mkdir -p {work_dir} && chown -R appuser:appgroup {work_dir}"
 
         dockerfile_content = f"""FROM {base_image}
 {setup_user_cmd}
@@ -1606,6 +1604,35 @@ def api_delete_deploy(dep_id):
     engine = DeployEngine(dep_id)
     engine.delete()
     return jsonify({'message': 'Deleted'})
+
+@app.route('/api/deployments/<int:dep_id>/slug', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_update_deployment_slug(dep_id):
+    dep = Deployment.query.get_or_404(dep_id)
+    if dep.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized'}), 403
+    if not dep.is_website:
+        return jsonify({'error': 'Slug update is only supported for website deployments'}), 400
+
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'slug': {'type': str, 'required': True, 'min': 3, 'max': 50, 'regex': r'^[a-z0-9\-_]+$'}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    new_slug = cleaned['slug'].lower()
+
+    # Check for slug uniqueness
+    existing = Deployment.query.filter_by(slug=new_slug, is_website=True).first()
+    if existing and existing.id != dep.id:
+        return jsonify({'error': 'This URL slug is already taken. Try another!'}), 409
+
+    dep.slug = new_slug
+    db.session.commit()
+    return jsonify({'message': 'URL slug successfully updated', 'slug': new_slug})
 
 # ===================== ROUTES — REFERRAL & WALLET =====================
 
