@@ -1198,6 +1198,27 @@ def robots_txt():
 def llm_txt():
     return send_from_directory(app.static_folder, 'llm.txt')
 
+@app.route('/llms.txt')
+@rate_limit('public')
+def llms_txt():
+    return send_from_directory(app.static_folder, 'llms.txt')
+
+@app.route('/humans.txt')
+@rate_limit('public')
+def humans_txt():
+    return send_from_directory(app.static_folder, 'humans.txt')
+
+@app.route('/manifest.json')
+@rate_limit('public')
+def manifest_json():
+    return send_from_directory(app.static_folder, 'manifest.json')
+
+@app.route('/security.txt')
+@app.route('/.well-known/security.txt')
+@rate_limit('public')
+def security_txt():
+    return send_from_directory(app.static_folder, 'security.txt')
+
 @app.route('/sitemap.xml')
 @rate_limit('public')
 def sitemap_xml():
