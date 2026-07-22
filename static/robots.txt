@@ -1,24 +1,52 @@
+# ====================================================================
+# Robots.txt for EliteHosting - https://elitehosting.in
+# Optimized for Google, Bing, DuckDuckGo, and Modern AI/LLM Crawlers
+# ====================================================================
+
 User-agent: *
 Allow: /
 Allow: /llm.txt
+Allow: /telegram-bot-hosting
+Allow: /blogs
+Allow: /terms
+Allow: /privacy
+Disallow: /dashboard
 Disallow: /dashboard/
+Disallow: /login
+Disallow: /register
+Disallow: /raj
 Disallow: /raj/
 Disallow: /api/
+Disallow: /site/
 
-User-agent: Googlebot
+# Directives for AI/LLM Crawlers (GPTBot, ClaudeBot, etc.)
+# Allow them to consume knowledge bases, blogs, docs, and llm.txt
+User-agent: GPTBot
 Allow: /
 Allow: /llm.txt
 Disallow: /dashboard/
-Disallow: /raj/
 Disallow: /api/
+Disallow: /raj/
 
-User-agent: Bingbot
+User-agent: ChatGPT-User
 Allow: /
 Allow: /llm.txt
 Disallow: /dashboard/
-Disallow: /raj/
 Disallow: /api/
+Disallow: /raj/
 
-Crawl-delay: 1
+User-agent: ClaudeBot
+Allow: /
+Allow: /llm.txt
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /raj/
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llm.txt
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /raj/
 
 Sitemap: https://elitehosting.in/sitemap.xml
