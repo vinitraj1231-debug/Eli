@@ -30,12 +30,39 @@
     <meta property="twitter:description" content="{{ seo.description if seo else 'The ultimate cloud platform for developers. Instant GitHub & ZIP deployments with live logs and AI support.' }}">
     <meta property="twitter:image" content="https://elitehosting.in/static/img/og-image.jpg">
 
+    <!-- Font & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/style.css">
 
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0091ff',
+                            'blue-dim': '#0077e6',
+                            green: '#10b981',
+                            'green-dim': '#059669',
+                            dark: '#0a0b0d',
+                            charcoal: '#121316',
+                            border: '#1c1e22'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['DM Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Rich Schemas -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -116,452 +143,606 @@
         ]
     }
     </script>
+    <link rel="icon" type="image/webp" href="/static/img/logo.webp">
+
     <style>
-        .faq-container {
-            max-width: 900px;
-            margin: 40px auto 0;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: #07080a;
+            color: #e2e8f0;
         }
-        .faq-item {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            transition: all 0.3s ease;
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', sans-serif;
         }
-        .faq-item:hover {
-            border-color: var(--accent);
+        /* Custom styles to integrate with existing app.js selectors */
+        .hamburger span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background-color: #fff;
+            margin: 4px 0;
+            transition: 0.3s;
         }
-        .faq-question {
-            padding: 20px 24px;
-            width: 100%;
-            text-align: left;
-            background: none;
-            border: none;
-            color: #fff;
-            font-family: var(--font-heading);
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(4px, 4px);
         }
-        .faq-answer {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, padding 0.3s ease;
-            padding: 0 24px;
-            color: var(--text-dim);
-            font-size: 13.5px;
-            line-height: 1.6;
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
         }
-        .faq-item.active .faq-answer {
-            padding: 0 24px 20px;
-            max-height: 250px;
-            transition: max-height 0.3s ease-in, padding 0.3s ease;
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(4px, -4px);
         }
-        .faq-icon {
-            color: var(--accent);
-            transition: transform 0.3s ease;
-            font-size: 14px;
+        .nav-dropdown {
+            display: none !important;
         }
-        .faq-item.active .faq-icon {
-            transform: rotate(180deg);
+        .nav-dropdown.show {
+            display: flex !important;
+        }
+        /* Smooth Accents and Glows */
+        .glow-blue {
+            box-shadow: 0 0 40px -10px rgba(0, 145, 255, 0.3);
+        }
+        .glow-green {
+            box-shadow: 0 0 40px -10px rgba(16, 185, 129, 0.3);
         }
     </style>
-    <script>
-        function toggleFaq(button) {
-            const item = button.parentElement;
-            item.classList.toggle('active');
-        }
-    </script>
-    <link rel="icon" type="image/webp" href="/static/img/logo.webp">
 </head>
-<body>
+<body class="selection:bg-brand-blue selection:text-black">
 
-    <!-- ===== HEADER ===== -->
-    <header class="landing-header" role="banner">
-        <a href="/" class="logo" aria-label="EliteHosting Home">
-            <img src="/static/img/logo.webp" alt="EliteHosting Logo" class="logo-img" style="height:32px; width:auto; border-radius:4px; object-fit:contain;">
-            <span class="logo-text">EliteHosting</span>
+    <!-- ===== HEADER / NAVBAR ===== -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#07080a]/90 backdrop-blur-xl border-b border-white/5 px-6 lg:px-12 h-16 flex items-center justify-between" role="banner">
+        <a href="/" class="flex items-center gap-2.5 group" aria-label="EliteHosting Home">
+            <img src="/static/img/logo.webp" alt="EliteHosting Logo" class="h-8 w-auto rounded-md object-contain transition-transform group-hover:scale-105">
+            <span class="font-heading font-bold text-lg text-white tracking-tight group-hover:text-brand-blue transition-colors">EliteHosting.in</span>
         </a>
-        <div class="header-right">
-            <a href="/login" class="btn btn-secondary btn-sm">Login</a>
-            <button class="hamburger" aria-label="Open navigation menu" aria-expanded="false">
-                <span></span><span></span><span></span>
+
+        <!-- Desktop Nav Links -->
+        <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+            <a href="#features" class="hover:text-white transition-colors">Features</a>
+            <a href="#problems" class="hover:text-white transition-colors">Socket Engine</a>
+            <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+            <a href="/blogs" class="hover:text-white transition-colors">Blogs</a>
+            <a href="#faq-section" class="hover:text-white transition-colors">FAQ</a>
+        </nav>
+
+        <div class="header-right flex items-center gap-3">
+            <a href="/login" class="px-4 py-1.5 rounded-lg border border-white/10 text-xs font-semibold text-white bg-white/5 hover:bg-white/10 hover:border-brand-blue/30 transition-all">Client Area</a>
+
+            <!-- Hamburger menu for mobile navigation -->
+            <button class="hamburger md:hidden p-2 border border-white/5 rounded-lg bg-white/5" aria-label="Open navigation menu" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
             </button>
-            <nav class="nav-dropdown" role="navigation" aria-label="Main navigation">
-                <a href="/dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
-                <a href="/blogs"><i class="fas fa-pen-nib"></i> Blogs</a>
-                <a href="/terms"><i class="fas fa-file-contract"></i> Terms &amp; Conditions</a>
-                <a href="/privacy"><i class="fas fa-shield-halved"></i> Privacy Policy</a>
+
+            <!-- Mobile Navigation Dropdown Menu -->
+            <nav class="nav-dropdown absolute top-16 right-6 bg-[#121316]/95 border border-white/10 rounded-xl p-4 min-width-[220px] shadow-2xl flex flex-col gap-2 z-50 md:hidden" role="navigation" aria-label="Main navigation">
+                <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-brand-blue/10 rounded-lg transition-all"><i class="fas fa-th-large text-brand-blue"></i> Dashboard</a>
+                <a href="/blogs" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-brand-blue/10 rounded-lg transition-all"><i class="fas fa-pen-nib text-brand-blue"></i> Blogs</a>
+                <a href="/terms" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-brand-blue/10 rounded-lg transition-all"><i class="fas fa-file-contract text-brand-blue"></i> Terms &amp; Conditions</a>
+                <a href="/privacy" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-brand-blue/10 rounded-lg transition-all"><i class="fas fa-shield-halved text-brand-blue"></i> Privacy Policy</a>
             </nav>
         </div>
     </header>
 
-    <main>
+    <main class="pt-16">
         {% if not page %}
         <!-- ===== HOME PAGE ===== -->
-        <!-- ===== HERO ===== -->
-        <section class="hero" aria-labelledby="hero-heading" style="position: relative; overflow: hidden;">
-            <canvas id="canvas3d" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;"></canvas>
-            <div class="hero-glow" aria-hidden="true" style="z-index: 2;"></div>
-            <div class="hero-content" style="position: relative; z-index: 3;">
-                <div class="hero-badge"><span class="dot" aria-hidden="true"></span> 24/7 Zero Sleep Mode</div>
-                <h1 id="hero-heading">Dedicated <span class="highlight">Telegram Bot Hosting</span><br>With Persistent Runtimes</h1>
-                <p>Deploy Pyrogram, Telethon, Aiogram & Node.js bots in seconds. High-speed MongoDB integrations, secure .env variable injection, and seamless ZIP/Termux uploads. Starts at just ₹99/mo with zero silent socket drops.</p>
-                <div class="hero-actions">
-                    <a href="/register" class="btn btn-primary"><i class="fas fa-rocket"></i> Deploy Your Bot Free</a>
-                    <a href="/telegram-bot-hosting" class="btn btn-secondary"><i class="fas fa-server"></i> Why We Dominate VPS</a>
+
+        <!-- ===== HERO SECTION ===== -->
+        <section class="relative min-h-[90vh] flex items-center justify-center px-6 py-20 overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-blue/10 via-[#07080a] to-[#07080a]" aria-labelledby="hero-heading">
+            <canvas id="canvas3d" class="absolute inset-0 pointer-events-none z-10 opacity-60"></canvas>
+            <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.005)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none z-0"></div>
+
+            <div class="relative max-w-5xl mx-auto text-center z-20 flex flex-col items-center">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-blue/10 border border-brand-blue/20 text-xs font-semibold text-brand-blue mb-8 animate-pulse shadow-[0_0_15px_rgba(0,145,255,0.1)]">
+                    <span class="w-2 h-2 bg-brand-blue rounded-full"></span>
+                    Host Your Telegram Bots on India's Elite PaaS
+                </div>
+
+                <h1 id="hero-heading" class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
+                    Dedicated <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-emerald-400">Telegram Bot Hosting</span><br class="hidden sm:block">With Persistent Runtimes
+                </h1>
+
+                <p class="text-base sm:text-lg text-slate-400 max-w-2xl leading-relaxed mb-10">
+                    Deploy Pyrogram, Telethon, and Node.js bots in 60 seconds. High-speed database integrations, secure .env variable vault, and seamless ZIP/Termux uploads with zero silent loop crashes.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
+                    <a href="/register" class="px-8 py-4 rounded-xl font-bold text-sm bg-brand-blue hover:bg-brand-blue-dim text-black transition-all transform hover:-translate-y-0.5 shadow-lg shadow-brand-blue/25 flex items-center justify-center gap-2">
+                        <i class="fas fa-rocket"></i> Deploy in 60 Seconds
+                    </a>
+                    <a href="/telegram-bot-hosting" class="px-8 py-4 rounded-xl font-bold text-sm border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-server"></i> Dedicated Bot Core
+                    </a>
+                </div>
+
+                <!-- Sleek abstract server representation -->
+                <div class="mt-16 w-full max-w-3xl rounded-2xl border border-white/10 bg-[#121316]/60 backdrop-blur-md p-1.5 shadow-2xl relative">
+                    <div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-brand-blue/20 to-emerald-500/10 blur opacity-30"></div>
+                    <div class="bg-black/80 rounded-xl p-4 font-mono text-left text-xs text-slate-400 overflow-hidden select-none border border-white/5">
+                        <div class="flex items-center gap-2 pb-3 mb-3 border-b border-white/5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500/80"></span>
+                            <span class="text-[10px] text-slate-500 ml-2">elitehost-node-asia-1a</span>
+                        </div>
+                        <div class="space-y-1 text-slate-300">
+                            <p class="text-slate-500"><span class="text-brand-blue">#</span> Checking infrastructure nodes...</p>
+                            <p><span class="text-emerald-400">✓</span> Container security barriers initialized safely.</p>
+                            <p><span class="text-emerald-400">✓</span> Memory isolation quotas established [Micro/Lite/Pro VPS].</p>
+                            <p><span class="text-emerald-400">✓</span> High-throughput local MongoDB DNS route live [India region].</p>
+                            <p class="text-brand-blue"><span class="text-white">$</span> python3 bot.py</p>
+                            <p class="text-slate-200">[INFO] Pyrogram Bot Client Version 2.0.106 initialized.</p>
+                            <p class="text-emerald-400">[INFO] Polling loop connection active. Remediations online.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <script>
-            // Highly optimized interactive 3D particle constellation matrix canvas background
-            (function() {
-                const canvas = document.getElementById('canvas3d');
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                let width = canvas.width = canvas.offsetWidth;
-                let height = canvas.height = canvas.offsetHeight;
+        <!-- ===== PROBLEM & SOLUTION SECTION ===== -->
+        <section id="problems" class="py-24 px-6 lg:px-12 max-w-7xl mx-auto border-t border-white/5">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="text-brand-blue text-xs font-bold tracking-widest uppercase">THE COLD TRUTH</div>
+                    <h2 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">Standard VPS Systems Are Ruining Your Bots</h2>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Conventional Virtual Private Servers are generic. They do not understand the continuous, persistent socket demands of MTProto clients or asynchronous event loops.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-5 h-5 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fas fa-times text-[10px]"></i></div>
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Socket Freezing Drops</h4>
+                                <p class="text-slate-500 text-xs mt-1">Temporary network drops freeze polling sockets silently. Your bot stops responding while the process continues running.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-5 h-5 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="fas fa-times text-[10px]"></i></div>
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Resource Exhaustion & Noise</h4>
+                                <p class="text-slate-500 text-xs mt-1">Other tenants on generic VPS platforms exhaust shared CPUs, introducing latency spikes into your event loops.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                const particles = [];
-                const maxParticles = 60;
-                const connectionDist = 120;
-
-                class Particle {
-                    constructor() {
-                        this.x = Math.random() * width;
-                        this.y = Math.random() * height;
-                        this.vx = (Math.random() - 0.5) * 0.6;
-                        this.vy = (Math.random() - 0.5) * 0.6;
-                        this.radius = Math.random() * 2 + 1;
-                    }
-                    update() {
-                        this.x += this.vx;
-                        this.y += this.vy;
-                        if (this.x < 0 || this.x > width) this.vx *= -1;
-                        if (this.y < 0 || this.y > height) this.vy *= -1;
-                    }
-                    draw() {
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(0, 145, 255, 0.7)';
-                        ctx.shadowBlur = 8;
-                        ctx.shadowColor = '#0091ff';
-                        ctx.fill();
-                        ctx.shadowBlur = 0; // reset
-                    }
-                }
-
-                for (let i = 0; i < maxParticles; i++) {
-                    particles.push(new Particle());
-                }
-
-                function drawLines() {
-                    for (let i = 0; i < particles.length; i++) {
-                        for (let j = i + 1; j < particles.length; j++) {
-                            const p1 = particles[i];
-                            const p2 = particles[j];
-                            const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-                            if (dist < connectionDist) {
-                                const alpha = (1 - dist / connectionDist) * 0.15;
-                                ctx.strokeStyle = `rgba(0, 145, 255, ${alpha})`;
-                                ctx.lineWidth = 0.8;
-                                ctx.beginPath();
-                                ctx.moveTo(p1.x, p1.y);
-                                ctx.lineTo(p2.x, p2.y);
-                                ctx.stroke();
-                            }
-                        }
-                    }
-                }
-
-                function animate() {
-                    ctx.clearRect(0, 0, width, height);
-                    particles.forEach(p => {
-                        p.update();
-                        p.draw();
-                    });
-                    drawLines();
-                    requestAnimationFrame(animate);
-                }
-
-                window.addEventListener('resize', () => {
-                    width = canvas.width = canvas.offsetWidth;
-                    height = canvas.height = canvas.offsetHeight;
-                });
-
-                animate();
-            })();
-        </script>
+                <div class="lg:col-span-7 bg-[#121316]/50 border border-white/5 rounded-2xl p-8 lg:p-10 relative overflow-hidden shadow-2xl">
+                    <div class="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-brand-blue/5 blur-3xl"></div>
+                    <div class="space-y-6">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400">
+                            <i class="fas fa-check-circle"></i> The Elite Solution
+                        </div>
+                        <h3 class="text-2xl font-bold text-white">Active Polling Protection & Dynamic Recovery</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">
+                            EliteHosting utilizes specialized, isolated infrastructure engineered exclusively for asynchronous Telegram clients. Our background supervisor daemon runs alongside your processes, continually evaluating network socket integrity.
+                        </p>
+                        <div class="grid sm:grid-cols-2 gap-6">
+                            <div class="border border-white/5 bg-black/40 rounded-xl p-5 space-y-2">
+                                <h5 class="font-bold text-sm text-white text-brand-blue">Dynamic Socket Recycling</h5>
+                                <p class="text-slate-500 text-xs leading-relaxed">If a polling loop stops responding, our scheduler recycles the socket state instantly, keeping your bot online 24/7/365.</p>
+                            </div>
+                            <div class="border border-white/5 bg-black/40 rounded-xl p-5 space-y-2">
+                                <h5 class="font-bold text-sm text-white text-emerald-400">Dedicated Low-Latency Routing</h5>
+                                <p class="text-slate-500 text-xs leading-relaxed">Optimized DNS and transport pipelines targeting top database clusters like MongoDB in India for sub-millisecond lookups.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- ===== INFO GAIN CAPSULE / GEO & AEO SNIPPET ===== -->
-        <section class="reveal" style="padding: 20px 24px;">
-            <div style="background: rgba(0, 145, 255, 0.03); border: 1px dashed rgba(0, 145, 255, 0.3); border-radius: var(--radius-md); padding: 24px; margin: 0 auto; max-width: 900px; text-align: left; position: relative;">
-                <h3 style="color: #fff; font-size: 16px; font-weight: 700; margin-bottom: 12px; font-family: var(--font-heading);"><i class="fas fa-brain" style="color:var(--accent); margin-right:8px"></i> AI Engine Insights: Custom Slugs, Static Hosting & Bot Protection</h3>
-                <p style="color: var(--text-dim); font-size: 13px; line-height: 1.7; margin: 0;">
+        <section class="reveal max-w-5xl mx-auto px-6 mb-20">
+            <div class="bg-brand-blue/[0.03] border border-dashed border-brand-blue/30 rounded-2xl p-6 lg:p-8 text-left relative overflow-hidden">
+                <div class="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-brand-blue/5 blur-2xl"></div>
+                <h3 class="text-white text-base font-bold mb-3 flex items-center gap-2">
+                    <i class="fas fa-brain text-brand-blue"></i> AI Engine Insights: Custom Slugs, Static Hosting & Bot Protection
+                </h3>
+                <p class="color text-slate-400 text-xs sm:text-sm leading-relaxed">
                     <strong>How to host Telegram bots with active connection recoveries and custom URLs?</strong> Classic Virtual Private Servers fail to recognize socket freezing drops in MTProto (Pyrogram, Telethon) and Asyncio setups. EliteHosting resolves silent loop crashes through continuous background socket monitors, auto-recycling frozen connection loops instantly. Beyond background services, developers can deploy full HTML static websites via ZIP or GitHub and fully customize their URL structure. Under the Manage deployments section, any static deployment's web address path can be modified on-the-fly to a custom alphanumeric string (e.g., changing from a random UUID segment to `www.elitehosting.in/site/my-portfolio`). Combined with low-latency DNS routing to Indian MongoDB database clusters, non-root user sandboxes, and static QR verification, EliteHosting offers the ultimate highly optimized, zero-sleep deployment ecosystem.
                 </p>
             </div>
         </section>
 
-        <!-- ===== FEATURES ===== -->
-        <section class="section reveal" aria-labelledby="features-heading">
-            <div class="section-label">Features</div>
-            <h2 id="features-heading" class="section-title">Engineered Specifically for Bot Developers</h2>
-            <p class="section-desc">No complex configurations. No manual server setup. Absolute performance for your background handlers.</p>
-            <div class="features-grid">
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fab fa-github"></i></div>
-                    <h3>GitHub Integration</h3>
-                    <p>Clone any Pyrogram, Telethon, or Aiogram repository securely. Supports private imports via personal access tokens.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-file-zipper"></i></div>
-                    <h3>Termux ZIP Upload</h3>
-                    <p>Deploy directly from your mobile Termux environment. Upload standard ZIP archives or single-file scripts instantly.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
-                    <h3>Auto-Detect Runtimes</h3>
-                    <p>Our build engine auto-detects standard entrypoints, executing `pip install` or `npm install` inside optimized isolation.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-database"></i></div>
-                    <h3>MongoDB Bot Hosting</h3>
-                    <p>Optimized low-latency routing to local Indian MongoDB, Redis, or PostgreSQL instances for persistent data states.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-key"></i></div>
-                    <h3>Encrypted Secrets Vault</h3>
-                    <p>Add Bot Tokens, MongoDB URIs, and credentials via GUI. We inject secrets directly into RAM to prevent disk leakages.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
-                    <h3>Real-Time Streaming Logs</h3>
-                    <p>Stream your standard outputs and error channels in real-time. Debug stack traces and loop exceptions on the fly.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-                    <h3>Zero Sleep 24/7 Runtime</h3>
-                    <p>Our background supervisor ensures continuous, persistent execution with active silent socket drops remediation.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
-                    <h3>Session Isolation</h3>
-                    <p>Total namespace and process isolation. Safe handling of sensitive SQLite-backed .session files for Telegram bots.</p>
-                </article>
-            </div>
-        </section>
-
-        <!-- ===== PRICING ===== -->
-        <section class="section reveal" id="pricing" aria-labelledby="pricing-heading">
-            <div class="section-label">Pricing</div>
-            <h2 id="pricing-heading" class="section-title">High-Performance Bot Hosting VPS Slots</h2>
-            <p class="section-desc">Deploy your Telegram bots in strictly isolated RAM-capped Docker containers with hard resource controls.</p>
-            <div class="pricing-grid">
-                <div class="price-card">
-                    <div class="price-name">Micro VPS</div>
-                    <div class="price-amount">₹99<span>/mo</span></div>
-                    <ul class="price-features">
-                        <li><i class="fas fa-check"></i> <strong>256MB Dedicated RAM</strong></li>
-                        <li><i class="fas fa-check"></i> Docker Container Isolation</li>
-                        <li><i class="fas fa-check"></i> Pyrogram, Telethon, Aiogram</li>
-                        <li><i class="fas fa-check"></i> Termux ZIP & GitHub Deploy</li>
-                        <li><i class="fas fa-check"></i> In-Memory Secret Vault</li>
-                    </ul>
-                    <a href="/register" class="btn btn-secondary btn-block">Get Started</a>
-                </div>
-                <div class="price-card featured">
-                    <div class="price-name">Lite VPS</div>
-                    <div class="price-amount">₹199<span>/mo</span></div>
-                    <ul class="price-features">
-                        <li><i class="fas fa-check"></i> <strong>512MB Dedicated RAM</strong></li>
-                        <li><i class="fas fa-check"></i> Hard Container Virtualization</li>
-                        <li><i class="fas fa-check"></i> High-Throughput DB Routing</li>
-                        <li><i class="fas fa-check"></i> Custom Build Commands</li>
-                        <li><i class="fas fa-check"></i> Dedicated Support Channels</li>
-                    </ul>
-                    <a href="/register" class="btn btn-primary btn-block">Get Started</a>
-                </div>
-                <div class="price-card">
-                    <div class="price-name">Pro VPS</div>
-                    <div class="price-amount">₹299<span>/mo</span></div>
-                    <ul class="price-features">
-                        <li><i class="fas fa-check"></i> <strong>1GB Dedicated RAM</strong></li>
-                        <li><i class="fas fa-check"></i> Heavy bot fleets / webhooks</li>
-                        <li><i class="fas fa-check"></i> Persistent SQLite Session Isolation</li>
-                        <li><i class="fas fa-check"></i> Indian MongoDB Low-Latency IP</li>
-                        <li><i class="fas fa-check"></i> Direct Admin Chat Line</li>
-                    </ul>
-                    <a href="/register" class="btn btn-secondary btn-block">Get Started</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- ===== FAQS ===== -->
-        <section class="section reveal" id="faq-section" aria-labelledby="faq-heading">
-            <div class="section-label">FAQS</div>
-            <h2 id="faq-heading" class="section-title">Frequently Asked Questions</h2>
-            <p class="section-desc">Got questions about EliteHosting? Find your answers here.</p>
-
-            <div class="faq-container">
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>What is EliteHosting?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>EliteHosting is India's premium, developer-first PaaS platform. We provide high-performance, cost-effective hosting tailored for asynchronous Telegram bots, custom APIs, and backend automation with auto-detection for Python and Node.js.</p>
-                    </div>
+        <!-- ===== KEY FEATURES GRID ===== -->
+        <section id="features" class="py-24 px-6 lg:px-12 bg-black/40 border-t border-b border-white/5 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                    <div class="text-brand-blue text-xs font-bold tracking-widest uppercase">ENGINEERED SPECS</div>
+                    <h2 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">Architected Specifically for Bot Developers</h2>
+                    <p class="text-slate-400 text-sm">Everything you need to ship resilient background daemons, asynchronous webhooks, and automation pipelines.</p>
                 </div>
 
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How to stop Telegram polling loop crashes?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Telegram bots on a legacy VPS suffer from silent socket dropouts during networking anomalies. EliteHosting includes a persistent socket checker that actively tests communication channels and automatically recycles hung loops, eliminating silent failures.</p>
-                    </div>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 hover:border-brand-blue/30 hover:shadow-lg hover:shadow-brand-blue/5 transition-all group">
+                        <div class="w-10 h-10 rounded-lg bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-infinity text-sm"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">24/7 Zero-Sleep Runtime</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Continuous background processes keeping your bot state execution loops alive around the clock with zero sleep modes or inactive timeouts.</p>
+                    </article>
+
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 hover:border-brand-blue/30 hover:shadow-lg hover:shadow-brand-blue/5 transition-all group">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-network-wired text-sm"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Specialized MTProto Optimization</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Intelligent session checks and automated connection recovery layers built exclusively for Telethon, Pyrogram, and asyncio.</p>
+                    </article>
+
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 hover:border-brand-blue/30 hover:shadow-lg hover:shadow-brand-blue/5 transition-all group">
+                        <div class="w-10 h-10 rounded-lg bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-folder-zip text-sm"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Termux ZIP Support</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Ship code straight from your mobile on Android. Package your workspace as a standard ZIP inside Termux and upload it via our dashboard.</p>
+                    </article>
+
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 hover:border-brand-blue/30 hover:shadow-lg hover:shadow-brand-blue/5 transition-all group">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-user-shield text-sm"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Secure Sandboxing</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Each VPS slot runs in a non-privileged, RAM-capped container environment to preserve credentials, database tokens, and isolated session maps.</p>
+                    </article>
+
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 hover:border-brand-blue/30 hover:shadow-lg hover:shadow-brand-blue/5 transition-all group">
+                        <div class="w-10 h-10 rounded-lg bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center text-brand-blue mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-code-branch text-sm"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Multi-language Support</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Native support for Python 3.10 and Node.js 18. Auto-installs `requirements.txt` and `package.json` configurations dynamically during build cycles.</p>
+                    </article>
+
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all group">
+                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-5 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-database text-sm"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Indian MongoDB Low-Latency IP</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Sub-millisecond connections to database instances. Maintain stable persistent socket configurations with zero handshake timeouts.</p>
+                    </article>
                 </div>
 
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Are my environment variables and Bot Tokens secure?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes. Our secure database-backed secret injection platform mounts your variables (like TELEGRAM_BOT_TOKEN and MONGO_URI) strictly as in-memory environment variables at container startup. No plaintext `.env` files are ever written to the physical disk, protecting you from unintended directory traversals or repository leaks.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How do premium VPS slots work?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>We provide fixed pricing slots: ₹99/mo for Micro VPS (256MB RAM), ₹199/mo for Lite VPS (512MB RAM), and ₹299/mo for Pro VPS (1GB RAM). Each slot executes inside its own secure, non-privileged Docker container with strict RAM and CPU limits.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How does the 3-hour free trial work?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>New users receive a 3-hour trial window with a maximum continuous execution limit of 15 minutes per session. Once the limit is reached, our background monitor stops the trial, allowing you to restart it manually or upgrade to a premium zero-sleep plan.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Do you support mobile Termux deployments?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Absolutely. Mobile-first programmers can compress their project directory inside Termux on Android and upload the standard ZIP archive directly via our web dashboard interface. We automatically resolve dependencies and trigger the build.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Can my bot connect to a remote MongoDB instance?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes. Our network routing is optimized with low-latency DNS targeting popular database clusters in India. Your bots maintain stable persistent connection pools to remote databases like MongoDB or Redis without experiencing handshake delays.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How is container and session isolation enforced?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>EliteHosting secures sensitive SQLite-backed session databases (.session files for Pyrogram or Telethon) by deploying each process in its own heavily restricted container using Linux cgroups and namespace virtualization. Cross-tenant data access is architecturally impossible.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>What is the referral payout rate?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>We pay a high-yield 30% commission on all VPS slot payments made by users referred through your permanent referral code. Payouts are credited directly to your wallet and can be withdrawn as real currency once approved by the administrator.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Do you support private GitHub repositories?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes. Simply provide your GitHub Personal Access Token in the dashboard settings field, and our platform will securely authenticate and pull your private codebase configurations.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>Can I customize the start and deploy commands?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>Yes. You have full command flexibility. If our system's auto-detection falls back or you have a non-standard entry script, you can specify custom build and run strings directly in the deployment interface.</p>
-                    </div>
-                </div>
-
-                <div class="faq-item">
-                    <button class="faq-question" onclick="toggleFaq(this)">
-                        <span>How do I get technical support?</span>
-                        <i class="fas fa-chevron-down faq-icon"></i>
-                    </button>
-                    <div class="faq-answer">
-                        <p>We provide a direct support terminal directly inside your active dashboard. You can converse directly with our administrators in real-time, or connect with our owner directly on Telegram at https://t.me/zolvid.</p>
+                <!-- Tech Stack Logos / Icons of Python, Node, Pyrogram, Aiogram -->
+                <div class="mt-16 border-t border-white/5 pt-12 text-center">
+                    <div class="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-6">Optimized Native Support For Modern Frameworks</div>
+                    <div class="flex flex-wrap items-center justify-center gap-6 lg:gap-12 opacity-60 hover:opacity-80 transition-opacity">
+                        <div class="flex items-center gap-2 text-white font-semibold font-heading text-sm">
+                            <i class="fab fa-python text-xl text-yellow-400"></i> Pyrogram / Telethon
+                        </div>
+                        <div class="flex items-center gap-2 text-white font-semibold font-heading text-sm">
+                            <i class="fas fa-robot text-xl text-brand-blue"></i> Aiogram
+                        </div>
+                        <div class="flex items-center gap-2 text-white font-semibold font-heading text-sm">
+                            <i class="fab fa-node-js text-xl text-brand-green"></i> Node.js (Telegraf)
+                        </div>
+                        <div class="flex items-center gap-2 text-white font-semibold font-heading text-sm">
+                            <i class="fas fa-cubes text-xl text-purple-400"></i> SQLite Session DBs
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ===== CTA ===== -->
-        <section class="section reveal" style="text-align:center">
-            <h2 class="section-title">Ready to Deploy?</h2>
-            <p class="section-desc" style="margin-left:auto;margin-right:auto">Join hundreds of developers shipping code faster with EliteHosting.</p>
-            <a href="/register" class="btn btn-primary" style="padding:12px 32px;font-size:14px"><i class="fas fa-rocket"></i> Start Free Now</a>
+        <!-- ===== PRICING SECTION ===== -->
+        <section id="pricing" class="py-24 px-6 lg:px-12 max-w-7xl mx-auto">
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <div class="text-emerald-400 text-xs font-bold tracking-widest uppercase">VPS PRICING SLOTS</div>
+                <h2 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">Simple Transparent VPS Slots</h2>
+                <p class="text-slate-400 text-sm">Hard memory limits, strict CPU thread isolation, and persistent runtime environments. Choose your dedicated slot.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8 items-stretch">
+                <!-- Plan 1 -->
+                <div class="bg-[#121316]/40 border border-white/5 rounded-2xl p-8 flex flex-col justify-between hover:border-white/10 transition-all shadow-xl relative">
+                    <div class="space-y-6">
+                        <div class="text-slate-400 font-bold font-heading uppercase text-xs tracking-widest">Micro VPS</div>
+                        <div class="flex items-baseline text-white">
+                            <span class="text-4xl font-extrabold tracking-tight">₹99</span>
+                            <span class="text-sm text-slate-500 font-medium ml-1">/month</span>
+                        </div>
+                        <p class="text-slate-500 text-xs">Best for single-instance, lightweight administrative bots or user automation tasks.</p>
+
+                        <ul class="space-y-3.5 pt-6 border-t border-white/5 text-xs text-slate-300">
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span><strong>256MB Dedicated RAM</strong></span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Docker Container Isolation</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Python &amp; Node Runtimes</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Termux ZIP &amp; GitHub Imports</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>In-Memory Secret Vault</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="/register" class="mt-8 px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5 text-xs font-bold text-white transition-all text-center">
+                        Launch Micro VPS
+                    </a>
+                </div>
+
+                <!-- Plan 2 (Featured / Recommended) -->
+                <div class="bg-[#121316]/80 border-2 border-brand-blue rounded-2xl p-8 flex flex-col justify-between hover:scale-[1.02] transition-all shadow-2xl relative glow-blue">
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-brand-blue text-black font-heading text-[10px] font-bold tracking-widest uppercase px-3 py-1 rounded-full">
+                        Recommended
+                    </div>
+                    <div class="space-y-6">
+                        <div class="text-brand-blue font-bold font-heading uppercase text-xs tracking-widest">Lite VPS</div>
+                        <div class="flex items-baseline text-white">
+                            <span class="text-4xl font-extrabold tracking-tight">₹199</span>
+                            <span class="text-sm text-slate-500 font-medium ml-1">/month</span>
+                        </div>
+                        <p class="text-slate-400 text-xs">Perfect for heavier, asynchronous bots, large database caches, and webhook proxies.</p>
+
+                        <ul class="space-y-3.5 pt-6 border-t border-white/5 text-xs text-slate-200">
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span><strong>512MB Dedicated RAM</strong></span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Hard Container Virtualization</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>High-volume Database Routing</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Custom Build Commands</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Prioritized Compilation Nodes</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="/register" class="mt-8 px-6 py-3 rounded-xl bg-brand-blue hover:bg-brand-blue-dim text-xs font-bold text-black transition-all text-center">
+                        Launch Lite VPS
+                    </a>
+                </div>
+
+                <!-- Plan 3 -->
+                <div class="bg-[#121316]/40 border border-white/5 rounded-2xl p-8 flex flex-col justify-between hover:border-white/10 transition-all shadow-xl relative">
+                    <div class="space-y-6">
+                        <div class="text-slate-400 font-bold font-heading uppercase text-xs tracking-widest">Pro VPS</div>
+                        <div class="flex items-baseline text-white">
+                            <span class="text-4xl font-extrabold tracking-tight">₹299</span>
+                            <span class="text-sm text-slate-500 font-medium ml-1">/month</span>
+                        </div>
+                        <p class="text-slate-500 text-xs">Best for extensive bot fleets, large scraping engines, or custom webhook portals.</p>
+
+                        <ul class="space-y-3.5 pt-6 border-t border-white/5 text-xs text-slate-300">
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span><strong>1GB Dedicated RAM</strong></span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Virtual Environment Isolation</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Multi-language Parallel Threads</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>SQLite Session DB Sandboxes</span>
+                            </li>
+                            <li class="flex items-center gap-2.5">
+                                <i class="fas fa-check text-brand-blue"></i>
+                                <span>Direct Support Chat Line</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <a href="/register" class="mt-8 px-6 py-3 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5 text-xs font-bold text-white transition-all text-center">
+                        Launch Pro VPS
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 12 DETAILED ACCORDION FAQS ===== -->
+        <section id="faq-section" class="py-24 px-6 lg:px-12 bg-black/40 border-t border-white/5 relative">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-16 space-y-4">
+                    <div class="text-brand-blue text-xs font-bold tracking-widest uppercase">KNOWLEDGE BASE</div>
+                    <h2 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">Frequently Asked Questions</h2>
+                    <p class="text-slate-400 text-sm">Have queries about deployment, isolation, or the pricing slots? Here's all you need to know.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- FAQ 1 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>What is EliteHosting?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">EliteHosting is India's premium, developer-first PaaS platform. We provide high-performance, cost-effective hosting tailored for asynchronous Telegram bots, custom APIs, and backend automation with auto-detection for Python and Node.js.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>How to stop Telegram polling loop crashes?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">Telegram bots on a legacy VPS suffer from silent socket dropouts during networking anomalies. EliteHosting includes a persistent socket checker that actively tests communication channels and automatically recycles hung loops, eliminating silent failures.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>Are my environment variables and Bot Tokens secure?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">Yes. Our secure database-backed secret injection platform mounts your variables (like TELEGRAM_BOT_TOKEN and MONGO_URI) strictly as in-memory environment variables at container startup. No plaintext `.env` files are ever written to the physical disk, protecting you from unintended directory traversals or repository leaks.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 4 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>How do premium VPS slots work?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">We provide fixed pricing slots: ₹99/mo for Micro VPS (256MB RAM), ₹199/mo for Lite VPS (512MB RAM), and ₹299/mo for Pro VPS (1GB RAM). Each slot executes inside its own secure, non-privileged Docker container with strict RAM and CPU limits.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 5 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>How does the 3-hour free trial work?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">New users receive a 3-hour trial window with a maximum continuous execution limit of 15 minutes per session. Once the limit is reached, our background monitor stops the trial, allowing you to restart it manually or upgrade to a premium zero-sleep plan.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 6 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>Do you support mobile Termux deployments?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">Absolutely. Mobile-first programmers can compress their project directory inside Termux on Android and upload the standard ZIP archive directly via our web dashboard interface. We automatically resolve dependencies and trigger the build.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 7 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>Can my bot connect to a remote MongoDB instance?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">Yes. Our network routing is optimized with low-latency DNS targeting popular database clusters in India. Your bots maintain stable persistent connection pools to remote databases like MongoDB or Redis without experiencing handshake delays.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 8 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>How is container and session isolation enforced?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">EliteHosting secures sensitive SQLite-backed session databases (.session files for Pyrogram or Telethon) by deploying each process in its own heavily restricted container using Linux cgroups and namespace virtualization. Cross-tenant data access is architecturally impossible.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 9 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>What is the referral payout rate?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">We pay a high-yield 30% commission on all VPS slot payments made by users referred through your permanent referral code. Payouts are credited directly to your wallet and can be withdrawn as real currency once approved by the administrator.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 10 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>Do you support private GitHub repositories?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">Yes. Simply provide your GitHub Personal Access Token in the dashboard settings field, and our platform will securely authenticate and pull your private codebase configurations.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 11 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>Can I customize the start and deploy commands?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">Yes. You have full command flexibility. If our system's auto-detection falls back or you have a non-standard entry script, you can specify custom build and run strings directly in the deployment interface.</p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 12 -->
+                    <div class="faq-item border border-white/5 bg-[#121316]/50 rounded-xl overflow-hidden transition-all hover:border-brand-blue/30">
+                        <button class="faq-question w-full flex items-center justify-between p-6 text-left font-heading font-bold text-white text-sm focus:outline-none" onclick="toggleFaq(this)">
+                            <span>How do I get technical support?</span>
+                            <i class="fas fa-chevron-down text-brand-blue transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer max-h-0 overflow-hidden transition-all duration-300 px-6 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            <p class="pb-6">We provide a direct support terminal directly inside your active dashboard. You can converse directly with our administrators in real-time, or connect with our owner directly on Telegram at https://t.me/zolvid.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== CTA / DEPLOY NOW ===== -->
+        <section class="py-24 px-6 text-center bg-gradient-to-b from-[#07080a] to-black border-t border-white/5">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-white">Ready to Deploy Your Bots?</h2>
+                <p class="text-slate-400 text-sm max-w-xl mx-auto">Join hundreds of developers who have shipped robust Telegram bot fleets and automations with zero maintenance loops.</p>
+                <div class="pt-4">
+                    <a href="/register" class="px-8 py-4 rounded-xl font-bold text-sm bg-brand-blue hover:bg-brand-blue-dim text-black transition-all shadow-lg shadow-brand-blue/20 inline-flex items-center gap-2">
+                        <i class="fas fa-rocket"></i> Get Started Free Now
+                    </a>
+                </div>
+            </div>
         </section>
 
         {% elif page == 'blogs' %}
-        <!-- ===== BLOGS PAGE ===== -->
-        <section class="section">
-            <div class="section-label">LATEST UPDATES</div>
-            <h1 class="section-title">EliteHosting Blog</h1>
-            <p class="section-desc">Technical write-ups, platform updates, and cloud hosting insights from our development team.</p>
+        <!-- ===== BLOGS LISTING PAGE ===== -->
+        <section class="py-24 px-6 lg:px-12 max-w-7xl mx-auto min-h-[70vh]">
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <div class="text-brand-blue text-xs font-bold tracking-widest uppercase">LATEST UPDATES</div>
+                <h1 class="text-4xl font-extrabold text-white">EliteHosting Blog</h1>
+                <p class="text-slate-400 text-sm">Technical write-ups, cloud tutorials, and updates from our engineering team.</p>
+            </div>
 
-            <div class="features-grid" style="margin-top: 30px;">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {% if blogs %}
                     {% for blog in blogs %}
-                    <article class="feature-card">
-                        <div class="feature-icon"><i class="fas fa-pen-nib"></i></div>
-                        <h2 style="font-family: var(--font-heading); font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 10px;">{{ blog.title }}</h2>
-                        <p style="font-size: 12px; color: var(--muted-light); margin-bottom: 14px;">{{ blog.excerpt or 'Read our latest tech updates and news.' }}</p>
-                        <a href="/blogs/{{ blog.slug }}" class="btn btn-secondary btn-sm"><i class="fas fa-book-open"></i> Read Full Post</a>
+                    <article class="bg-[#121316]/60 border border-white/5 rounded-2xl p-6 flex flex-col justify-between hover:border-brand-blue/30 hover:shadow-xl transition-all">
+                        <div class="space-y-4">
+                            <div class="w-10 h-10 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
+                                <i class="fas fa-pen-nib"></i>
+                            </div>
+                            <h2 class="font-heading font-bold text-white text-lg leading-tight">{{ blog.title }}</h2>
+                            <p class="text-slate-400 text-xs leading-relaxed line-clamp-3">{{ blog.excerpt or 'Read our latest tech updates, tutorials, and insights.' }}</p>
+                        </div>
+                        <div class="pt-6 mt-6 border-t border-white/5">
+                            <a href="/blogs/{{ blog.slug }}" class="text-brand-blue text-xs font-bold flex items-center gap-1 hover:underline">
+                                Read Full Post <i class="fas fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
                     </article>
                     {% endfor %}
                 {% else %}
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <i class="fas fa-pen-nib"></i>
-                        No blog posts published yet. Stay tuned!
+                    <div class="col-span-full py-20 text-center text-slate-500 text-sm space-y-3">
+                        <i class="fas fa-feather-pointed text-3xl opacity-30"></i>
+                        <p>No blog posts published yet. Stay tuned!</p>
                     </div>
                 {% endif %}
             </div>
@@ -569,77 +750,92 @@
 
         {% elif page == 'blog_detail' %}
         <!-- ===== BLOG DETAIL PAGE ===== -->
-        <section class="section" style="max-width: 800px;">
-            <div class="section-label" style="display: flex; align-items: center; gap: 8px;">
-                <a href="/blogs" style="color: var(--accent);"><i class="fas fa-arrow-left"></i> Back to Blogs</a>
-                <span>•</span>
-                <span>Published {{ blog.created_at.strftime('%B %d, %Y') }}</span>
-            </div>
-            <h1 class="section-title" style="font-size: 36px; margin-top: 14px; margin-bottom: 24px; line-height: 1.2;">{{ blog.title }}</h1>
-            <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; line-height: 1.8; font-size: 14px; color: var(--text);">
-                {{ blog.content | safe }}
+        <section class="py-24 px-6 lg:px-12 max-w-4xl mx-auto min-h-[80vh]">
+            <div class="space-y-6">
+                <div class="flex items-center gap-3 text-xs font-bold tracking-wider text-brand-blue uppercase">
+                    <a href="/blogs" class="hover:underline flex items-center gap-1.5"><i class="fas fa-arrow-left"></i> Back to Blogs</a>
+                    <span class="text-white/20">•</span>
+                    <span class="text-slate-400">Published {{ blog.created_at.strftime('%B %d, %Y') }}</span>
+                </div>
+
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">{{ blog.title }}</h1>
+
+                <div class="bg-[#121316]/40 border border-white/5 rounded-2xl p-6 sm:p-10 leading-relaxed text-slate-300 text-sm sm:text-base space-y-6">
+                    {{ blog.content | safe }}
+                </div>
             </div>
         </section>
 
         {% elif page == 'terms' %}
-        <!-- ===== TERMS & CONDITIONS ===== -->
-        <section class="section" style="max-width: 800px;">
-            <div class="section-label">LEGAL</div>
-            <h1 class="section-title" style="font-size: 32px; margin-bottom: 14px;">Terms &amp; Conditions</h1>
-            <p class="section-desc">Last updated: April 2024</p>
+        <!-- ===== TERMS & CONDITIONS PAGE ===== -->
+        <section class="py-24 px-6 lg:px-12 max-w-4xl mx-auto min-h-[80vh]">
+            <div class="space-y-4 mb-12">
+                <div class="text-brand-blue text-xs font-bold tracking-widest uppercase">LEGAL</div>
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">Terms of Service</h1>
+                <p class="text-slate-400 text-sm">Last updated: April 2024</p>
+            </div>
 
-            <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; line-height: 1.8; font-size: 13.5px; color: var(--text); display: flex; flex-direction: column; gap: 20px;">
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">1. Agreement to Terms</h3>
+            <div class="bg-[#121316]/40 border border-white/5 rounded-2xl p-6 sm:p-10 text-slate-300 text-sm leading-relaxed space-y-8">
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">1. Agreement to Terms</h3>
                     <p>By accessing or using EliteHosting ("we," "our," "us"), you agree to be bound by these Terms and Conditions and our compliance policies as an Indian Hosting Provider under the Information Technology Act, 2000. If you do not agree to all of these terms, do not access or use our services.</p>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">2. User Accounts &amp; Security</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">2. User Accounts &amp; Security</h3>
                     <p>When you register an account, you must provide accurate and complete details. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. IP logs are kept securely for diagnostic and compliance purposes.</p>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">3. Deployment Rules &amp; Acceptable Use</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">3. Deployment Rules &amp; Acceptable Use</h3>
                     <p>EliteHosting allows developers to deploy arbitrary Python, Node.js, and static scripts. However, you strictly agree NOT to deploy:</p>
-                    <ul style="list-style-type: square; margin-left: 20px; color: var(--text-dim); margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                    <ul class="list-disc pl-6 space-y-2 text-slate-400 mt-2">
                         <li>Cryptocurrency miners or resource-exhausting scripts.</li>
                         <li>Phishing sites, malware, pirated content, or spamming scripts.</li>
                         <li>Unlawful Telegram bot tasks violating Telegram's official terms of service.</li>
                         <li>Websites or tools hosting explicit, hate-speech, or illegal content in India.</li>
                     </ul>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">4. Payment, Wallet &amp; Commissions</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">4. Payment, Wallet &amp; Commissions</h3>
                     <p>We operate on a secure prepaid credit and wallet model. Topups are manual, requiring admin verification of payment transactions. UPI payments must be supported by a valid transaction hash or UTR ID. Referral commissions (30%) are credited to the referrer's wallet after the referee's transaction approval and are eligible for withdrawal requests. Refunds are not issued for utilized credits or banned accounts.</p>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">5. Abuse &amp; Takedown (DMCA)</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">5. Abuse &amp; Takedown (DMCA)</h3>
                     <p>We act swiftly on valid abuse or legal complaints. Any website or backend application found violating local laws will be immediately stopped and deleted, and the user's IP will be permanently blacklisted.</p>
                 </div>
             </div>
         </section>
 
         {% elif page == 'privacy' %}
-        <!-- ===== PRIVACY POLICY ===== -->
-        <section class="section" style="max-width: 800px;">
-            <div class="section-label">PRIVACY</div>
-            <h1 class="section-title" style="font-size: 32px; margin-bottom: 14px;">Privacy Policy</h1>
-            <p class="section-desc">Last updated: April 2024</p>
+        <!-- ===== PRIVACY POLICY PAGE ===== -->
+        <section class="py-24 px-6 lg:px-12 max-w-4xl mx-auto min-h-[80vh]">
+            <div class="space-y-4 mb-12">
+                <div class="text-brand-blue text-xs font-bold tracking-widest uppercase">PRIVACY</div>
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">Privacy Policy</h1>
+                <p class="text-slate-400 text-sm">Last updated: April 2024</p>
+            </div>
 
-            <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 36px; line-height: 1.8; font-size: 13.5px; color: var(--text); display: flex; flex-direction: column; gap: 20px;">
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">1. Information We Collect</h3>
+            <div class="bg-[#121316]/40 border border-white/5 rounded-2xl p-6 sm:p-10 text-slate-300 text-sm leading-relaxed space-y-8">
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">1. Information We Collect</h3>
                     <p>We collect usernames, emails, registration IP addresses, last logged-in device IPs, and uploaded codebase materials (GitHub links and ZIP payloads) solely to execute, compile, and host your cloud deployment tasks.</p>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">2. Secrets Safeguards &amp; Data Isolation</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">2. Secrets Safeguards &amp; Data Isolation</h3>
                     <p>Any system secret (e.g. BOT_TOKEN or DB_URI) stored inside our Environment Variables manager is encrypted in transit and in storage. Secrets are never persisted on the container's disk. Execution processes are strictly isolated to protect your session files and credentials.</p>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">3. Cookies</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">3. Cookies</h3>
                     <p>We use session-based cookies strictly to verify user login states. No tracking or marketing cookies are deployed.</p>
                 </div>
-                <div>
-                    <h3 style="color: #fff; font-family: var(--font-heading); margin-bottom: 8px;">4. Compliance &amp; Safe Harbor</h3>
+
+                <div class="space-y-3">
+                    <h3 class="font-heading font-bold text-white text-lg">4. Compliance &amp; Safe Harbor</h3>
                     <p>In accordance with Indian Cyber Security guidelines (CERT-In directives), we maintain logs of system access, container actions, and IP configurations for security audits and emergency responses.</p>
                 </div>
             </div>
@@ -648,16 +844,130 @@
     </main>
 
     <!-- ===== FOOTER ===== -->
-    <footer class="landing-footer" role="contentinfo">
-        <div class="footer-links">
-            <a href="/blogs">Blogs</a>
-            <a href="/terms">Terms &amp; Conditions</a>
-            <a href="/privacy">Privacy Policy</a>
+    <footer class="border-t border-white/5 bg-[#07080a] py-12 px-6 lg:px-12" role="contentinfo">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-2">
+                <img src="/static/img/logo.webp" alt="EliteHosting Logo" class="h-6 w-auto rounded object-contain">
+                <span class="font-heading font-bold text-sm text-white tracking-tight">EliteHosting.in</span>
+            </div>
+
+            <div class="flex gap-6 text-xs text-slate-400">
+                <a href="/blogs" class="hover:text-white transition-colors">Blogs</a>
+                <a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
+                <a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
+            </div>
+
+            <div class="text-[11px] text-slate-500">
+                &copy; 2024 EliteHosting.in. All rights reserved.
+            </div>
         </div>
-        <div class="footer-copy">&copy; 2024 EliteHosting. All rights reserved.</div>
     </footer>
 
+    <!-- Interactive JS & Constellation Particles Background -->
     <script src="/static/js/app.js"></script>
-    <script>document.addEventListener('DOMContentLoaded', initLanding);</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initLanding);
+
+        function toggleFaq(button) {
+            const item = button.parentElement;
+            const answer = item.querySelector('.faq-answer');
+            const icon = button.querySelector('i');
+
+            // Check if active
+            const isActive = item.classList.contains('active');
+
+            // Close all
+            document.querySelectorAll('.faq-item').forEach(el => {
+                el.classList.remove('active');
+                el.querySelector('.faq-answer').style.maxHeight = null;
+                el.querySelector('i').style.transform = null;
+            });
+
+            if (!isActive) {
+                item.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + "px";
+                icon.style.transform = "rotate(180deg)";
+            }
+        }
+
+        // 3D canvas constellation
+        (function() {
+            const canvas = document.getElementById('canvas3d');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = canvas.offsetWidth;
+            let height = canvas.height = canvas.offsetHeight;
+
+            const particles = [];
+            const maxParticles = 60;
+            const connectionDist = 120;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                    this.vx = (Math.random() - 0.5) * 0.6;
+                    this.vy = (Math.random() - 0.5) * 0.6;
+                    this.radius = Math.random() * 2 + 1;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < 0 || this.x > width) this.vx *= -1;
+                    if (this.y < 0 || this.y > height) this.vy *= -1;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0, 145, 255, 0.7)';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#0091ff';
+                    ctx.fill();
+                    ctx.shadowBlur = 0; // reset
+                }
+            }
+
+            for (let i = 0; i < maxParticles; i++) {
+                particles.push(new Particle());
+            }
+
+            function drawLines() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const p1 = particles[i];
+                        const p2 = particles[j];
+                        const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                        if (dist < connectionDist) {
+                            const alpha = (1 - dist / connectionDist) * 0.15;
+                            ctx.strokeStyle = `rgba(0, 145, 255, ${alpha})`;
+                            ctx.lineWidth = 0.8;
+                            ctx.beginPath();
+                            ctx.moveTo(p1.x, p1.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+                drawLines();
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => {
+                if (!canvas) return;
+                width = canvas.width = canvas.offsetWidth;
+                height = canvas.height = canvas.offsetHeight;
+            });
+
+            animate();
+        })();
+    </script>
 </body>
 </html>
