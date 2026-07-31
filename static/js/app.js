@@ -29,23 +29,159 @@ async function api(url, options = {}) {
     return data;
 }
 
+/* ===================== INTERACTIVE LANDING PAGE FEATURES ===================== */
+let currentBillingCycle = 'monthly'; // 'monthly' or 'yearly'
+
+function toggleBillingCycle() {
+    const knob = document.getElementById('toggle-knob');
+    const labelMonthly = document.getElementById('label-monthly');
+    const labelYearly = document.getElementById('label-yearly');
+
+    const priceShared = document.getElementById('price-shared');
+    const priceVps = document.getElementById('price-vps');
+    const priceDedicated = document.getElementById('price-dedicated');
+
+    const cycleShared = document.getElementById('cycle-shared');
+    const cycleVps = document.getElementById('cycle-vps');
+    const cycleDedicated = document.getElementById('cycle-dedicated');
+
+    if (currentBillingCycle === 'monthly') {
+        currentBillingCycle = 'yearly';
+        knob.classList.replace('translate-x-0', 'translate-x-6');
+        labelMonthly.classList.replace('text-white', 'text-slate-400');
+        labelYearly.classList.replace('text-slate-400', 'text-white');
+
+        // Apply 20% savings: 99 -> 79, 199 -> 159, 299 -> 239
+        priceShared.textContent = '₹79';
+        priceVps.textContent = '₹159';
+        priceDedicated.textContent = '₹239';
+
+        cycleShared.textContent = '/month (billed yearly)';
+        cycleVps.textContent = '/month (billed yearly)';
+        cycleDedicated.textContent = '/month (billed yearly)';
+    } else {
+        currentBillingCycle = 'monthly';
+        knob.classList.replace('translate-x-6', 'translate-x-0');
+        labelMonthly.classList.replace('text-slate-400', 'text-white');
+        labelYearly.classList.replace('text-white', 'text-slate-400');
+
+        priceShared.textContent = '₹99';
+        priceVps.textContent = '₹199';
+        priceDedicated.textContent = '₹299';
+
+        cycleShared.textContent = '/month';
+        cycleVps.textContent = '/month';
+        cycleDedicated.textContent = '/month';
+    }
+}
+
+// Simulated domain check
+function simulateDomainCheck(event) {
+    event.preventDefault();
+    const input = document.getElementById('domainInput').value.trim();
+    const tld = document.getElementById('domainTld').value;
+    const resultBox = document.getElementById('domainResult');
+
+    if (!input) return;
+
+    const fullDomain = input.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] + tld;
+
+    resultBox.classList.remove('hidden');
+    resultBox.innerHTML = `
+        <div class="flex items-center gap-2">
+            <span class="spinner"></span>
+            <span class="text-slate-400 font-mono">Running secure whois diagnostic query for ${fullDomain}...</span>
+        </div>
+    `;
+
+    setTimeout(() => {
+        // Randomize availability simulation
+        const available = Math.random() > 0.4;
+        if (available) {
+            resultBox.innerHTML = `
+                <span class="font-bold text-emerald-400 font-mono">⚡ ${fullDomain} is available!</span>
+                <a href="/register" class="bg-cyberPrimary hover:bg-cyberAccent text-cyberBg font-heading font-bold text-[10px] px-3 py-1 rounded-md uppercase transition-all shadow-neonCyan">Secure Now</a>
+            `;
+            resultBox.className = "mt-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs flex justify-between items-center";
+        } else {
+            resultBox.innerHTML = `
+                <span class="font-bold text-red-400 font-mono">❌ ${fullDomain} is already registered.</span>
+                <span class="text-slate-500 text-[10px]">Try a different phrase or extension.</span>
+            `;
+            resultBox.className = "mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs flex justify-between items-center";
+        }
+    }, 1500);
+}
+
+// Instant Latency diagnostic tester
+function triggerLatencyTest() {
+    const status = document.getElementById('status-latency');
+    status.textContent = 'Diagnostics Running...';
+    status.className = 'text-cyberPrimary animate-pulse';
+
+    const pings = {
+        mumbai: document.getElementById('ping-mumbai'),
+        delhi: document.getElementById('ping-delhi'),
+        singapore: document.getElementById('ping-singapore'),
+        frankfurt: document.getElementById('ping-frankfurt')
+    };
+
+    // Mumbai: 8-15ms, Delhi: 15-28ms, Singapore: 35-50ms, Frankfurt: 95-120ms
+    const simulatePing = (el, min, max) => {
+        el.textContent = 'pinging...';
+        el.className = 'font-mono text-slate-400';
+        setTimeout(() => {
+            const val = Math.floor(Math.random() * (max - min + 1)) + min;
+            el.textContent = `${val} ms`;
+            el.className = 'font-mono text-emerald-400 font-bold';
+        }, Math.random() * 800 + 400);
+    };
+
+    simulatePing(pings.mumbai, 8, 15);
+    simulatePing(pings.delhi, 15, 28);
+    simulatePing(pings.singapore, 35, 52);
+    simulatePing(pings.frankfurt, 92, 118);
+
+    setTimeout(() => {
+        status.textContent = 'All Nodes Nominal';
+        status.className = 'text-emerald-400 font-bold';
+    }, 1400);
+}
+
+// Global server mock dashboard visual loop updates
+function initMockMetricsVisual() {
+    const cpu = document.getElementById('dash-cpu');
+    const ram = document.getElementById('dash-ram');
+    const net = document.getElementById('dash-net');
+
+    const cpuBar = document.getElementById('dash-cpu-bar');
+    const ramBar = document.getElementById('dash-ram-bar');
+    const netBar = document.getElementById('dash-net-bar');
+
+    if (!cpu || !ram || !net) return;
+
+    setInterval(() => {
+        // CPU: fluctuate 12% - 48%
+        const cpuVal = (Math.random() * 36 + 12).toFixed(1);
+        cpu.textContent = `${cpuVal}%`;
+        cpuBar.style.width = `${cpuVal}%`;
+
+        // RAM: fluctuate 390MB - 620MB (on max 1024MB VPS scale)
+        const ramVal = Math.floor(Math.random() * 230 + 390);
+        ram.textContent = `${ramVal} MB`;
+        ramBar.style.width = `${(ramVal / 1024 * 100).toFixed(0)}%`;
+
+        // Network: fluctuate 6.8 - 9.8 Gbps
+        const netVal = (Math.random() * 3.0 + 6.8).toFixed(1);
+        net.textContent = `${netVal} Gbps`;
+        netBar.style.width = `${(netVal / 10 * 100).toFixed(0)}%`;
+
+    }, 3000);
+}
+
 /* ===================== LANDING PAGE ===================== */
 function initLanding() {
-    const hamburger = document.querySelector('.hamburger');
-    const dropdown = document.querySelector('.nav-dropdown');
-    if (hamburger && dropdown) {
-        hamburger.addEventListener('click', () => {
-            hamburger.classList.toggle('active');
-            dropdown.classList.toggle('show');
-        });
-        document.addEventListener('click', (e) => {
-            if (!hamburger.contains(e.target) && !dropdown.contains(e.target)) {
-                hamburger.classList.remove('active');
-                dropdown.classList.remove('show');
-            }
-        });
-    }
-    // Scroll reveal
+    // Scroll reveal (using intersection observer)
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)'; } });
     }, { threshold: 0.1 });
@@ -53,6 +189,90 @@ function initLanding() {
         el.style.opacity = '0'; el.style.transform = 'translateY(20px)';
         el.style.transition = 'all 0.6s ease-out'; observer.observe(el);
     });
+
+    // Constellation Interactive 3D/CSS Canvas Constellation matrix background
+    (function() {
+        const canvas = document.getElementById('canvas3d');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = canvas.offsetWidth;
+        let height = canvas.height = canvas.offsetHeight;
+
+        const particles = [];
+        const maxParticles = 65;
+        const connectionDist = 130;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.radius = Math.random() * 1.8 + 1;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 242, 254, 0.65)';
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = '#00f2fe';
+                ctx.fill();
+                ctx.shadowBlur = 0; // reset
+            }
+        }
+
+        for (let i = 0; i < maxParticles; i++) {
+            particles.push(new Particle());
+        }
+
+        function drawLines() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p1 = particles[i];
+                    const p2 = particles[j];
+                    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                    if (dist < connectionDist) {
+                        const alpha = (1 - dist / connectionDist) * 0.12;
+                        ctx.strokeStyle = `rgba(0, 242, 254, ${alpha})`;
+                        ctx.lineWidth = 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            drawLines();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            if (!canvas) return;
+            width = canvas.width = canvas.offsetWidth;
+            height = canvas.height = canvas.offsetHeight;
+        });
+
+        animate();
+    })();
+
+    // Run diagnostics immediately
+    triggerLatencyTest();
+    // Run metrics daemon
+    initMockMetricsVisual();
 }
 
 /* ===================== AUTH PAGE ===================== */
@@ -138,9 +358,9 @@ async function loadUser() {
     try {
         currentUser = await api('/api/auth/me');
         const avatar = document.querySelector('.dash-user-avatar');
-        const name = document.querySelector('.dash-user-name');
+        const name = document.querySelectorAll('.dash-user-name');
         if (avatar) avatar.textContent = currentUser.username[0].toUpperCase();
-        if (name) name.textContent = currentUser.username;
+        name.forEach(el => { el.textContent = currentUser.username; });
     } catch { window.location.href = '/login'; }
 }
 
