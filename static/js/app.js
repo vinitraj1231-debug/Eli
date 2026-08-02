@@ -75,42 +75,77 @@ function toggleBillingCycle() {
     }
 }
 
-// Simulated domain check
-function simulateDomainCheck(event) {
-    event.preventDefault();
-    const input = document.getElementById('domainInput').value.trim();
-    const tld = document.getElementById('domainTld').value;
-    const resultBox = document.getElementById('domainResult');
+// Interactive terminal simulation for Telegram bot build and deployment loop
+function runTerminalSim(platform) {
+    const screen = document.getElementById('simTerminalScreen');
+    if (!screen) return;
 
-    if (!input) return;
+    screen.innerHTML = '';
+    const lines = [];
 
-    const fullDomain = input.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] + tld;
+    const addLine = (text, delay = 0) => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const div = document.createElement('div');
+                div.innerHTML = text;
+                screen.appendChild(div);
+                resolve();
+            }, delay);
+        });
+    };
 
-    resultBox.classList.remove('hidden');
-    resultBox.innerHTML = `
-        <div class="flex items-center gap-2">
-            <span class="spinner"></span>
-            <span class="text-slate-400 font-mono">Running secure whois diagnostic query for ${fullDomain}...</span>
+    const runSim = async () => {
+        if (platform === 'python') {
+            await addLine('<span class="text-cyberPrimary">$</span> git clone https://github.com/developer/telegram-py-bot.git -b main', 100);
+            await addLine('<span class="text-slate-400">Cloning into \'deploy_202\'... Done.</span>', 400);
+            await addLine('<span class="text-cyberPrimary">$</span> detecting requirements.txt... found.', 200);
+            await addLine('<span class="text-cyberPrimary">$</span> pip install -r requirements.txt', 200);
+            await addLine('<span class="text-slate-400">Downloading pyrogram (2.0.106)...</span>', 300);
+            await addLine('<span class="text-slate-400">Downloading tgcrypto (1.2.5)...</span>', 200);
+            await addLine('<span class="text-emerald-400 font-semibold">✓ Virtual environment successfully built (7 packages cached)</span>', 500);
+            await addLine('<span class="text-cyberPrimary">$</span> injecting secrets from secure credentials vault...', 300);
+            await addLine('<span class="text-slate-400">Set environment: TELEGRAM_BOT_TOKEN=********************</span>', 100);
+            await addLine('<span class="text-slate-400">Set environment: MONGO_URI=********************</span>', 100);
+            await addLine('<span class="text-cyberPrimary">$</span> docker run --memory 256m --cpus 0.5 py-bot-image', 300);
+            await addLine('<span class="text-emerald-400 font-bold">● eh_container_202 started successfully on port: 5202</span>', 300);
+            await addLine('<span class="text-slate-400">[2024-04-12 10:24:11] INFO: Pyrogram client started. Polling Telegram API...</span>', 400);
+            await addLine('<span class="text-emerald-400 font-bold">[2024-04-12 10:24:12] SUCCESS: Bot connection healthy. 24/7 Zero Sleep active!</span>', 200);
+        } else {
+            await addLine('<span class="text-cyberAccent">$</span> git clone https://github.com/developer/telegraf-js-bot.git -b main', 100);
+            await addLine('<span class="text-slate-400">Cloning into \'deploy_303\'... Done.</span>', 400);
+            await addLine('<span class="text-cyberAccent">$</span> detecting package.json... found.', 200);
+            await addLine('<span class="text-cyberAccent">$</span> npm install --only=production', 200);
+            await addLine('<span class="text-slate-400">Installing telegraf (4.15.3)...</span>', 300);
+            await addLine('<span class="text-emerald-400 font-semibold">✓ Node modules successfully compiled (12 dependencies)</span>', 500);
+            await addLine('<span class="text-cyberAccent">$</span> injecting secrets from secure credentials vault...', 300);
+            await addLine('<span class="text-slate-400">Set environment: TELEGRAM_BOT_TOKEN=********************</span>', 100);
+            await addLine('<span class="text-cyberAccent">$</span> docker run --memory 512m --cpus 1.0 node-bot-image', 300);
+            await addLine('<span class="text-emerald-400 font-bold">● eh_container_303 started successfully on port: 5303</span>', 300);
+            await addLine('<span class="text-slate-400">[2024-04-12 10:25:01] telegraf: Launching long-polling loops...</span>', 400);
+            await addLine('<span class="text-emerald-400 font-bold">[2024-04-12 10:25:03] SUCCESS: Bot event listener online. Active 24/7!</span>', 200);
+        }
+
+        // Add reset option back
+        await addLine('<div class="pt-4"><button onclick="resetTerminalSim()" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-cyberBorder hover:border-cyberPrimary rounded-md text-[10px] font-mono font-bold text-slate-400 hover:text-white transition-all">♻ Clear &amp; Run Another Simulation</button></div>', 400);
+    };
+
+    runSim();
+}
+
+function resetTerminalSim() {
+    const screen = document.getElementById('simTerminalScreen');
+    if (!screen) return;
+    screen.innerHTML = `
+        <span class="text-slate-500">// Ready to simulate a bot deployment. Pick a platform configuration:</span>
+        <div class="flex gap-3 mt-4">
+            <button onclick="runTerminalSim('python')" class="px-4 py-2 bg-cyberPrimary/10 border border-cyberPrimary/30 hover:border-cyberPrimary text-cyberPrimary rounded-lg text-xs font-semibold font-mono tracking-tight transition-all">
+                ⚡ Simulate Python Bot (Aiogram/Pyrogram)
+            </button>
+            <button onclick="runTerminalSim('node')" class="px-4 py-2 bg-cyberAccent/10 border border-cyberAccent/30 hover:border-cyberAccent text-cyberAccent rounded-lg text-xs font-semibold font-mono tracking-tight transition-all">
+                🚀 Simulate Node.js Bot (Telegraf)
+            </button>
         </div>
     `;
-
-    setTimeout(() => {
-        // Randomize availability simulation
-        const available = Math.random() > 0.4;
-        if (available) {
-            resultBox.innerHTML = `
-                <span class="font-bold text-emerald-400 font-mono">⚡ ${fullDomain} is available!</span>
-                <a href="/register" class="bg-cyberPrimary hover:bg-cyberAccent text-cyberBg font-heading font-bold text-[10px] px-3 py-1 rounded-md uppercase transition-all shadow-neonCyan">Secure Now</a>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs flex justify-between items-center";
-        } else {
-            resultBox.innerHTML = `
-                <span class="font-bold text-red-400 font-mono">❌ ${fullDomain} is already registered.</span>
-                <span class="text-slate-500 text-[10px]">Try a different phrase or extension.</span>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs flex justify-between items-center";
-        }
-    }, 1500);
 }
 
 // Instant Latency diagnostic tester
