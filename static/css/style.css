@@ -594,3 +594,75 @@ textarea.form-input { resize: vertical; min-height: 90px; }
 .justify-between { justify-content: space-between; }
 .flex-1 { flex: 1; }
 .w-full { width: 100%; }
+
+/* ===================== STITCH CYBER-GLASSMORPHISM ENHANCEMENTS ===================== */
+:root {
+    --neon-cyan: #00f2fe;
+    --neon-blue: #0091ff;
+    --neon-purple: #8b5cf6;
+    --glass-bg: rgba(13, 20, 35, 0.65);
+    --glass-border: rgba(0, 242, 254, 0.15);
+    --glass-glow: rgba(0, 242, 254, 0.25);
+}
+
+/* Glassmorphism Cards & Panels */
+.cyber-card {
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(20px) -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    transition: all 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.cyber-card:hover {
+    border-color: var(--neon-cyan) !important;
+    box-shadow: 0 12px 40px 0 var(--glass-glow), inset 0 1px 0 0 rgba(0, 242, 254, 0.2);
+    transform: translateY(-3px);
+}
+
+/* Cyber Neon Glow Text & Badges */
+.cyber-glow-text {
+    text-shadow: 0 0 12px rgba(0, 242, 254, 0.5), 0 0 24px rgba(0, 242, 254, 0.2);
+}
+
+.cyber-badge {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    color: var(--neon-cyan);
+    font-family: 'JetBrains Mono', monospace, var(--font-heading);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* Cyber Pulse Dot */
+.cyber-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--neon-cyan);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 10px var(--neon-cyan);
+    animation: cyberPulse 2s infinite;
+}
+
+@keyframes cyberPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 242, 254, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }
+}
+
+/* Neon Terminal Accent Block */
+.cyber-terminal {
+    background: #060911;
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    border-radius: var(--radius-md);
+    font-family: 'JetBrains Mono', monospace;
+    color: #00ff41;
+    padding: 16px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}

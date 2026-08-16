@@ -14,7 +14,10 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'eh-x7k9m2pLqRvWzYnBfJcDgAsTeUiOp')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///elitehosting.db'
+db_url = os.environ.get('DATABASE_URL', 'sqlite:///elitehosting.db')
+if db_url.startswith('postgres://'):
+    db_url = db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DEPLOY_FOLDER'] = 'deploys'
@@ -195,48 +198,47 @@ def free_trial_monitor_loop():
 
 with app.app_context():
     db.create_all()
-    # Automated SQLite Schema Migration for password_plain and RateLimit.username
+    # Automated Schema Migration for password_plain, RateLimit, and Deployment columns
     try:
-        connection = db.engine.connect()
-        from sqlalchemy import text
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
 
-        # User migration
-        result = connection.execute(text("PRAGMA table_info(user)"))
-        columns = [row[1] for row in result.fetchall()]
-        if 'password_plain' not in columns:
-            connection.execute(text("ALTER TABLE user ADD COLUMN password_plain VARCHAR(256)"))
-            connection.commit()
-        if 'last_ip' not in columns:
-            connection.execute(text("ALTER TABLE user ADD COLUMN last_ip VARCHAR(50)"))
-            connection.commit()
+        with db.engine.connect() as connection:
+            # User migration
+            if inspector.has_table('user'):
+                user_cols = [c['name'] for c in inspector.get_columns('user')]
+                if 'password_plain' not in user_cols:
+                    connection.execute(text('ALTER TABLE "user" ADD COLUMN password_plain VARCHAR(256)'))
+                    connection.commit()
+                if 'last_ip' not in user_cols:
+                    connection.execute(text('ALTER TABLE "user" ADD COLUMN last_ip VARCHAR(50)'))
+                    connection.commit()
 
-        # RateLimit migration
-        result2 = connection.execute(text("PRAGMA table_info(rate_limit)"))
-        rl_columns = [row[1] for row in result2.fetchall()]
-        if 'username' not in rl_columns:
-            connection.execute(text("ALTER TABLE rate_limit ADD COLUMN username VARCHAR(100)"))
-            connection.commit()
+            # RateLimit migration
+            if inspector.has_table('rate_limit'):
+                rl_cols = [c['name'] for c in inspector.get_columns('rate_limit')]
+                if 'username' not in rl_cols:
+                    connection.execute(text('ALTER TABLE rate_limit ADD COLUMN username VARCHAR(100)'))
+                    connection.commit()
 
-        # Deployment migration for vps_slot_id and website columns
-        result3 = connection.execute(text("PRAGMA table_info(deployment)"))
-        dep_columns = [row[1] for row in result3.fetchall()]
-        if 'vps_slot_id' not in dep_columns:
-            connection.execute(text("ALTER TABLE deployment ADD COLUMN vps_slot_id INTEGER"))
-            connection.commit()
-        if 'is_website' not in dep_columns:
-            connection.execute(text("ALTER TABLE deployment ADD COLUMN is_website BOOLEAN DEFAULT 0"))
-            connection.commit()
-        if 'slug' not in dep_columns:
-            connection.execute(text("ALTER TABLE deployment ADD COLUMN slug VARCHAR(100)"))
-            connection.commit()
-        if 'visitor_count' not in dep_columns:
-            connection.execute(text("ALTER TABLE deployment ADD COLUMN visitor_count INTEGER DEFAULT 0"))
-            connection.commit()
-        if 'last_started_at' not in dep_columns:
-            connection.execute(text("ALTER TABLE deployment ADD COLUMN last_started_at DATETIME"))
-            connection.commit()
-
-        connection.close()
+            # Deployment migration
+            if inspector.has_table('deployment'):
+                dep_cols = [c['name'] for c in inspector.get_columns('deployment')]
+                if 'vps_slot_id' not in dep_cols:
+                    connection.execute(text('ALTER TABLE deployment ADD COLUMN vps_slot_id INTEGER'))
+                    connection.commit()
+                if 'is_website' not in dep_cols:
+                    connection.execute(text('ALTER TABLE deployment ADD COLUMN is_website BOOLEAN DEFAULT FALSE'))
+                    connection.commit()
+                if 'slug' not in dep_cols:
+                    connection.execute(text('ALTER TABLE deployment ADD COLUMN slug VARCHAR(100)'))
+                    connection.commit()
+                if 'visitor_count' not in dep_cols:
+                    connection.execute(text('ALTER TABLE deployment ADD COLUMN visitor_count INTEGER DEFAULT 0'))
+                    connection.commit()
+                if 'last_started_at' not in dep_cols:
+                    connection.execute(text('ALTER TABLE deployment ADD COLUMN last_started_at TIMESTAMP'))
+                    connection.commit()
     except Exception as e:
         print(f"Migration warning: {e}")
 
