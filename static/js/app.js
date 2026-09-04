@@ -75,42 +75,43 @@ function toggleBillingCycle() {
     }
 }
 
-// Simulated domain check
-function simulateDomainCheck(event) {
+// Simulated build & deployment check
+function simulateDeploymentCheck(event) {
     event.preventDefault();
-    const input = document.getElementById('domainInput').value.trim();
-    const tld = document.getElementById('domainTld').value;
-    const resultBox = document.getElementById('domainResult');
+    const input = document.getElementById('buildSimInput').value.trim();
+    const runtime = document.getElementById('buildSimRuntime').value;
+    const resultBox = document.getElementById('buildSimResult');
 
     if (!input) return;
 
-    const fullDomain = input.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] + tld;
+    const cleanName = input.replace(/^(https?:\/\/)?(github\.com\/)?/, '').replace(/\.git$/, '');
 
     resultBox.classList.remove('hidden');
     resultBox.innerHTML = `
         <div class="flex items-center gap-2">
             <span class="spinner"></span>
-            <span class="text-slate-400 font-mono">Running secure whois diagnostic query for ${fullDomain}...</span>
+            <span class="text-slate-400 font-mono">Running build diagnostic simulation for ${cleanName} (${runtime})...</span>
         </div>
     `;
 
     setTimeout(() => {
-        // Randomize availability simulation
-        const available = Math.random() > 0.4;
-        if (available) {
-            resultBox.innerHTML = `
-                <span class="font-bold text-emerald-400 font-mono">⚡ ${fullDomain} is available!</span>
-                <a href="/register" class="bg-cyberPrimary hover:bg-cyberAccent text-cyberBg font-heading font-bold text-[10px] px-3 py-1 rounded-md uppercase transition-all shadow-neonCyan">Secure Now</a>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs flex justify-between items-center";
-        } else {
-            resultBox.innerHTML = `
-                <span class="font-bold text-red-400 font-mono">❌ ${fullDomain} is already registered.</span>
-                <span class="text-slate-500 text-[10px]">Try a different phrase or extension.</span>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs flex justify-between items-center";
-        }
-    }, 1500);
+        resultBox.innerHTML = `
+            <div class="flex flex-col gap-2 w-full text-left">
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-emerald-400 font-mono">⚡ Build Nominal & Fully Compatible!</span>
+                    <a href="/register" class="bg-cyberPrimary hover:bg-cyberAccent text-cyberBg font-heading font-bold text-[10px] px-3 py-1 rounded-md uppercase transition-all shadow-neonCyan">Deploy Now</a>
+                </div>
+                <div class="text-[11px] font-mono text-slate-400 bg-cyberDark/80 p-2.5 rounded border border-cyberBorder space-y-1">
+                    <div class="text-cyberPrimary font-semibold">[SIMULATION DIAGNOSTICS]</div>
+                    <div>> Target Environment: ${runtime} Container Namespace</div>
+                    <div>> Resolving package manifest dependencies... Done</div>
+                    <div>> Encrypted secret vault env injection ready.</div>
+                    <div>> Estimated boot execution time: &lt; 2.1s</div>
+                </div>
+            </div>
+        `;
+        resultBox.className = "mt-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs flex justify-between items-center";
+    }, 1200);
 }
 
 // Instant Latency diagnostic tester

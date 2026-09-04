@@ -241,32 +241,31 @@
                     Deploy high-performance cloud servers in seconds. NVMe SSD storage, free SSL, advanced DDoS protection, and 99.99% uptime guarantee.
                 </p>
 
-                <!-- Interactive Domain Search Simulated UI -->
+                <!-- Interactive Deployment & Build Simulator UI -->
                 <div class="w-full max-w-2xl glass-panel p-4 rounded-2xl mb-10 text-left border border-cyberBorder shadow-2xl relative">
                     <div class="absolute -top-3 right-4 bg-cyberAccent text-white font-mono text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-bold shadow-neonBlue">
-                        Simulated Checker
+                        Build &amp; Deploy Simulator
                     </div>
-                    <form id="domainSimForm" onsubmit="simulateDomainCheck(event)" class="flex flex-col sm:flex-row gap-3">
+                    <form id="buildSimForm" onsubmit="simulateDeploymentCheck(event)" class="flex flex-col sm:flex-row gap-3">
                         <div class="flex-1 flex gap-2 items-center bg-cyberDark/80 border border-cyberBorder rounded-xl px-4 py-3 focus-within:border-cyberPrimary/50 transition-all">
-                            <i data-lucide="globe" class="w-5 h-5 text-slate-500"></i>
-                            <input type="text" id="domainInput" class="bg-transparent border-none outline-none text-white text-sm w-full placeholder-slate-500" placeholder="Find your dream website name..." required>
+                            <i data-lucide="terminal" class="w-5 h-5 text-slate-500"></i>
+                            <input type="text" id="buildSimInput" class="bg-transparent border-none outline-none text-white text-sm w-full placeholder-slate-500" placeholder="Test GitHub repo or script name (e.g. my-telegram-bot)..." required>
 
-                            <!-- TLD Selector -->
-                            <select id="domainTld" class="bg-cyberDark text-cyberPrimary border border-cyberBorder rounded-md px-2 py-1 text-xs font-bold outline-none cursor-pointer">
-                                <option value=".in">.in</option>
-                                <option value=".com">.com</option>
-                                <option value=".net">.net</option>
-                                <option value=".org">.org</option>
+                            <!-- Runtime Selector -->
+                            <select id="buildSimRuntime" class="bg-cyberDark text-cyberPrimary border border-cyberBorder rounded-md px-2 py-1 text-xs font-bold outline-none cursor-pointer">
+                                <option value="Python 3.10">Python 3.10</option>
+                                <option value="Node.js 18">Node.js 18</option>
+                                <option value="Static HTML">HTML Site</option>
                             </select>
                         </div>
                         <button type="submit" class="btn-gradient px-6 py-3 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                            <span>Check Domain</span>
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            <span>Simulate Deploy</span>
                         </button>
                     </form>
 
                     <!-- Result Placeholder -->
-                    <div id="domainResult" class="hidden mt-3 p-3 rounded-lg border text-xs flex justify-between items-center bg-cyberDark/50">
+                    <div id="buildSimResult" class="hidden mt-3 p-3 rounded-lg border text-xs flex justify-between items-center bg-cyberDark/50">
                         <!-- Filled dynamically -->
                     </div>
                 </div>
@@ -779,12 +778,12 @@
                     <!-- FAQ 1 -->
                     <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden transition-colors duration-200">
                         <button onclick="toggleAccordion(1)" class="w-full flex items-center justify-between p-6 text-left outline-none">
-                            <span class="font-heading font-semibold text-white text-base">How do I initiate a domain transfer to EliteHosting.in?</span>
+                            <span class="font-heading font-semibold text-white text-base">How quickly are my Telegram bots or websites deployed?</span>
                             <span class="text-cyberPrimary" id="faq-icon-1"><i data-lucide="plus" class="w-5 h-5"></i></span>
                         </button>
                         <div id="faq-body-1" class="hidden border-t border-cyberBorder/30 p-6 bg-cyberDark/10">
                             <p class="text-slate-400 text-sm leading-relaxed">
-                                To transfer your domains to EliteHosting.in, unlock the domain at your current registrar, obtain the EPP/Auth code, and input it during our secure checkout flow. Domain transfers are fully automated and generally complete within 3 to 5 business days with zero downtime.
+                                Deployments on EliteHosting are automated and instantaneous. As soon as you link a GitHub repository or upload a ZIP archive, our container engine resolves dependencies (such as requirements.txt or package.json) and provisions an isolated VPS container or web route within seconds.
                             </p>
                         </div>
                     </div>
@@ -901,70 +900,546 @@
             </div>
         </section>
 
-        {% elif page == 'terms' %}
-        <!-- ===== TERMS & CONDITIONS ===== -->
-        <section class="py-24 px-4 sm:px-8">
-            <div class="max-w-3xl mx-auto">
-                <div class="text-center mb-12">
-                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Legal Documentation</span>
-                    <h1 class="font-heading text-3xl font-bold text-white">Terms &amp; Conditions</h1>
-                    <p class="text-slate-500 text-xs font-mono mt-2">Last updated: April 2024</p>
+        {% elif page == 'privacy_policy' or page == 'privacy' %}
+        <!-- ===== PRIVACY POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Legal &amp; Compliance</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Privacy Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Introduction</h2>
+                    <p>At <strong>EliteHosting.in</strong> ("we," "our," "us"), accessible from <a href="https://elitehosting.in" class="text-cyberPrimary underline">https://elitehosting.in</a>, we respect your privacy and are committed to protecting personal information collected through our platform. This Privacy Policy outlines what data we collect, why we collect it, how it is secured, and your rights as a user.</p>
                 </div>
 
-                <div class="glass-panel p-8 sm:p-10 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Personal Information Collected</h2>
+                    <p class="mb-3">We collect only necessary information required to provide, secure, and operate our hosting services:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li><strong>Account Data:</strong> Username, email address, hashed account password, and assigned referral code.</li>
+                        <li><strong>Technical &amp; Log Data:</strong> Registration IP address, last logged-in IP address, browser user-agent, and rate-limiting request timestamps.</li>
+                        <li><strong>Payment &amp; Billing Data:</strong> Transaction ID / UTR reference number, payment amount, purchased VPS slot tier, and wallet balance history. (We <em>never</em> collect or store raw credit/debit card numbers, CVV, OTPs, or UPI PINs).</li>
+                        <li><strong>Application Code Data:</strong> GitHub repository links, uploaded ZIP archives, single script files, and environment variable key-value pairs configured for deployments.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. How &amp; Why We Collect Data</h2>
+                    <p>Your data is collected directly when you register an account, log in, submit a payment UTR, deploy an application, or configure environment variables. We use this data to:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300 mt-2">
+                        <li>Provision and execute your containerized VPS deployments and web routes.</li>
+                        <li>Process and verify manual or automated payment requests and wallet top-ups.</li>
+                        <li>Prevent platform abuse, brute-force attacks, DDoS attempts, and unauthorized access.</li>
+                        <li>Comply with applicable Indian IT laws and CERT-In cyber security directives.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">4. Secrets Vault &amp; Container Isolation</h2>
+                    <p>Sensitive environment variables (such as <code>TELEGRAM_BOT_TOKEN</code> or database URIs) are encrypted in transit and in storage. Secrets are injected directly into the runtime memory of your container process and are never stored in plain text files on host disks. Hard namespace virtualization prevents cross-tenant access to SQLite session files or execution directories.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">5. Cookies &amp; Session Management</h2>
+                    <p>We use essential, HTTP-only session cookies (<code>session</code>) solely to authenticate logged-in users and secure forms against Cross-Site Request Forgery (CSRF). We do not use third-party advertising or invasive cross-site tracking cookies.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">6. Third-Party Integrations</h2>
+                    <p>We integrate with <strong>GitHub</strong> for public/private repository imports and utilize <strong>Telegram</strong> for official customer support (@zolvid). Third-party services operate under their own privacy policies.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">7. Data Sharing &amp; Disclosure</h2>
+                    <p>We do not sell, rent, or trade your personal data. We disclose information only if required by law enforcement or Indian court orders in accordance with the Information Technology Act, 2000.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">8. User Rights &amp; Data Deletion Process</h2>
+                    <p>You have the right to access, modify, or permanently delete your account and deployment data. To request full deletion of your account, deployments, or payment records, contact us at <a href="mailto:support@elitehosting.in" class="text-cyberPrimary underline">support@elitehosting.in</a> or via Telegram <a href="https://t.me/zolvid" class="text-cyberPrimary underline">@zolvid</a>. Account deletion requests are processed within 48 hours.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">9. Contact Information</h2>
+                    <p>For privacy inquiries, contact our Privacy Officer at <strong>support@elitehosting.in</strong> or Telegram <strong>@zolvid</strong>.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'terms_and_conditions' or page == 'terms' %}
+        <!-- ===== TERMS & CONDITIONS ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Legal &amp; Compliance</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Terms &amp; Conditions</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Agreement &amp; Acceptance</h2>
+                    <p>By registering, accessing, or using <strong>EliteHosting.in</strong> ("Platform," "we," "us"), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, you must not use our services.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Eligibility &amp; Account Responsibility</h2>
+                    <p>You must be at least 18 years of age (or 13+ with parental consent) to register. You are responsible for maintaining the confidentiality of your account credentials and for all activities conducted under your account.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Acceptable Use &amp; Prohibited Conduct</h2>
+                    <p class="mb-3">EliteHosting allows hosting of Python, Node.js, and static web applications. You strictly agree NOT to host or execute:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li>Cryptocurrency miners or CPU/RAM overloading scripts.</li>
+                        <li>Malware, ransomware, phishing scripts, or unauthorized port scanners.</li>
+                        <li>Bots violating Telegram's official Terms of Service or launching automated spam.</li>
+                        <li>Content violating Indian laws, copyright infringement, or hate speech.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">4. Pricing, Payments &amp; Wallet Terms</h2>
+                    <p>Services operate on fixed VPS slot pricing (Micro 256MB at ₹99/mo, Lite 512MB at ₹199/mo, Pro 1GB at ₹299/mo). Payments submitted via UPI QR require submitting a valid 12-digit UTR/Transaction ID for admin approval. Referrers earn a 30% commission credited to wallet balance upon referee purchase approval.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">5. Digital Delivery</h2>
+                    <p>All services are 100% digital. VPS slots and web deployments are provisioned instantly in your Client Dashboard upon payment approval or free trial start.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">6. Account Termination &amp; Suspension</h2>
+                    <p>We reserve the right to suspend or terminate accounts violating our Acceptable Use Policy immediately and without prior notice. Banned accounts forfeit active deployments and unspent wallet balances.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">7. Governing Law</h2>
+                    <p>These terms are governed by the laws of India. Any legal disputes shall be subject to the exclusive jurisdiction of courts in India.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'refund_policy' %}
+        <!-- ===== REFUND & CANCELLATION POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Billing &amp; Guarantees</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Refund &amp; Cancellation Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. 7-Day Money-Back Guarantee</h2>
+                    <p>We offer a transparent <strong>7-day money-back guarantee</strong> for new VPS slot purchases and wallet top-ups. If our server infrastructure fails to meet your performance expectations, you may request a full refund within 7 days of payment.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Refund Eligibility &amp; Request Process</h2>
+                    <p class="mb-3">To request a refund, submit an email to <strong>support@elitehosting.in</strong> or contact us on Telegram <strong>@zolvid</strong> with:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li>Your registered EliteHosting username and email address.</li>
+                        <li>The 12-digit UTR or Transaction ID associated with the payment.</li>
+                        <li>A brief description of the reason for your refund request.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Refund Processing Time &amp; Method</h2>
+                    <p>Approved refunds are processed within <strong>48 to 72 business hours</strong> directly back to the original source payment method (UPI / Bank Account).</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">4. Non-Refundable Situations</h2>
+                    <p class="mb-2">Refunds will <em>not</em> be granted under the following circumstances:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li>Accounts banned for severe Acceptable Use Policy violations (e.g. crypto mining, phishing, malware, or launching DDoS attacks).</li>
+                        <li>Refund requests submitted after 7 days from transaction approval.</li>
+                        <li>Fully consumed compute resources or expired VPS slot durations beyond 7 days.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">5. Failed, Pending &amp; Duplicate Payments</h2>
+                    <p>If a payment succeeds on your UPI app but fails to credit immediately, your pending transaction will be reviewed and allocated by admin within 12 hours. Duplicate payments made accidentally will be refunded in full upon verification.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'shipping_policy' %}
+        <!-- ===== SHIPPING & DELIVERY POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Digital Fulfillment</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Shipping &amp; Delivery Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">100% Digital Delivery Service</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. No Physical Shipping Required</h2>
+                    <p><strong>EliteHosting.in provides 100% digital cloud hosting services. No physical products or tangible items are shipped.</strong> All deliverables consist of virtual server containers, VPS slot allocations, and web hosting access.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Access &amp; Delivery Method</h2>
+                    <p>Upon starting a Free Trial or upon admin approval of your payment transaction ID, your VPS slot or website deployment slot is automatically provisioned and accessible directly within your online <strong>Client Dashboard</strong> at <a href="https://elitehosting.in/dashboard" class="text-cyberPrimary underline">https://elitehosting.in/dashboard</a>.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Provisioning Timeframe</h2>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li><strong>Free Trial Deployments:</strong> Instant access upon registration.</li>
+                        <li><strong>Paid VPS Slots:</strong> Provisioned within 5 minutes to 12 hours following admin verification of your submitted transaction UTR number.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">4. Support for Delayed Delivery</h2>
+                    <p>If your payment was approved but your VPS slot is not visible in your dashboard, contact support immediately at <strong>support@elitehosting.in</strong> or Telegram <strong>@zolvid</strong> with your username and transaction ID.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'contact' %}
+        <!-- ===== CONTACT US ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">24/7 Support Channel</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Contact Us</h1>
+                <p class="text-slate-400 text-sm">We are here to help you scale your bots, applications, and web services.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <div class="glass-panel p-8 rounded-2xl border border-cyberBorder flex flex-col justify-between">
                     <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">1. Agreement to Terms</h3>
-                        <p>By accessing or using EliteHosting.in ("we," "our," "us"), you agree to be bound by these Terms and Conditions and our compliance policies as an Indian Hosting Provider under the Information Technology Act, 2000. If you do not agree to all of these terms, do not access or use our services.</p>
+                        <div class="w-12 h-12 rounded-xl bg-cyberPrimary/10 flex items-center justify-center text-cyberPrimary mb-6 border border-cyberPrimary/20">
+                            <i data-lucide="send" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-lg mb-2">Telegram Owner Direct</h3>
+                        <p class="text-slate-400 text-xs mb-4">Connect directly with the platform owner for custom enterprise requirements or urgent support.</p>
                     </div>
+                    <a href="https://t.me/zolvid" target="_blank" class="btn-gradient text-center py-3 rounded-xl text-cyberBg font-heading font-bold text-xs shadow-neonCyan">Message @zolvid</a>
+                </div>
+
+                <div class="glass-panel p-8 rounded-2xl border border-cyberBorder flex flex-col justify-between">
                     <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">2. User Accounts &amp; Security</h3>
-                        <p>When you register an account, you must provide accurate and complete details. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. IP logs are kept securely for diagnostic and compliance purposes.</p>
+                        <div class="w-12 h-12 rounded-xl bg-cyberAccent/10 flex items-center justify-center text-cyberAccent mb-6 border border-cyberAccent/20">
+                            <i data-lucide="mail" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-lg mb-2">Customer Support Email</h3>
+                        <p class="text-slate-400 text-xs mb-4">Email our technical team for billing, refund requests, or account inquiries.</p>
                     </div>
-                    <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">3. Deployment Rules &amp; Acceptable Use</h3>
-                        <p>EliteHosting allows developers to deploy arbitrary Python, Node.js, and static scripts. However, you strictly agree NOT to deploy:</p>
-                        <ul class="list-disc pl-5 mt-2 space-y-1 text-slate-400">
-                            <li>Cryptocurrency miners or resource-exhausting scripts.</li>
-                            <li>Phishing sites, malware, pirated content, or spamming scripts.</li>
-                            <li>Unlawful Telegram bot tasks violating Telegram's official terms of service.</li>
-                            <li>Websites or tools hosting explicit, hate-speech, or illegal content in India.</li>
-                        </ul>
+                    <a href="mailto:support@elitehosting.in" class="py-3 px-4 rounded-xl border border-cyberBorder bg-white/5 hover:bg-white/10 text-white font-heading font-bold text-xs text-center transition-all">support@elitehosting.in</a>
+                </div>
+            </div>
+
+            <div class="glass-panel p-8 rounded-2xl border border-cyberBorder text-center">
+                <h3 class="font-heading font-bold text-white text-base mb-2">Support Hours &amp; Response Guarantee</h3>
+                <p class="text-slate-400 text-xs leading-relaxed">Our technical team operates 24/7. Expected email and Telegram response time is under <strong>2 hours</strong>.</p>
+            </div>
+        </section>
+
+        {% elif page == 'about' %}
+        <!-- ===== ABOUT US ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">About EliteHosting</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Empowering Developers with Next-Gen Hosting</h1>
+                <p class="text-slate-400 text-sm max-w-2xl mx-auto">High-performance 24/7 Telegram bot hosting, micro VPS infrastructure, and static website delivery.</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Our Mission</h2>
+                    <p>At <strong>EliteHosting.in</strong>, our mission is to eliminate the friction, silent socket drops, and server configuration headaches that developers face when running 24/7 Telegram bots and web applications. We provide high-performance, non-sleeping VPS containers backed by 100% NVMe SSD storage and instant GitHub/ZIP deployment workflows.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. What We Offer</h2>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li><strong>24/7 Telegram Bot Runtimes:</strong> Dedicated nodes optimized for Pyrogram, Telethon, Aiogram, and Telegraf frameworks.</li>
+                        <li><strong>Micro VPS Slots:</strong> Dedicated RAM tiers (Micro 256MB, Lite 512MB, Pro 1GB) starting at ₹99/mo.</li>
+                        <li><strong>Static Website Hosting:</strong> Fast HTML website hosting with customizable URL slugs served at <code>/site/&lt;slug&gt;</code>.</li>
+                        <li><strong>Secrets Vault:</strong> In-memory environment variable injection for secure API keys and tokens.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Built for Speed &amp; Security</h2>
+                    <p>Our infrastructure operates on Docker container virtualization with cgroups RAM limits, 10Gbps network uplinks, and automated process watchdogs. We are committed to transparency, security, and developer empowerment.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'faq' %}
+        <!-- ===== FAQ PAGE ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Help &amp; Knowledge Base</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Frequently Asked Questions</h1>
+                <p class="text-slate-400 text-sm">Everything you need to know about plans, deployments, payments, and refunds.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                    <button onclick="toggleAccordion(1)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                        <span class="font-heading font-semibold text-white text-base">How quickly are deployments activated?</span>
+                        <span class="text-cyberPrimary" id="faq-icon-1"><i data-lucide="plus" class="w-5 h-5"></i></span>
+                    </button>
+                    <div id="faq-body-1" class="hidden border-t border-cyberBorder/30 p-6 bg-cyberDark/10 text-slate-400 text-sm leading-relaxed">
+                        Deployments are instantaneous. As soon as you submit a GitHub link or ZIP file, our engine builds dependencies and starts your container within seconds.
                     </div>
-                    <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">4. Payment, Wallet &amp; Commissions</h3>
-                        <p>We operate on a secure prepaid credit and wallet model. Topups are manual, requiring admin verification of payment transactions. UPI payments must be supported by a valid transaction hash or UTR ID. Referral commissions (30%) are credited to the referrer's wallet after the referee's transaction approval and are eligible for withdrawal requests. Refunds are not issued for utilized credits or banned accounts.</p>
+                </div>
+
+                <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                    <button onclick="toggleAccordion(2)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                        <span class="font-heading font-semibold text-white text-base">How does UPI QR payment verification work?</span>
+                        <span class="text-cyberPrimary" id="faq-icon-2"><i data-lucide="plus" class="w-5 h-5"></i></span>
+                    </button>
+                    <div id="faq-body-2" class="hidden border-t border-cyberBorder/30 p-6 bg-cyberDark/10 text-slate-400 text-sm leading-relaxed">
+                        Inside the dashboard, select your desired VPS tier (₹99, ₹199, or ₹299), scan the payment QR code via any UPI app, and submit your 12-digit UTR transaction ID. Admin verifies and allocates your VPS slot promptly.
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                    <button onclick="toggleAccordion(3)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                        <span class="font-heading font-semibold text-white text-base">What is the refund policy?</span>
+                        <span class="text-cyberPrimary" id="faq-icon-3"><i data-lucide="plus" class="w-5 h-5"></i></span>
+                    </button>
+                    <div id="faq-body-3" class="hidden border-t border-cyberBorder/30 p-6 bg-cyberDark/10 text-slate-400 text-sm leading-relaxed">
+                        We offer a 7-day money-back guarantee for unused VPS slot allocations and unspent wallet balances. Email support@elitehosting.in with your UTR ID to request a refund.
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                    <button onclick="toggleAccordion(4)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                        <span class="font-heading font-semibold text-white text-base">Can I deploy directly from mobile Termux?</span>
+                        <span class="text-cyberPrimary" id="faq-icon-4"><i data-lucide="plus" class="w-5 h-5"></i></span>
+                    </button>
+                    <div id="faq-body-4" class="hidden border-t border-cyberBorder/30 p-6 bg-cyberDark/10 text-slate-400 text-sm leading-relaxed">
+                        Yes! Mobile developers using Termux can compress their project directory into a ZIP archive and upload it directly through the dashboard.
                     </div>
                 </div>
             </div>
         </section>
 
-        {% elif page == 'privacy' %}
-        <!-- ===== PRIVACY POLICY ===== -->
-        <section class="py-24 px-4 sm:px-8">
-            <div class="max-w-3xl mx-auto">
-                <div class="text-center mb-12">
-                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Legal Documentation</span>
-                    <h1 class="font-heading text-3xl font-bold text-white">Privacy Policy</h1>
-                    <p class="text-slate-500 text-xs font-mono mt-2">Last updated: April 2024</p>
+        {% elif page == 'payment_policy' %}
+        <!-- ===== PAYMENT & BILLING POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Financial Transparency</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Payment &amp; Billing Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Accepted Payment Methods</h2>
+                    <p>We accept payments via <strong>UPI (Scan to Pay QR code)</strong>, Indian Credit &amp; Debit Cards, NetBanking, and Digital Wallets through legitimate payment providers. All prices are explicitly displayed in Indian Rupees (INR - ₹).</p>
                 </div>
 
-                <div class="glass-panel p-8 sm:p-10 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
-                    <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">1. Information We Collect</h3>
-                        <p>We collect usernames, emails, registration IP addresses, last logged-in device IPs, and uploaded codebase materials (GitHub links and ZIP payloads) solely to execute, compile, and host your cloud deployment tasks.</p>
-                    </div>
-                    <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">2. Secrets Safeguards &amp; Data Isolation</h3>
-                        <p>Any system secret (e.g. BOT_TOKEN or DB_URI) stored inside our Environment Variables manager is encrypted in transit and in storage. Secrets are never persisted on the container's disk. Execution processes are strictly isolated to protect your session files and credentials.</p>
-                    </div>
-                    <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">3. Cookies &amp; Sessions</h3>
-                        <p>We use session-based cookies strictly to verify user login states. No tracking or marketing cookies are deployed.</p>
-                    </div>
-                    <div>
-                        <h3 class="font-heading font-bold text-white text-base mb-2">4. Compliance &amp; Safe Harbor</h3>
-                        <p>In accordance with Indian Cyber Security guidelines (CERT-In directives), we maintain logs of system access, container actions, and IP configurations for security audits and emergency responses.</p>
-                    </div>
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Payment Verification Flow</h2>
+                    <p class="mb-3">To maintain security and prevent fraudulent transactions:</p>
+                    <ol class="list-decimal pl-5 space-y-2 text-slate-300">
+                        <li>Select your preferred VPS tier (Micro ₹99, Lite ₹199, Pro ₹299).</li>
+                        <li>Scan the displayed payment QR code and complete the payment in your UPI app.</li>
+                        <li>Submit your name, phone number, and the 12-digit UTR / Transaction Reference ID in the panel.</li>
+                        <li>Admin verifies the transaction hash against bank records and allocates your VPS slot.</li>
+                    </ol>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Billing &amp; Invoice Transparency</h2>
+                    <p>Transactions are one-time per slot purchase. We do not perform hidden recurring auto-debits without user consent. Complete transaction history and receipts are accessible under Dashboard Settings.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'cookie_policy' %}
+        <!-- ===== COOKIE POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Data Storage Security</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Cookie &amp; Tracking Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Essential Cookies Used</h2>
+                    <p>EliteHosting.in uses essential session cookies (<code>session</code>) exclusively to authenticate user login states, maintain dashboard sessions, and protect forms against Cross-Site Request Forgery (CSRF).</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. No Invasive Tracking</h2>
+                    <p>We do not deploy third-party advertising pixels, cross-site tracking cookies, or commercial user profiling tools.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Managing Cookies</h2>
+                    <p>You can clear cookies via browser settings at any time. Note that clearing session cookies will log you out of your EliteHosting client panel.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'subscription_policy' %}
+        <!-- ===== SUBSCRIPTION & VPS SLOT POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Slot Allocations</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Subscription &amp; VPS Slot Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. VPS Slot Tiers</h2>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li><strong>Micro VPS (256MB RAM):</strong> ₹99 / month</li>
+                        <li><strong>Lite VPS (512MB RAM):</strong> ₹199 / month</li>
+                        <li><strong>Pro VPS (1024MB RAM):</strong> ₹299 / month</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Allocation &amp; Runtime Rules</h2>
+                    <p>Purchased VPS slots provide dedicated RAM limits and 24/7 continuous process execution. Users may start, stop, or re-deploy applications inside their allocated slots at any time.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Free Trial Policy</h2>
+                    <p>New users receive a 3-hour free trial window limited to 1 concurrent trial deployment. Active deployments under this trial run up to a 15-minute continuous session runtime limit before requiring a manual restart.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'user_content_policy' %}
+        <!-- ===== USER CONTENT POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Intellectual Property Rights</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">User Content &amp; Code Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Codebase Ownership</h2>
+                    <p>You retain <strong>100% full copyright and ownership</strong> over all source code, Python/Node.js scripts, ZIP archives, static site files, and environment configurations uploaded to EliteHosting.in.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. License Granted to Platform</h2>
+                    <p>You grant EliteHosting a limited, non-exclusive license solely to build, compile, execute, and host your application files on our server infrastructure.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">3. Prohibited Content</h2>
+                    <p>Users must not upload code containing malware, exploits, copyrighted material without authorization, or illegal content under the Indian IT Act.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'acceptable_use_policy' %}
+        <!-- ===== ACCEPTABLE USE POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Platform Safety</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Acceptable Use Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Security &amp; Network Integrity</h2>
+                    <p class="mb-3">To preserve platform performance for all users, the following activities are strictly prohibited:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li>Cryptocurrency mining or launching CPU-exhausting worker threads.</li>
+                        <li>Initiating Denial of Service (DDoS) attacks, network flooding, or port scanning.</li>
+                        <li>Hosting phishing sites, credential harvesters, or malware downloaders.</li>
+                        <li>Violating Telegram API Terms of Service or spamming Telegram users.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Enforcement &amp; Banning</h2>
+                    <p>Violations result in immediate container termination and permanent device IP/account banning.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'disclaimer' %}
+        <!-- ===== DISCLAIMER ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Legal Notice</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Legal Disclaimer</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Service Availability SLA</h2>
+                    <p>While EliteHosting.in strives for 99.99% server availability, services are provided "as is." We are not liable for temporary service interruptions caused by third-party upstream providers (such as Telegram API outages or global internet backbone disruptions).</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Limitation of Liability</h2>
+                    <p>Under no circumstances shall EliteHosting.in be liable for indirect, incidental, or consequential damages resulting from lost profits or service disruptions.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'copyright' %}
+        <!-- ===== COPYRIGHT POLICY ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Brand &amp; Content Assets</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Copyright &amp; IP Policy</h1>
+                <p class="text-slate-400 text-xs font-mono">Effective Date: April 1, 2024</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Platform Ownership</h2>
+                    <p>All trademarks, brand names, logos (including <code>/static/img/logo.webp</code>), design layouts, and proprietary code on EliteHosting.in are protected under Indian intellectual property laws.</p>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Reporting Copyright Infringement</h2>
+                    <p>If you believe content hosted on our platform infringes your copyright, submit a DMCA / Takedown notice to <strong>support@elitehosting.in</strong> with proof of ownership.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'grievance' %}
+        <!-- ===== GRIEVANCE REDRESSAL ===== -->
+        <section class="py-20 px-4 sm:px-8 max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Statutory Compliance</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-3">Grievance Redressal</h1>
+                <p class="text-slate-400 text-xs font-mono">Under Indian IT (Intermediary Guidelines) Rules, 2021</p>
+            </div>
+
+            <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">1. Grievance Officer Details</h2>
+                    <p class="mb-3">In accordance with the Information Technology Act, 2000 and rules made thereunder, the contact details of the Grievance Officer are:</p>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-300">
+                        <li><strong>Designation:</strong> Grievance Officer - EliteHosting.in</li>
+                        <li><strong>Email:</strong> <a href="mailto:grievance@elitehosting.in" class="text-cyberPrimary underline">grievance@elitehosting.in</a> / <a href="mailto:support@elitehosting.in" class="text-cyberPrimary underline">support@elitehosting.in</a></li>
+                        <li><strong>Telegram Direct:</strong> <a href="https://t.me/zolvid" class="text-cyberPrimary underline">@zolvid</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h2 class="font-heading font-bold text-white text-lg mb-3 text-cyberPrimary">2. Complaint Procedure &amp; Resolution Time</h2>
+                    <p>Grievances are acknowledged within <strong>24 hours</strong> and resolved within <strong>15 days</strong> from receipt of complaint.</p>
                 </div>
             </div>
         </section>
@@ -972,33 +1447,82 @@
     </main>
 
     <!-- ===== FOOTER ===== -->
-    <footer class="w-full border-t border-cyberBorder/50 bg-cyberDark/60 py-12 px-4 sm:px-8">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-2">
-                <div class="w-7 h-7 flex items-center justify-center rounded bg-gradient-to-tr from-cyberAccent to-cyberPrimary">
-                    <i data-lucide="zap" class="w-4 h-4 text-cyberBg fill-cyberBg"></i>
+    <footer class="w-full border-t border-cyberBorder/50 bg-cyberDark/80 py-16 px-4 sm:px-8 text-slate-400 text-xs font-body">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+
+            <!-- Col 1: Brand & Status -->
+            <div class="space-y-4">
+                <a href="/" class="flex items-center gap-2" aria-label="EliteHosting Home">
+                    <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-tr from-cyberAccent to-cyberPrimary shadow-neonCyan">
+                        <i data-lucide="zap" class="w-4 h-4 text-cyberBg fill-cyberBg"></i>
+                    </div>
+                    <span class="font-heading font-bold text-base text-white tracking-tight">EliteHosting<span class="text-cyberPrimary">.in</span></span>
+                </a>
+                <p class="text-slate-500 text-xs leading-relaxed">
+                    Next-Gen cloud hosting platform engineered for 24/7 Telegram bots, high-speed micro VPS infrastructure, and static websites.
+                </p>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>All Cloud Nodes Operational</span>
                 </div>
-                <span class="font-heading font-bold text-white text-sm">EliteHosting<span class="text-cyberPrimary">.in</span></span>
             </div>
 
-            <!-- Network Status Indicator -->
-            <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>All Systems Operational</span>
+            <!-- Col 2: Services & Platform -->
+            <div>
+                <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider mb-4 border-b border-cyberBorder/50 pb-2">Hosting Services</h4>
+                <ul class="space-y-2.5 font-heading text-slate-400">
+                    <li><a href="/" class="hover:text-cyberPrimary transition-colors">Home</a></li>
+                    <li><a href="/telegram-bot-hosting" class="hover:text-cyberPrimary transition-colors">Telegram Bot Hosting</a></li>
+                    <li><a href="/#plans" class="hover:text-cyberPrimary transition-colors">Micro VPS Plans</a></li>
+                    <li><a href="/login" class="hover:text-cyberPrimary transition-colors">Client Portal</a></li>
+                    <li><a href="/blogs" class="hover:text-cyberPrimary transition-colors">Developer Blogs</a></li>
+                </ul>
             </div>
 
-            <div class="flex gap-6 font-heading text-xs text-slate-500">
-                <a href="/blogs" class="hover:text-cyberPrimary transition-colors">Blogs</a>
-                <a href="/terms" class="hover:text-cyberPrimary transition-colors">Terms of Service</a>
-                <a href="/privacy" class="hover:text-cyberPrimary transition-colors">Privacy Policy</a>
+            <!-- Col 3: Core Legal Policies -->
+            <div>
+                <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider mb-4 border-b border-cyberBorder/50 pb-2">Legal &amp; Compliance</h4>
+                <ul class="space-y-2.5 font-heading text-slate-400">
+                    <li><a href="/privacy-policy" class="hover:text-cyberPrimary transition-colors">Privacy Policy</a></li>
+                    <li><a href="/terms-and-conditions" class="hover:text-cyberPrimary transition-colors">Terms &amp; Conditions</a></li>
+                    <li><a href="/refund-policy" class="hover:text-cyberPrimary transition-colors">Refund &amp; Cancellation Policy</a></li>
+                    <li><a href="/shipping-policy" class="hover:text-cyberPrimary transition-colors">Shipping &amp; Delivery Policy</a></li>
+                    <li><a href="/payment-policy" class="hover:text-cyberPrimary transition-colors">Payment &amp; Billing Policy</a></li>
+                    <li><a href="/cookie-policy" class="hover:text-cyberPrimary transition-colors">Cookie Policy</a></li>
+                </ul>
             </div>
+
+            <!-- Col 4: Operations & Grievance -->
+            <div>
+                <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider mb-4 border-b border-cyberBorder/50 pb-2">Company &amp; Support</h4>
+                <ul class="space-y-2.5 font-heading text-slate-400">
+                    <li><a href="/about" class="hover:text-cyberPrimary transition-colors">About Us</a></li>
+                    <li><a href="/faq" class="hover:text-cyberPrimary transition-colors">FAQ</a></li>
+                    <li><a href="/contact" class="hover:text-cyberPrimary transition-colors">Contact Us</a></li>
+                    <li><a href="/subscription-policy" class="hover:text-cyberPrimary transition-colors">Subscription Policy</a></li>
+                    <li><a href="/user-content-policy" class="hover:text-cyberPrimary transition-colors">User Content Policy</a></li>
+                    <li><a href="/acceptable-use-policy" class="hover:text-cyberPrimary transition-colors">Acceptable Use Policy</a></li>
+                    <li><a href="/disclaimer" class="hover:text-cyberPrimary transition-colors">Legal Disclaimer</a></li>
+                    <li><a href="/copyright" class="hover:text-cyberPrimary transition-colors">Copyright &amp; IP</a></li>
+                    <li><a href="/grievance" class="hover:text-cyberPrimary transition-colors">Grievance Redressal</a></li>
+                </ul>
+            </div>
+
         </div>
-        <div class="max-w-6xl mx-auto text-center mt-8 text-[11px] text-slate-600 border-t border-cyberBorder/30 pt-4">
-            &copy; 2024 EliteHosting.in. All rights reserved. Hardened Cloud Virtualization Engine.
+
+        <div class="max-w-6xl mx-auto border-t border-cyberBorder/40 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-slate-500 font-mono">
+            <div>&copy; 2024 EliteHosting.in. All rights reserved. Hardened Cloud Virtualization Engine.</div>
+            <div class="flex gap-4">
+                <a href="/privacy-policy" class="hover:underline">Privacy</a>
+                <span>•</span>
+                <a href="/terms-and-conditions" class="hover:underline">Terms</a>
+                <span>•</span>
+                <a href="/refund-policy" class="hover:underline">Refunds</a>
+            </div>
         </div>
     </footer>
 
-    <!-- Interactive script initialization -->
+    <!-- Interactive script initialization --><!-- Interactive script initialization -->
     <script src="/static/js/app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

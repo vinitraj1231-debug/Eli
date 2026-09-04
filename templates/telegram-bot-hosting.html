@@ -831,37 +831,46 @@
     </main>
 
     <!-- ===== FOOTER ===== -->
-    <footer class="landing-footer" role="contentinfo">
-        <div class="footer-links">
-            <a href="/blogs">Blogs</a>
-            <a href="/terms">Terms &amp; Conditions</a>
-            <a href="/privacy">Privacy Policy</a>
+    <footer class="landing-footer" role="contentinfo" style="padding: 40px 24px; background: #070a12; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 12px; color: var(--muted-light);">
+        <div style="max-w-1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; text-align: left;">
+            <div>
+                <h4 style="color: #fff; font-family: var(--font-heading); margin-bottom: 12px; font-size: 13px;">EliteHosting.in</h4>
+                <p style="font-size: 11.5px; line-height: 1.6; color: var(--muted);">24/7 Always-On Telegram Bot Hosting &amp; Micro VPS Infrastructure.</p>
+            </div>
+            <div>
+                <h4 style="color: #fff; font-family: var(--font-heading); margin-bottom: 12px; font-size: 13px;">Platform</h4>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <a href="/" style="color: var(--muted-light); text-decoration: none;">Home</a>
+                    <a href="/telegram-bot-hosting" style="color: var(--accent); text-decoration: none;">Telegram Bot Hosting</a>
+                    <a href="/blogs" style="color: var(--muted-light); text-decoration: none;">Blogs</a>
+                    <a href="/dashboard" style="color: var(--muted-light); text-decoration: none;">Client Dashboard</a>
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #fff; font-family: var(--font-heading); margin-bottom: 12px; font-size: 13px;">Legal Policies</h4>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <a href="/privacy-policy" style="color: var(--muted-light); text-decoration: none;">Privacy Policy</a>
+                    <a href="/terms-and-conditions" style="color: var(--muted-light); text-decoration: none;">Terms &amp; Conditions</a>
+                    <a href="/refund-policy" style="color: var(--muted-light); text-decoration: none;">Refund &amp; Cancellation</a>
+                    <a href="/shipping-policy" style="color: var(--muted-light); text-decoration: none;">Shipping &amp; Delivery</a>
+                    <a href="/payment-policy" style="color: var(--muted-light); text-decoration: none;">Payment Policy</a>
+                    <a href="/cookie-policy" style="color: var(--muted-light); text-decoration: none;">Cookie Policy</a>
+                </div>
+            </div>
+            <div>
+                <h4 style="color: #fff; font-family: var(--font-heading); margin-bottom: 12px; font-size: 13px;">Company &amp; Support</h4>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <a href="/about" style="color: var(--muted-light); text-decoration: none;">About Us</a>
+                    <a href="/faq" style="color: var(--muted-light); text-decoration: none;">FAQ</a>
+                    <a href="/contact" style="color: var(--muted-light); text-decoration: none;">Contact Us</a>
+                    <a href="/disclaimer" style="color: var(--muted-light); text-decoration: none;">Disclaimer</a>
+                    <a href="/copyright" style="color: var(--muted-light); text-decoration: none;">Copyright</a>
+                    <a href="/grievance" style="color: var(--muted-light); text-decoration: none;">Grievance Redressal</a>
+                </div>
+            </div>
         </div>
-        <div class="footer-copy">&copy; 2024 EliteHosting. All rights reserved.</div>
-    </footer>
-
-    <script src="/static/js/app.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', initLanding);
-
-        function switchCodeTab(tab) {
-            const btnPy = document.querySelector(".code-tab-btn[onclick*='py']");
-            const btnJs = document.querySelector(".code-tab-btn[onclick*='js']");
-            const blockPy = document.getElementById("pyCodeBlock");
-            const blockJs = document.getElementById("jsCodeBlock");
-
-            if (tab === 'py') {
-                btnPy.classList.add('active');
-                btnJs.classList.remove('active');
-                blockPy.classList.remove('hidden');
-                blockJs.classList.add('hidden');
-            } else {
-                btnPy.classList.remove('active');
-                btnJs.classList.add('active');
-                blockPy.classList.add('hidden');
-                blockJs.classList.remove('hidden');
-            }
-        }
-    </script>
-</body>
+        <div style="max-width: 1100px; margin: 30px auto 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05); text-align: center; font-size: 11px; color: var(--muted);">
+            &copy; 2024 EliteHosting.in. All rights reserved.
+        </div>
+    </footer></body>
 </html>
