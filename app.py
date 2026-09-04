@@ -1125,25 +1125,159 @@ def blog_detail_page(slug):
     }
     return render_template('index.html', page='blog_detail', blog=post, seo=seo)
 
-@app.route('/terms')
-@rate_limit('public')
-def terms_page():
-    seo = {
-        'title': 'Terms of Service | EliteHosting',
-        'description': 'Terms of Service, deployment policies, and user agreements for the EliteHosting deployment platform.',
-        'canonical': 'https://elitehosting.in/terms'
-    }
-    return render_template('index.html', page='terms', seo=seo)
+# ===================== ROUTES — LEGAL & POLICY PAGES =====================
 
+@app.route('/privacy-policy')
 @app.route('/privacy')
 @rate_limit('public')
-def privacy_page():
+def privacy_policy_page():
     seo = {
-        'title': 'Privacy Policy | EliteHosting',
-        'description': 'Privacy policy, cookies policies, and personal data isolation safeguards at EliteHosting.',
-        'canonical': 'https://elitehosting.in/privacy'
+        'title': 'Privacy Policy | EliteHosting.in',
+        'description': 'Comprehensive Privacy Policy detailing data collection, encrypted secrets isolation, user privacy rights, and security protocols at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/privacy-policy'
     }
-    return render_template('index.html', page='privacy', seo=seo)
+    return render_template('index.html', page='privacy_policy', seo=seo)
+
+@app.route('/terms-and-conditions')
+@app.route('/terms')
+@rate_limit('public')
+def terms_and_conditions_page():
+    seo = {
+        'title': 'Terms & Conditions | EliteHosting.in',
+        'description': 'Official Terms & Conditions, service usage rules, deployment agreements, and billing policies for EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/terms-and-conditions'
+    }
+    return render_template('index.html', page='terms_and_conditions', seo=seo)
+
+@app.route('/refund-policy')
+@rate_limit('public')
+def refund_policy_page():
+    seo = {
+        'title': 'Refund & Cancellation Policy | EliteHosting.in',
+        'description': 'Clear 7-day money-back guarantee, refund eligibility rules, cancellation procedure, and payment transaction policies at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/refund-policy'
+    }
+    return render_template('index.html', page='refund_policy', seo=seo)
+
+@app.route('/shipping-policy')
+@rate_limit('public')
+def shipping_policy_page():
+    seo = {
+        'title': 'Shipping & Delivery Policy | EliteHosting.in',
+        'description': '100% Digital Delivery Policy for cloud VPS slots, web deployments, and container server provisioning at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/shipping-policy'
+    }
+    return render_template('index.html', page='shipping_policy', seo=seo)
+
+@app.route('/contact')
+@rate_limit('public')
+def contact_page():
+    seo = {
+        'title': 'Contact Us & Support | EliteHosting.in',
+        'description': 'Get in touch with EliteHosting.in customer support, Telegram owner direct line (@zolvid), live client chat, and email response team.',
+        'canonical': 'https://elitehosting.in/contact'
+    }
+    return render_template('index.html', page='contact', seo=seo)
+
+@app.route('/about')
+@rate_limit('public')
+def about_page():
+    seo = {
+        'title': 'About Us & Company Overview | EliteHosting.in',
+        'description': 'Learn about EliteHosting.in - Next-Gen cloud hosting platform engineered for 24/7 Telegram bots, micro VPS infrastructure, and static websites.',
+        'canonical': 'https://elitehosting.in/about'
+    }
+    return render_template('index.html', page='about', seo=seo)
+
+@app.route('/faq')
+@rate_limit('public')
+def faq_page():
+    seo = {
+        'title': 'Frequently Asked Questions (FAQ) | EliteHosting.in',
+        'description': 'Find answers to common questions regarding VPS hosting plans, Telegram bot polling, UPI payment verification, security, and deployments.',
+        'canonical': 'https://elitehosting.in/faq'
+    }
+    return render_template('index.html', page='faq', seo=seo)
+
+@app.route('/payment-policy')
+@rate_limit('public')
+def payment_policy_page():
+    seo = {
+        'title': 'Payment & Billing Information | EliteHosting.in',
+        'description': 'Payment methods, UPI QR verification flow, billing transparency, invoice receipts, and transaction safety guidelines at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/payment-policy'
+    }
+    return render_template('index.html', page='payment_policy', seo=seo)
+
+@app.route('/cookie-policy')
+@rate_limit('public')
+def cookie_policy_page():
+    seo = {
+        'title': 'Cookie & Tracking Policy | EliteHosting.in',
+        'description': 'Information on essential session cookies, security headers, and browser storage used on the EliteHosting.in platform.',
+        'canonical': 'https://elitehosting.in/cookie-policy'
+    }
+    return render_template('index.html', page='cookie_policy', seo=seo)
+
+@app.route('/subscription-policy')
+@rate_limit('public')
+def subscription_policy_page():
+    seo = {
+        'title': 'Subscription & VPS Slot Policy | EliteHosting.in',
+        'description': 'VPS slot allocations, plan billing cycles, upgrades, auto-renewal rules, and server runtime management at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/subscription-policy'
+    }
+    return render_template('index.html', page='subscription_policy', seo=seo)
+
+@app.route('/user-content-policy')
+@rate_limit('public')
+def user_content_policy_page():
+    seo = {
+        'title': 'User Content & Code Ownership Policy | EliteHosting.in',
+        'description': 'Codebase ownership rights, hosting licenses, prohibited code materials, and intellectual property protections for EliteHosting.in users.',
+        'canonical': 'https://elitehosting.in/user-content-policy'
+    }
+    return render_template('index.html', page='user_content_policy', seo=seo)
+
+@app.route('/acceptable-use-policy')
+@rate_limit('public')
+def acceptable_use_policy_page():
+    seo = {
+        'title': 'Acceptable Use & Community Policy | EliteHosting.in',
+        'description': 'Acceptable Use Policy defining platform security rules, prohibited activities, abuse prevention, and network safety standards at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/acceptable-use-policy'
+    }
+    return render_template('index.html', page='acceptable_use_policy', seo=seo)
+
+@app.route('/disclaimer')
+@rate_limit('public')
+def disclaimer_page():
+    seo = {
+        'title': 'Legal Disclaimer & Service Guarantees | EliteHosting.in',
+        'description': 'Official service disclaimers, 99.99% target uptime SLAs, third-party API dependencies, and limitation of liability for EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/disclaimer'
+    }
+    return render_template('index.html', page='disclaimer', seo=seo)
+
+@app.route('/copyright')
+@rate_limit('public')
+def copyright_page():
+    seo = {
+        'title': 'Intellectual Property & Copyright Policy | EliteHosting.in',
+        'description': 'Copyright guidelines, trademark protections, proprietary platform assets, and DMCA takedown notice procedures at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/copyright'
+    }
+    return render_template('index.html', page='copyright', seo=seo)
+
+@app.route('/grievance')
+@rate_limit('public')
+def grievance_page():
+    seo = {
+        'title': 'Grievance Redressal & Complaints | EliteHosting.in',
+        'description': 'Official Grievance Redressal Mechanism under Indian Information Technology Rules, Grievance Officer details, and complaint resolution process.',
+        'canonical': 'https://elitehosting.in/grievance'
+    }
+    return render_template('index.html', page='grievance', seo=seo)
 
 @app.route('/telegram-bot-hosting')
 @rate_limit('public')
