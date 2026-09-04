@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-cyberDark/30">
+    <div class="max-w-4xl mx-auto px-4 sm:px-8">
+
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-2 block">Support & Knowledgebase</span>
+            <h1 class="font-heading text-3xl sm:text-5xl font-extrabold text-white mb-4">Frequently Asked Questions</h1>
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Everything you need to know about our digital learning courses, PayU payments, course delivery, and customer support.
+            </p>
+        </div>
+
+        <!-- Collapsible FAQ Accordion List -->
+        <div class="space-y-4">
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(1)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">How do I access my purchased course after payment?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-1"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-1" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Course access is 100% digital and instant. Once your PayU payment is completed, you are immediately redirected to the Payment Success page displaying your Order ID and student dashboard credentials. An automated access link is also delivered instantly to your registered email address.
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(2)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">What payment methods are accepted on Elite Academy?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-2"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-2" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    All payments are securely processed through PayU. We accept UPI (Google Pay, PhonePe, Paytm, BHIM), Credit Cards, Debit Cards (Visa, Mastercard, RuPay), NetBanking (all Indian banks), and Wallets.
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(3)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">How long do I have access to the digital course materials?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-3"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-3" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    You receive Lifetime Access to all enrolled digital courses. This includes unlimited video streaming, downloadable source code repositories, and future syllabus updates at no extra charge.
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(4)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">What is your refund policy for digital courses?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-4"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-4" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    We offer a 7-day money-back guarantee provided you have consumed less than 25% of the total course modules and have not downloaded full source code assets. Approved refunds are credited back to your original payment method via PayU within 5-7 working days. See our full <a href="/refund-policy" class="text-cyberPrimary underline">Refund & Cancellation Policy</a> for details.
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(5)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">What if my payment was debited but course access was not received?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-5"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-5" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Please do not make a second payment immediately. Check your email Spam folder first. If still missing, send an email to <a href="mailto:support@elitehosting.in" class="text-cyberPrimary underline font-semibold">support@elitehosting.in</a> with your PayU Transaction ID or UTR number. Our support team will verify with PayU and grant access within 2 hours.
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(6)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">Are source code and project repositories included?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-6"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-6" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Yes! Every course on Elite Academy includes 100% complete working source code, Dockerfiles, configuration scripts, and project templates ready for commercial use or personal customization.
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden">
+                <button onclick="toggleFaq(7)" class="w-full flex items-center justify-between p-6 text-left outline-none">
+                    <span class="font-heading font-semibold text-white text-base">How can I get help if I get stuck while building a project?</span>
+                    <span class="text-cyberPrimary" id="faq-icon-7"><i data-lucide="chevron-down" class="w-5 h-5"></i></span>
+                </button>
+                <div id="faq-body-7" class="hidden border-t border-cyberBorder/40 p-6 bg-cyberDark/20 text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Every student gets access to our Q&A discussion forum and student support email. You can ask technical questions or submit code error logs for instructor guidance.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="text-center mt-12 bg-cyberDark p-8 rounded-2xl border border-cyberBorder">
+            <h3 class="font-heading font-bold text-white text-lg mb-2">Still Have Questions?</h3>
+            <p class="text-slate-400 text-xs mb-4">Our customer support team is available Mon-Sat, 9:00 AM - 7:00 PM IST.</p>
+            <a href="/contact" class="btn-gradient inline-flex items-center gap-2 px-6 py-3 rounded-xl text-cyberBg font-heading font-bold text-xs shadow-neonCyan">
+                <i data-lucide="mail" class="w-4 h-4"></i>
+                <span>Contact Support Team</span>
+            </a>
+        </div>
+
+    </div>
+</section>
+
+<script>
+    function toggleFaq(id) {
+        const body = document.getElementById(`faq-body-${id}`);
+        const icon = document.getElementById(`faq-icon-${id}`);
+        if (body.classList.contains('hidden')) {
+            body.classList.remove('hidden');
+            icon.innerHTML = `<i data-lucide="chevron-up" class="w-5 h-5"></i>`;
+        } else {
+            body.classList.add('hidden');
+            icon.innerHTML = `<i data-lucide="chevron-down" class="w-5 h-5"></i>`;
+        }
+        lucide.createIcons();
+    }
+</script>
+{% endblock %}

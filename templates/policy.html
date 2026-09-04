@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-cyberDark/30">
+    <div class="max-w-4xl mx-auto px-4 sm:px-8">
+
+        {% if policy_type == 'privacy' %}
+        <!-- PRIVACY POLICY -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder space-y-8 text-slate-300 text-sm leading-relaxed">
+
+            <div class="border-b border-cyberBorder pb-6">
+                <span class="text-cyberPrimary font-mono text-xs uppercase tracking-widest block mb-2">Legal Compliance</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-extrabold text-white">Privacy Policy</h1>
+                <p class="text-xs text-slate-400 mt-2">Effective Date: January 1, 2026 | Last Updated: March 2026</p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">1. Introduction</h2>
+                <p>
+                    Elite Academy ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, store, and safeguard your information when you visit our website at <a href="https://elitehosting.in" class="text-cyberPrimary hover:underline">elitehosting.in</a> or purchase our digital education courses in India.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">2. Information We Collect</h2>
+                <p>We collect the following personal information when you register an account, enroll in a digital course, or contact support:</p>
+                <ul class="list-disc list-inside space-y-1.5 pl-2 text-slate-300">
+                    <li><strong class="text-white">Personal Identification Data:</strong> Full Name, Email Address, Phone Number / WhatsApp Number.</li>
+                    <li><strong class="text-white">Order & Payment-Related Information:</strong> Order ID, Purchased Course Name, Transaction Amount, and PayU Payment Status.</li>
+                    <li><strong class="text-white">Technical & Usage Data:</strong> IP Address, browser type, device details, and course progress statistics for dashboard functionality.</li>
+                </ul>
+                <p class="text-xs text-emerald-400 bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">
+                    <strong>Important Note:</strong> We do NOT collect, store, or process your credit/debit card numbers, UPI PINs, or net banking passwords directly on our servers. All financial payment transactions are processed through PayU's PCI-DSS compliant secure payment gateway.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">3. How We Use Your Information</h2>
+                <p>Your personal information is used exclusively for legitimate business purposes:</p>
+                <ul class="list-disc list-inside space-y-1.5 pl-2">
+                    <li>To fulfill digital course enrollments and grant student dashboard access.</li>
+                    <li>To send automated email purchase receipts and tax invoices.</li>
+                    <li>To respond to customer support inquiries and technical issues.</li>
+                    <li>To comply with legal and financial auditing regulations in India.</li>
+                </ul>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">4. Payment Processing Through Third-Party Gateway (PayU)</h2>
+                <p>
+                    Online payments on Elite Academy are powered by PayU Payments Private Limited. When you complete an order at checkout, you are securely redirected to PayU's encrypted payment interface. PayU's privacy standards govern payment data handling according to RBI (Reserve Bank of India) regulations.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">5. Cookies & Analytics</h2>
+                <p>
+                    We use essential session cookies to maintain your login session and shopping cart state. We do not sell your personal browsing data or employ invasive third-party tracking scripts.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">6. Data Security & Retention</h2>
+                <p>
+                    We implement SSL encryption, database access controls, and rate-limiting safeguards to prevent unauthorized access or data breaches. Customer order records are retained for accounting and compliance purposes as required under Indian commercial law.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">7. Your Rights & Contact Information</h2>
+                <p>
+                    You have the right to request access to your personal data, request corrections, or request account deletion by emailing our privacy team.
+                </p>
+                <div class="bg-cyberDark p-4 rounded-xl border border-cyberBorder text-xs text-slate-300">
+                    <strong>Privacy Queries Contact:</strong><br>
+                    Email: <a href="mailto:support@elitehosting.in" class="text-cyberPrimary hover:underline">support@elitehosting.in</a><br>
+                    Address: Elite Academy, Sector 62, Noida, Uttar Pradesh 201309, India
+                </div>
+            </div>
+
+        </div>
+
+        {% elif policy_type == 'terms' %}
+        <!-- TERMS & CONDITIONS -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder space-y-8 text-slate-300 text-sm leading-relaxed">
+
+            <div class="border-b border-cyberBorder pb-6">
+                <span class="text-cyberPrimary font-mono text-xs uppercase tracking-widest block mb-2">Legal Compliance</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-extrabold text-white">Terms & Conditions</h1>
+                <p class="text-xs text-slate-400 mt-2">Effective Date: January 1, 2026 | Last Updated: March 2026</p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">1. Acceptance of Terms</h2>
+                <p>
+                    By accessing or using the website <a href="https://elitehosting.in" class="text-cyberPrimary hover:underline">elitehosting.in</a> ("Website") operated by Elite Academy ("Business"), or by purchasing any digital course, you agree to be bound by these Terms & Conditions. If you do not agree, please do not use our services.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">2. Eligibility & Account Rules</h2>
+                <p>
+                    To purchase digital courses, you must be at least 18 years of age or have parental/guardian consent under Indian laws. You are responsible for maintaining the confidentiality of your account credentials.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">3. Intellectual Property & Anti-Piracy Policy</h2>
+                <p>
+                    All course content, video lectures, source code repositories, curriculum documentation, logos, and graphics published on Elite Academy are the exclusive intellectual property of Elite Academy and Er. Rajesh Verma.
+                </p>
+                <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                    <strong>Strict Prohibited Actions:</strong> You are strictly prohibited from reselling, redistributing, sharing, leaking, uploading to public Telegram channels/Google Drives, or sub-licensing any course material. Any unauthorized distribution will result in immediate permanent account suspension without refund and legal prosecution under the Indian Copyright Act, 1957.
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">4. Course Purchase & Payment Terms</h2>
+                <p>
+                    All course prices are listed in Indian Rupees (INR ₹). Payments are processed securely via PayU payment gateway. Upon successful payment verification, you will receive order confirmation and digital course access.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">5. Limitation of Liability</h2>
+                <p>
+                    Elite Academy provides educational digital products on an "as-is" basis. While we strive to maintain 100% course accuracy and platform availability, we are not liable for indirect damages or technical issues arising from third-party hosting providers.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">6. Governing Law & Jurisdiction</h2>
+                <p>
+                    These Terms & Conditions are governed by and construed in accordance with the laws of India. Any legal disputes shall be subject to the exclusive jurisdiction of the courts located in Noida / Gautam Buddha Nagar, Uttar Pradesh, India.
+                </p>
+            </div>
+
+        </div>
+
+        {% elif policy_type == 'refund' %}
+        <!-- REFUND / CANCELLATION POLICY -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder space-y-8 text-slate-300 text-sm leading-relaxed">
+
+            <div class="border-b border-cyberBorder pb-6">
+                <span class="text-cyberPrimary font-mono text-xs uppercase tracking-widest block mb-2">PayU Verification Requirement</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-extrabold text-white">Refund & Cancellation Policy</h1>
+                <p class="text-xs text-slate-400 mt-2">Effective Date: January 1, 2026 | Last Updated: March 2026</p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-cyberPrimary/10 border border-cyberPrimary/30 text-cyberPrimary text-xs font-mono">
+                <i data-lucide="info" class="w-4 h-4 inline shrink-0 mr-1"></i>
+                This policy clearly outlines the terms governing cancellations, refunds, and failed transactions for digital courses purchased on Elite Academy India.
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">1. Refund Eligibility for Digital Courses</h2>
+                <p>
+                    Because our courses are digital products with immediate download/access privileges upon payment, refunds are handled strictly under the following fair conditions:
+                </p>
+                <ul class="list-disc list-inside space-y-2 pl-2">
+                    <li><strong class="text-white">7-Day Money-Back Guarantee:</strong> You are eligible for a 100% full refund within 7 days of purchase if you have consumed less than 25% of the total course video lessons and have not downloaded source code assets.</li>
+                    <li><strong class="text-white">Technical Non-Delivery:</strong> If you paid successfully via PayU but technical issues prevented you from accessing the course content, and our support team is unable to resolve the issue within 48 hours, a full refund will be issued.</li>
+                </ul>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">2. Non-Refundable Situations</h2>
+                <p>A refund will NOT be issued in the following cases:</p>
+                <ul class="list-disc list-inside space-y-1.5 pl-2 text-slate-400 text-xs">
+                    <li>If the refund request is submitted after 7 days from the purchase date.</li>
+                    <li>If you have watched/completed more than 25% of the course modules.</li>
+                    <li>If you have downloaded the complete course source code or project repository.</li>
+                    <li>If your account is suspended due to copyright infringement or reselling violations.</li>
+                </ul>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">3. Refund Request Procedure & Required Details</h2>
+                <p>To request a refund, please send an email to <a href="mailto:support@elitehosting.in" class="text-cyberPrimary hover:underline">support@elitehosting.in</a> with the subject line "Refund Request - [Order ID]".</p>
+                <p>You must provide the following information:</p>
+                <ol class="list-decimal list-inside space-y-1.5 pl-2 text-xs">
+                    <li>Order ID (e.g. ORD-A1B2C3D4)</li>
+                    <li>PayU Transaction ID / Payment Reference Number</li>
+                    <li>Registered Email Address & Phone Number</li>
+                    <li>Reason for the refund request</li>
+                </ol>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">4. Processing Timeline & Refund Method</h2>
+                <p>
+                    Once your refund request is verified and approved, it will be processed within <strong>2 to 3 business days</strong>. The refunded amount will be credited back to your original payment method (Bank Account, Credit/Debit Card, UPI, or Wallet) through PayU within <strong>5 to 7 working days</strong>, depending on your bank's processing cycle.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">5. Failed or Pending Transaction Refunds</h2>
+                <p>
+                    In rare cases where your money was debited from your bank/UPI account but the payment failed or remained pending on PayU, the funds are automatically reversed by your bank back to your account within <strong>3 to 5 business days</strong>. If you need assistance verifying transaction status, contact support at <a href="mailto:support@elitehosting.in" class="text-cyberPrimary hover:underline">support@elitehosting.in</a>.
+                </p>
+            </div>
+
+        </div>
+
+        {% elif policy_type == 'delivery' %}
+        <!-- SHIPPING & DELIVERY POLICY -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-cyberBorder space-y-8 text-slate-300 text-sm leading-relaxed">
+
+            <div class="border-b border-cyberBorder pb-6">
+                <span class="text-cyberPrimary font-mono text-xs uppercase tracking-widest block mb-2">Digital Product Fulfillment</span>
+                <h1 class="font-heading text-3xl sm:text-4xl font-extrabold text-white">Shipping & Delivery Policy</h1>
+                <p class="text-xs text-slate-400 mt-2">Effective Date: January 1, 2026 | Last Updated: March 2026</p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">1. Digital Products - No Physical Shipping</h2>
+                <p>
+                    Elite Academy exclusively sells digital educational courses, video lectures, downloadable source code, and online learning materials. <strong class="text-white">No physical items, CDs, DVDs, or books are shipped or delivered to your physical address.</strong>
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">2. Digital Access Delivery Method</h2>
+                <p>Upon successful payment completion through PayU, access to your digital course is delivered through two channels:</p>
+                <ul class="list-disc list-inside space-y-2 pl-2">
+                    <li><strong class="text-white">Immediate On-Screen Access:</strong> On the Order Success page, you are immediately provided with your access credentials and direct link to your student dashboard.</li>
+                    <li><strong class="text-white">Email Confirmation:</strong> An automated order receipt containing enrollment details and course dashboard login links is sent to your registered email address instantly.</li>
+                </ul>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">3. Expected Delivery / Access Time</h2>
+                <p>
+                    Digital course access is <strong>INSTANT (within 5 to 15 minutes)</strong> after successful PayU payment confirmation.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="font-heading font-bold text-xl text-white text-cyberSecondary">4. What To Do If Access Is Delayed</h2>
+                <p>
+                    If your payment succeeded on PayU but you have not received your email confirmation or course access within 15 minutes:
+                </p>
+                <ol class="list-decimal list-inside space-y-1.5 pl-2 text-xs">
+                    <li>Check your Email Spam / Junk / Promotions folder.</li>
+                    <li>Ensure you entered the correct email address during PayU checkout.</li>
+                    <li>If still missing, email customer support at <a href="mailto:support@elitehosting.in" class="text-cyberPrimary hover:underline font-semibold">support@elitehosting.in</a> or call <span class="text-white font-semibold">+91 98765 43210</span> with your PayU Transaction ID. Our team will manually grant course access within 2 hours.</li>
+                </ol>
+            </div>
+
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-cyberDark/30">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8">
+
+        <!-- Header -->
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-2 block">Customer Support</span>
+            <h1 class="font-heading text-3xl sm:text-5xl font-extrabold text-white mb-4">Contact Customer Support</h1>
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Have questions regarding course content, enrollment, or PayU payment verification? Our dedicated customer support team is here to assist you.
+            </p>
+        </div>
+
+        {% if message_sent %}
+        <div class="mb-8 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm flex items-center gap-3 max-w-3xl mx-auto">
+            <i data-lucide="check-circle-2" class="w-5 h-5 shrink-0"></i>
+            <span>Thank you for contacting Elite Academy! Your message has been received. Our support team will respond to your email within 24 hours.</span>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+            <!-- Contact Information Card -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl border border-cyberBorder space-y-6">
+                    <h2 class="font-heading font-bold text-xl text-white border-b border-cyberBorder pb-3">Get In Touch</h2>
+
+                    <div class="space-y-4 text-xs text-slate-300">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-cyberPrimary/10 border border-cyberPrimary/30 flex items-center justify-center text-cyberPrimary shrink-0 mt-0.5">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 font-mono block text-[10px] uppercase">Email Support</span>
+                                <a href="mailto:support@elitehosting.in" class="text-white font-semibold hover:text-cyberPrimary transition-colors">support@elitehosting.in</a>
+                                <span class="text-[11px] text-slate-400 block mt-0.5">Expected Response: Within 24 hours</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-cyberPrimary/10 border border-cyberPrimary/30 flex items-center justify-center text-cyberPrimary shrink-0 mt-0.5">
+                                <i data-lucide="phone" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 font-mono block text-[10px] uppercase">Phone / Support</span>
+                                <span class="text-white font-semibold">+91 98765 43210</span>
+                                <span class="text-[11px] text-slate-400 block mt-0.5">Available for phone & WhatsApp support</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-cyberPrimary/10 border border-cyberPrimary/30 flex items-center justify-center text-cyberPrimary shrink-0 mt-0.5">
+                                <i data-lucide="map-pin" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 font-mono block text-[10px] uppercase">Business Address</span>
+                                <span class="text-white font-semibold leading-snug block">
+                                    Elite Academy, Sector 62, Noida, Uttar Pradesh 201309, India
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-cyberPrimary/10 border border-cyberPrimary/30 flex items-center justify-center text-cyberPrimary shrink-0 mt-0.5">
+                                <i data-lucide="clock" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 font-mono block text-[10px] uppercase">Working Hours</span>
+                                <span class="text-white font-semibold block">Monday - Saturday</span>
+                                <span class="text-[11px] text-slate-400 block">9:00 AM - 7:00 PM IST (Closed Sundays)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-cyberDark p-6 rounded-2xl border border-cyberBorder text-xs text-slate-400 space-y-2">
+                    <p class="font-heading font-bold text-white flex items-center gap-2">
+                        <i data-lucide="shield-alert" class="w-4 h-4 text-cyberPrimary"></i>
+                        <span>Order & Payment Issues?</span>
+                    </p>
+                    <p class="text-[11px] leading-relaxed">
+                        If your money was debited via PayU but you have not received course access details, please include your PayU Transaction ID or UTR number in your query.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="lg:col-span-2">
+                <div class="glass-panel p-8 rounded-2xl border border-cyberBorder">
+                    <h2 class="font-heading font-bold text-2xl text-white mb-2">Send Us a Message</h2>
+                    <p class="text-slate-400 text-xs mb-6">Fill out the form below and our support team will reach out to you promptly.</p>
+
+                    <form action="/contact" method="POST" class="space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Full Name *</label>
+                                <input type="text" name="name" required placeholder="e.g. Rahul Sharma" class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Email Address *</label>
+                                <input type="email" name="email" required placeholder="e.g. rahul@example.com" class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Phone Number (Optional)</label>
+                                <input type="tel" name="phone" placeholder="+91 98765 43210" class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Subject / Inquiry Type *</label>
+                                <select name="subject" required class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all">
+                                    <option value="Course Query">Course Inquiry / Syllabus</option>
+                                    <option value="Payment Issue">PayU Payment / Order Issue</option>
+                                    <option value="Technical Support">Technical Support / Dashboard Access</option>
+                                    <option value="Refund Request">Refund Request</option>
+                                    <option value="General Inquiry">General Query</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Message *</label>
+                            <textarea name="message" rows="5" required placeholder="Describe your question or issue in detail..." class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-gradient w-full py-3.5 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan hover:scale-[1.01] transition-transform">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Submit Message</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

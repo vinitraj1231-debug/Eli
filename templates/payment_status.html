@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-16 bg-cyberDark/40">
+    <div class="max-w-3xl mx-auto px-4 sm:px-8">
+
+        {% if status == 'success' %}
+        <!-- PAYMENT SUCCESS -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-emerald-500/40 text-center space-y-6 shadow-2xl">
+            <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="check-circle" class="w-10 h-10"></i>
+            </div>
+
+            <div>
+                <span class="text-xs font-mono font-semibold text-emerald-400 uppercase tracking-widest block mb-1">PayU Transaction Verified</span>
+                <h1 class="font-heading text-3xl font-extrabold text-white">Payment Successful!</h1>
+                <p class="text-slate-300 text-sm mt-2">Thank you for enrolling with Elite Academy. Your course enrollment is confirmed.</p>
+            </div>
+
+            <!-- Order Details Box -->
+            <div class="bg-cyberDark p-6 rounded-xl border border-cyberBorder text-left space-y-3 text-xs">
+                <div class="flex justify-between border-b border-cyberBorder/60 pb-2">
+                    <span class="text-slate-400 font-mono">Order Number:</span>
+                    <span class="text-white font-mono font-bold">{{ order.order_number if order else 'ORD-SUCCESS2026' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-cyberBorder/60 pb-2">
+                    <span class="text-slate-400 font-mono">PayU Txn ID:</span>
+                    <span class="text-white font-mono">{{ order.payu_txn_id if order else 'PAYU-TXN9988231' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-cyberBorder/60 pb-2">
+                    <span class="text-slate-400 font-mono">Course Purchased:</span>
+                    <span class="text-white font-semibold">{{ course.title if course else 'Telegram Bot Development' }}</span>
+                </div>
+                <div class="flex justify-between border-b border-cyberBorder/60 pb-2">
+                    <span class="text-slate-400 font-mono">Amount Paid:</span>
+                    <span class="text-emerald-400 font-bold font-mono">₹{{ "%.0f"|format(order.amount if order else course.price) }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400 font-mono">Customer Name:</span>
+                    <span class="text-white">{{ order.customer_name if order else 'Registered Student' }}</span>
+                </div>
+            </div>
+
+            <!-- Course Access Instructions -->
+            <div class="p-5 rounded-xl bg-cyberPrimary/10 border border-cyberPrimary/30 text-left text-xs space-y-2">
+                <h3 class="font-heading font-bold text-white text-sm flex items-center gap-2">
+                    <i data-lucide="key" class="w-4 h-4 text-cyberPrimary"></i>
+                    <span>Digital Course Access Instructions</span>
+                </h3>
+                <p class="text-slate-300 leading-relaxed">
+                    1. An automated confirmation email with your enrollment link has been sent to <strong>{{ order.customer_email if order else 'your registered email' }}</strong>.
+                </p>
+                <p class="text-slate-300 leading-relaxed">
+                    2. You can access all video lessons, source code repositories, and project downloads immediately.
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="/courses" class="w-full sm:w-auto btn-gradient px-8 py-3.5 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Start Learning Now</span>
+                </a>
+                <a href="/contact" class="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-cyberBorder hover:border-cyberPrimary text-slate-300 hover:text-white text-sm font-semibold transition-all">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+
+        {% elif status == 'failed' %}
+        <!-- PAYMENT FAILED -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-red-500/40 text-center space-y-6 shadow-2xl">
+            <div class="w-16 h-16 bg-red-500/10 border border-red-500/30 text-red-400 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="x-circle" class="w-10 h-10"></i>
+            </div>
+
+            <div>
+                <span class="text-xs font-mono font-semibold text-red-400 uppercase tracking-widest block mb-1">PayU Gateway Notice</span>
+                <h1 class="font-heading text-3xl font-extrabold text-white">Payment Failed</h1>
+                <p class="text-slate-300 text-sm mt-2">Your payment transaction could not be processed by the bank or gateway.</p>
+            </div>
+
+            <div class="bg-cyberDark p-5 rounded-xl border border-cyberBorder text-left space-y-2 text-xs text-slate-300">
+                <p class="font-semibold text-white">Possible Reasons:</p>
+                <ul class="list-disc list-inside space-y-1 text-slate-400 text-[11px]">
+                    <li>Transaction timed out on bank / UPI app screen.</li>
+                    <li>Incorrect card details, expiry date, or CVV entered.</li>
+                    <li>Insufficient funds in bank account or daily UPI limit reached.</li>
+                    <li>Bank server maintenance or network interruption.</li>
+                </ul>
+            </div>
+
+            <!-- Debited Money Guidance -->
+            <div class="p-5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left text-xs space-y-2">
+                <h3 class="font-heading font-bold text-amber-400 text-sm flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    <span>Money Debited But Order Not Confirmed?</span>
+                </h3>
+                <p class="text-slate-300 leading-relaxed">
+                    Don't worry! If money was deducted from your bank account or UPI app, it is completely safe. PayU will either reconcile the transaction automatically within 1 hour or reverse the amount back to your bank within 3-5 working days.
+                </p>
+                <p class="text-slate-300">
+                    Need instant confirmation? Email <a href="mailto:support@elitehosting.in" class="text-cyberPrimary underline font-semibold">support@elitehosting.in</a> with your UPI UTR / Bank Reference number.
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="/checkout?course={{ course.slug if course else 'telegram-bot-development-python' }}" class="w-full sm:w-auto btn-gradient px-8 py-3.5 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span>Retry Payment</span>
+                </a>
+                <a href="/contact" class="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-cyberBorder hover:border-cyberPrimary text-slate-300 hover:text-white text-sm font-semibold transition-all">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+
+        {% elif status == 'pending' %}
+        <!-- PAYMENT PENDING -->
+        <div class="glass-panel p-8 sm:p-12 rounded-2xl border border-amber-500/40 text-center space-y-6 shadow-2xl">
+            <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="clock" class="w-10 h-10"></i>
+            </div>
+
+            <div>
+                <span class="text-xs font-mono font-semibold text-amber-400 uppercase tracking-widest block mb-1">PayU Gateway Verification</span>
+                <h1 class="font-heading text-3xl font-extrabold text-white">Payment Status Pending</h1>
+                <p class="text-slate-300 text-sm mt-2">Your payment was submitted and is currently undergoing verification from your bank.</p>
+            </div>
+
+            <div class="p-5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left text-xs space-y-3">
+                <p class="font-bold text-amber-300 flex items-center gap-1.5 text-sm">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i> Important Notice: Please Do Not Make Another Payment Immediately
+                </p>
+                <p class="text-slate-300 leading-relaxed">
+                    Some bank servers take 15 to 30 minutes to send final payment status webhooks to PayU. Making another payment now may lead to duplicate charges.
+                </p>
+                <p class="text-slate-300 leading-relaxed">
+                    As soon as PayU confirms your payment, your order status will automatically update to Successful and enrollment details will be emailed to you.
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="/courses" class="w-full sm:w-auto btn-gradient px-8 py-3.5 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan">
+                    <span>Back to Courses</span>
+                </a>
+                <a href="/contact" class="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-cyberBorder hover:border-cyberPrimary text-slate-300 hover:text-white text-sm font-semibold transition-all">
+                    Check Status with Support
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

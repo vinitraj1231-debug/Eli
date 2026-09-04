@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-cyberDark/40">
+    <div class="max-w-5xl mx-auto px-4 sm:px-8">
+
+        <div class="text-center mb-10">
+            <span class="text-cyberPrimary font-mono text-xs uppercase tracking-widest block mb-2">PayU Gateway Secure Checkout</span>
+            <h1 class="font-heading text-3xl sm:text-4xl font-extrabold text-white">Enroll in Course</h1>
+            <p class="text-slate-400 text-xs mt-1">Complete your registration to get instant digital course access.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Checkout Customer Form (Left 2 cols) -->
+            <div class="lg:col-span-2">
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-cyberBorder space-y-6">
+                    <div class="flex items-center justify-between border-b border-cyberBorder pb-4">
+                        <h2 class="font-heading font-bold text-xl text-white">1. Student Details</h2>
+                        <span class="text-xs text-emerald-400 font-mono flex items-center gap-1">
+                            <i data-lucide="lock" class="w-3.5 h-3.5"></i> SSL Encrypted
+                        </span>
+                    </div>
+
+                    <form id="checkoutForm" action="/checkout" method="POST" class="space-y-5">
+                        <input type="hidden" name="course" value="{{ course.slug }}">
+
+                        <div>
+                            <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Full Name *</label>
+                            <input type="text" name="name" required placeholder="Enter your full legal name" class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Email Address *</label>
+                                <input type="email" name="email" required placeholder="your.email@example.com" class="w-full bg-cyberDark border border-cyberBorder rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600">
+                                <span class="text-[11px] text-slate-500 block mt-1">Course access credentials will be emailed here.</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-mono font-medium text-slate-300 mb-1.5 uppercase">Mobile Number (India) *</label>
+                                <div class="flex">
+                                    <span class="bg-cyberDark/80 border border-r-0 border-cyberBorder rounded-l-xl px-3 py-3 text-sm text-slate-400 font-mono flex items-center">+91</span>
+                                    <input type="tel" name="phone" pattern="[0-9]{10}" required placeholder="9876543210" class="w-full bg-cyberDark border border-cyberBorder rounded-r-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyberPrimary transition-all placeholder-slate-600">
+                                </div>
+                                <span class="text-[11px] text-slate-500 block mt-1">10-digit mobile for SMS order confirmation.</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-cyberBorder pt-5 space-y-4">
+                            <h2 class="font-heading font-bold text-xl text-white">2. PayU Supported Payment Method</h2>
+                            <p class="text-xs text-slate-400">Select your preferred payment mode on the PayU gateway screen:</p>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                <div class="p-3 rounded-xl bg-cyberDark border border-cyberPrimary/40 flex flex-col items-center justify-center text-center">
+                                    <i data-lucide="qr-code" class="w-5 h-5 text-cyberPrimary mb-1"></i>
+                                    <span class="text-white font-semibold">UPI / QR</span>
+                                    <span class="text-[10px] text-slate-500">GPay, PhonePe</span>
+                                </div>
+                                <div class="p-3 rounded-xl bg-cyberDark border border-cyberBorder flex flex-col items-center justify-center text-center">
+                                    <i data-lucide="credit-card" class="w-5 h-5 text-cyberPrimary mb-1"></i>
+                                    <span class="text-white font-semibold">Cards</span>
+                                    <span class="text-[10px] text-slate-500">Visa, Mastercard</span>
+                                </div>
+                                <div class="p-3 rounded-xl bg-cyberDark border border-cyberBorder flex flex-col items-center justify-center text-center">
+                                    <i data-lucide="building" class="w-5 h-5 text-cyberPrimary mb-1"></i>
+                                    <span class="text-white font-semibold">NetBanking</span>
+                                    <span class="text-[10px] text-slate-500">All Major Banks</span>
+                                </div>
+                                <div class="p-3 rounded-xl bg-cyberDark border border-cyberBorder flex flex-col items-center justify-center text-center">
+                                    <i data-lucide="wallet" class="w-5 h-5 text-cyberPrimary mb-1"></i>
+                                    <span class="text-white font-semibold">Wallets</span>
+                                    <span class="text-[10px] text-slate-500">Paytm, Mobikwik</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Policy Consent Checkbox -->
+                        <div class="space-y-3 pt-2">
+                            <label class="flex items-start gap-2.5 text-xs text-slate-300 cursor-pointer">
+                                <input type="checkbox" required checked class="mt-0.5 rounded border-cyberBorder text-cyberPrimary focus:ring-0">
+                                <span class="leading-relaxed">
+                                    I agree to the <a href="/terms-and-conditions" target="_blank" class="text-cyberPrimary underline">Terms & Conditions</a>, <a href="/privacy-policy" target="_blank" class="text-cyberPrimary underline">Privacy Policy</a>, and <a href="/refund-policy" target="_blank" class="text-cyberPrimary underline">Refund & Cancellation Policy</a>. I understand that digital course access will be delivered immediately upon payment.
+                                </span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="w-full btn-gradient py-4 rounded-xl text-cyberBg font-heading font-bold text-base flex items-center justify-center gap-2 shadow-neonCyan hover:scale-[1.01] transition-transform">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                            <span>Proceed to Pay ₹{{ "%.0f"|format(course.price) }} via PayU</span>
+                        </button>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Order Summary Sidebar (Right col) -->
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl border border-cyberBorder space-y-5">
+                    <h3 class="font-heading font-bold text-lg text-white border-b border-cyberBorder pb-3">Order Summary</h3>
+
+                    <div>
+                        <span class="text-[10px] font-mono text-cyberPrimary uppercase tracking-wider block">Selected Course</span>
+                        <h4 class="font-heading font-bold text-white text-base leading-snug mt-1">{{ course.title }}</h4>
+                        <p class="text-slate-400 text-xs mt-1">{{ course.duration }} | {{ course.language }}</p>
+                    </div>
+
+                    <div class="border-t border-b border-cyberBorder/60 py-4 space-y-2 text-xs">
+                        <div class="flex justify-between text-slate-300">
+                            <span>Course Fee:</span>
+                            <span class="font-mono">₹{{ "%.0f"|format(course.original_price) }}</span>
+                        </div>
+                        <div class="flex justify-between text-emerald-400">
+                            <span>Instant Discount (50%):</span>
+                            <span class="font-mono">-₹{{ "%.0f"|format(course.original_price - course.price) }}</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span>Digital Access & Taxes:</span>
+                            <span class="font-mono text-emerald-400">Included</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-baseline pt-1">
+                        <span class="font-heading font-bold text-white text-sm">Total Amount Payable:</span>
+                        <span class="font-heading font-bold text-2xl text-white">₹{{ "%.0f"|format(course.price) }}</span>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-cyberDark text-[11px] text-slate-400 space-y-1">
+                        <p class="font-semibold text-white flex items-center gap-1.5">
+                            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-cyberPrimary"></i> What Happens Next?
+                        </p>
+                        <p class="leading-relaxed">
+                            Upon payment verification, your Order ID is generated immediately and instant access instructions are displayed.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}
