@@ -75,43 +75,6 @@ function toggleBillingCycle() {
     }
 }
 
-// Simulated domain check
-function simulateDomainCheck(event) {
-    event.preventDefault();
-    const input = document.getElementById('domainInput').value.trim();
-    const tld = document.getElementById('domainTld').value;
-    const resultBox = document.getElementById('domainResult');
-
-    if (!input) return;
-
-    const fullDomain = input.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] + tld;
-
-    resultBox.classList.remove('hidden');
-    resultBox.innerHTML = `
-        <div class="flex items-center gap-2">
-            <span class="spinner"></span>
-            <span class="text-slate-400 font-mono">Running secure whois diagnostic query for ${fullDomain}...</span>
-        </div>
-    `;
-
-    setTimeout(() => {
-        // Randomize availability simulation
-        const available = Math.random() > 0.4;
-        if (available) {
-            resultBox.innerHTML = `
-                <span class="font-bold text-emerald-400 font-mono">⚡ ${fullDomain} is available!</span>
-                <a href="/register" class="bg-cyberPrimary hover:bg-cyberAccent text-cyberBg font-heading font-bold text-[10px] px-3 py-1 rounded-md uppercase transition-all shadow-neonCyan">Secure Now</a>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs flex justify-between items-center";
-        } else {
-            resultBox.innerHTML = `
-                <span class="font-bold text-red-400 font-mono">❌ ${fullDomain} is already registered.</span>
-                <span class="text-slate-500 text-[10px]">Try a different phrase or extension.</span>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs flex justify-between items-center";
-        }
-    }, 1500);
-}
 
 // Instant Latency diagnostic tester
 function triggerLatencyTest() {

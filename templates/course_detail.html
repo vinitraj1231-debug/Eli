@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-cyberDark/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+
+        <!-- Breadcrumb Navigation -->
+        <nav class="flex items-center gap-2 text-xs text-slate-400 font-mono mb-8">
+            <a href="/" class="hover:text-white transition-colors">Home</a>
+            <span>/</span>
+            <a href="/courses" class="hover:text-white transition-colors">Courses</a>
+            <span>/</span>
+            <span class="text-cyberPrimary truncate">{{ course.title }}</span>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+            <!-- Main Content Area (Left 2 cols) -->
+            <div class="lg:col-span-2 space-y-10">
+
+                <!-- Course Hero Box -->
+                <div>
+                    <span class="bg-cyberPrimary/10 text-cyberPrimary text-xs font-mono px-3 py-1 rounded-md border border-cyberPrimary/20 font-semibold inline-block mb-3">
+                        {{ course.category }}
+                    </span>
+                    <h1 class="font-heading text-3xl sm:text-4xl font-extrabold text-white mb-4 leading-tight">
+                        {{ course.title }}
+                    </h1>
+                    <p class="text-slate-300 text-base leading-relaxed mb-6">
+                        {{ course.tagline }}
+                    </p>
+
+                    <!-- Key Metadata Bar -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-cyberCard border border-cyberBorder text-xs">
+                        <div>
+                            <span class="text-slate-500 block text-[10px] font-mono uppercase">Course Duration</span>
+                            <span class="text-white font-semibold">{{ course.duration }}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] font-mono uppercase">Language</span>
+                            <span class="text-white font-semibold">{{ course.language }}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] font-mono uppercase">Skill Level</span>
+                            <span class="text-white font-semibold">{{ course.level }}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] font-mono uppercase">Access Period</span>
+                            <span class="text-white font-semibold">{{ course.access_period }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Description -->
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-cyberBorder space-y-4">
+                    <h2 class="font-heading font-bold text-xl text-white border-b border-cyberBorder pb-3">Course Overview</h2>
+                    <p class="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
+                        {{ course.description }}
+                    </p>
+                </div>
+
+                <!-- What You Will Learn (Outcomes) -->
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-cyberBorder space-y-4">
+                    <h2 class="font-heading font-bold text-xl text-white border-b border-cyberBorder pb-3">What You Will Learn</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        {% for outcome in course.outcomes %}
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5"></i>
+                            <span class="text-slate-300 text-xs leading-relaxed">{{ outcome }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Curriculum & Modules -->
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-cyberBorder space-y-6">
+                    <div class="flex items-center justify-between border-b border-cyberBorder pb-3">
+                        <h2 class="font-heading font-bold text-xl text-white">Course Curriculum</h2>
+                        <span class="text-xs text-slate-400 font-mono">{{ course.curriculum|length }} Comprehensive Modules</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        {% for mod in course.curriculum %}
+                        <div class="bg-cyberDark/80 rounded-xl border border-cyberBorder p-5">
+                            <h3 class="font-heading font-bold text-white text-base mb-3 text-cyberSecondary">
+                                {{ mod.module }}
+                            </h3>
+                            <ul class="space-y-2 text-xs text-slate-300">
+                                {% for lesson in mod.lessons %}
+                                <li class="flex items-center gap-2">
+                                    <i data-lucide="play-circle" class="w-4 h-4 text-cyberPrimary shrink-0"></i>
+                                    <span>{{ lesson }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Instructor Info -->
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl border border-cyberBorder flex flex-col sm:flex-row items-start gap-6">
+                    <div class="w-16 h-16 rounded-full bg-cyberPrimary/20 border border-cyberPrimary/40 flex items-center justify-center text-cyberPrimary font-heading font-bold text-2xl shrink-0">
+                        RV
+                    </div>
+                    <div>
+                        <span class="text-xs text-cyberPrimary font-mono font-semibold uppercase tracking-wider block mb-1">Course Instructor</span>
+                        <h3 class="font-heading font-bold text-white text-lg">{{ course.instructor.name }}</h3>
+                        <p class="text-xs text-slate-400 font-mono mb-2">{{ course.instructor.title }}</p>
+                        <p class="text-slate-300 text-xs leading-relaxed">
+                            {{ course.instructor.bio }}
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Sticky Enrollment Card Sidebar (Right col) -->
+            <div class="lg:col-span-1">
+                <div class="sticky top-24 glass-panel p-6 rounded-2xl border border-cyberBorder space-y-6 shadow-2xl">
+
+                    <div class="border-b border-cyberBorder pb-4">
+                        <span class="text-xs text-slate-400 block font-mono mb-1">Total Course Fee:</span>
+                        <div class="flex items-baseline gap-3">
+                            <span class="font-heading font-bold text-4xl text-white">₹{{ "%.0f"|format(course.price) }}</span>
+                            <span class="text-slate-500 text-base line-through font-mono">₹{{ "%.0f"|format(course.original_price) }}</span>
+                        </div>
+                        <p class="text-emerald-400 text-xs font-semibold mt-1">Inclusive of all applicable taxes & digital delivery.</p>
+                    </div>
+
+                    <!-- Buy CTA -->
+                    <a href="/checkout?course={{ course.slug }}" class="w-full btn-gradient py-4 rounded-xl text-cyberBg font-heading font-bold text-base flex items-center justify-center gap-2 shadow-neonCyan hover:scale-[1.02] transition-transform">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                        <span>Enroll Now (PayU Secure)</span>
+                    </a>
+
+                    <!-- What's Included List -->
+                    <div class="space-y-3 pt-2">
+                        <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider text-cyberPrimary">This Digital Course Includes:</h4>
+                        <ul class="space-y-2 text-xs text-slate-300">
+                            {% for item in course.whats_included %}
+                            <li class="flex items-start gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                                <span>{{ item }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <!-- Instant Delivery Notice -->
+                    <div class="bg-cyberDark p-4 rounded-xl border border-cyberBorder/80 text-xs text-slate-400 space-y-2">
+                        <p class="flex items-center gap-2 font-semibold text-white">
+                            <i data-lucide="zap" class="w-4 h-4 text-cyberPrimary"></i>
+                            <span>Instant Access Guarantee</span>
+                        </p>
+                        <p class="text-[11px] leading-relaxed">
+                            Access instructions and credentials are provided immediately on screen after successful PayU payment and delivered to your registered email address.
+                        </p>
+                    </div>
+
+                    <!-- Support Contact -->
+                    <div class="text-center text-xs text-slate-400 pt-2 border-t border-cyberBorder">
+                        <span>Need help before enrolling?</span> <br>
+                        <a href="/contact" class="text-cyberPrimary hover:underline font-semibold">Contact Customer Support</a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

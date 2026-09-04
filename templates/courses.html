@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-12 bg-cyberDark/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8">
+
+        <!-- Header -->
+        <div class="text-center max-w-3xl mx-auto mb-12">
+            <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-2 block">All Digital Courses</span>
+            <h1 class="font-heading text-3xl sm:text-5xl font-extrabold text-white mb-4">Complete Course Catalog</h1>
+            <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Explore our full range of practical, industry-aligned software engineering digital courses. Every course includes lifetime access, downloadable project source code, and direct mentor support.
+            </p>
+        </div>
+
+        <!-- Course Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {% for course in courses %}
+            <div class="glass-panel rounded-2xl border border-cyberBorder p-8 flex flex-col justify-between hover:border-cyberPrimary/80 transition-all">
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-4">
+                        <span class="bg-cyberPrimary/10 text-cyberPrimary text-xs font-mono px-3 py-1 rounded-md border border-cyberPrimary/20 font-semibold">
+                            {{ course.category }}
+                        </span>
+                        <span class="text-slate-400 text-xs font-mono bg-cyberDark px-2.5 py-1 rounded border border-cyberBorder">
+                            {{ course.level }}
+                        </span>
+                    </div>
+
+                    <h2 class="font-heading font-bold text-white text-xl sm:text-2xl mb-3 leading-snug">
+                        <a href="/courses/{{ course.slug }}" class="hover:text-cyberPrimary transition-colors">
+                            {{ course.title }}
+                        </a>
+                    </h2>
+
+                    <p class="text-slate-300 text-sm mb-6 leading-relaxed">
+                        {{ course.description }}
+                    </p>
+
+                    <!-- Key Course Specs Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 p-4 rounded-xl bg-cyberDark/60 border border-cyberBorder text-xs">
+                        <div>
+                            <span class="text-slate-500 block text-[11px] font-mono">DURATION</span>
+                            <span class="text-white font-semibold">{{ course.duration.split('(')[0] }}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[11px] font-mono">LANGUAGE</span>
+                            <span class="text-white font-semibold">{{ course.language }}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[11px] font-mono">ACCESS</span>
+                            <span class="text-white font-semibold">{{ course.access_period }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Curriculum Modules Summary -->
+                    <div class="mb-6">
+                        <h4 class="font-heading font-semibold text-white text-xs uppercase tracking-wider mb-2 text-cyberSecondary">Curriculum Highlights:</h4>
+                        <ul class="space-y-1.5 text-xs text-slate-300">
+                            {% for mod in course.curriculum[:3] %}
+                            <li class="flex items-start gap-2">
+                                <i data-lucide="check" class="w-4 h-4 text-cyberPrimary shrink-0 mt-0.5"></i>
+                                <span>{{ mod.module }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Price & Purchase Footer -->
+                <div class="border-t border-cyberBorder pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs text-slate-400 block font-mono">One-Time Fee (PayU Secured):</span>
+                        <div class="flex items-baseline gap-2">
+                            <span class="font-heading font-bold text-3xl text-white">₹{{ "%.0f"|format(course.price) }}</span>
+                            <span class="text-slate-500 text-sm line-through font-mono">₹{{ "%.0f"|format(course.original_price) }}</span>
+                            <span class="text-emerald-400 text-xs font-bold font-mono">Save 50%</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <a href="/courses/{{ course.slug }}" class="w-full sm:w-auto px-5 py-3 rounded-xl border border-cyberBorder hover:border-cyberPrimary text-slate-200 hover:text-white font-heading font-semibold text-sm text-center transition-all">
+                            View Syllabus
+                        </a>
+                        <a href="/checkout?course={{ course.slug }}" class="w-full sm:w-auto btn-gradient px-6 py-3 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan hover:scale-[1.02] transition-transform">
+                            <span>Enroll Now</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

@@ -157,6 +157,22 @@ class ChatMessage(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+class CourseOrder(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_number = db.Column(db.String(50), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    course_slug = db.Column(db.String(100), nullable=False)
+    course_name = db.Column(db.String(200), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    customer_name = db.Column(db.String(100), nullable=False)
+    customer_email = db.Column(db.String(120), nullable=False)
+    customer_phone = db.Column(db.String(20), nullable=False)
+    status = db.Column(db.String(20), default='pending') # pending, success, failed
+    payu_txn_id = db.Column(db.String(100), nullable=True)
+    payu_mihpayid = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class BlogPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -246,6 +262,344 @@ with app.app_context():
     import threading
     t_monitor = threading.Thread(target=free_trial_monitor_loop, daemon=True)
     t_monitor.start()
+
+
+# ===================== COURSES CATALOG =====================
+
+COURSES_CATALOG = [
+    {
+        'id': 1,
+        'title': 'Full-Stack Telegram Bot Development with Python & Pyrogram',
+        'slug': 'telegram-bot-development-python',
+        'tagline': 'Master asynchronous Python, Pyrogram, MongoDB, and deploy 24/7 production Telegram bots.',
+        'category': 'Python & Automation',
+        'price': 1499.0,
+        'original_price': 2999.0,
+        'duration': '12 Hours (4 Modules, 24 Lessons)',
+        'language': 'Hindi & English',
+        'level': 'Beginner to Advanced',
+        'format': 'Online Video Lectures + Full Source Code + Project Templates',
+        'prerequisites': 'Basic familiarity with Python concepts (variables, loops, functions).',
+        'access_period': 'Lifetime Access with regular updates',
+        'description': 'A complete practical hands-on guide to building high-performance Telegram bots in Python using Pyrogram and Telethon. Learn asynchronous event loops, custom filters, inline keyboards, database persistence with MongoDB, session string management, and zero-downtime server deployment on Linux/Docker.',
+        'instructor': {
+            'name': 'Er. Rajesh Verma',
+            'title': 'Senior Software Engineer & Lead Instructor',
+            'bio': 'Software engineer with over 7 years of experience building scalable backend microservices, automation engines, and cloud hosting infrastructure in India.'
+        },
+        'curriculum': [
+            {
+                'module': 'Module 1: Foundations of Telegram Bot API & Pyrogram Architecture',
+                'lessons': [
+                    'Understanding Telegram Bot API & Client vs Bot Protocol',
+                    'Setting up Pyrogram, API ID, API Hash & Bot Token',
+                    'Asynchronous Programming in Python (asyncio & await)',
+                    'Handling Incoming Messages & Building Command Handlers'
+                ]
+            },
+            {
+                'module': 'Module 2: Advanced Message Handling, Filters & Interactive Menus',
+                'lessons': [
+                    'Custom Pyrogram Filters & Regular Expressions',
+                    'Interactive Inline Keyboards & Callback Query Handlers',
+                    'Media File Processing, Progress Bars & Document Streaming',
+                    'Stateful Conversation Handlers & User Dialog Flow'
+                ]
+            },
+            {
+                'module': 'Module 3: Database Integration & User Session Persistence',
+                'lessons': [
+                    'Integrating Async MongoDB with Motor Driver',
+                    'User Authorization, Admin Roles & Permission Checks',
+                    'Broadcast System with Rate Limiting & Error Retry',
+                    'Session String Authentication for Userbots (Pyrogram & Telethon)'
+                ]
+            },
+            {
+                'module': 'Module 4: Security, Dockerization & 24/7 Cloud Deployment',
+                'lessons': [
+                    'Handling FloodWait Exceptions & Telegram API Limits',
+                    'Containerizing Telegram Bots with Docker & Docker Compose',
+                    'Deploying 24/7 on Linux Cloud VPS / Systemd Service',
+                    'Monitoring Logs, Auto-Restarting & Session Security'
+                ]
+            }
+        ],
+        'outcomes': [
+            'Build production-grade asynchronous Telegram bots in Python',
+            'Create interactive UI with inline buttons, menus, and pagination',
+            'Connect MongoDB for persistent user databases and broadcast tools',
+            'Deploy bots 24/7 on cloud servers with automated crash recovery'
+        ],
+        'whats_included': [
+            '24 HD Video Lessons with lifetime access',
+            '100% Working Source Code & GitHub Repository Access',
+            'Downloadable Project Templates & Boilerplates',
+            'Dedicated Q&A Support Forum & Telegram Discussion Group',
+            'Certificate of Completion'
+        ],
+        'delivery_method': 'Instant Access via Student Dashboard & Email Confirmation upon successful PayU payment.'
+    },
+    {
+        'id': 2,
+        'title': 'Node.js & Micro-SaaS Backend Masterclass',
+        'slug': 'nodejs-microsaas-backend-masterclass',
+        'tagline': 'Build scalable REST APIs, JWT authentication, PostgreSQL, and PayU payment integration in Node.js.',
+        'category': 'Full-Stack Web Development',
+        'price': 1999.0,
+        'original_price': 3999.0,
+        'duration': '16 Hours (5 Modules, 30 Lessons)',
+        'language': 'Hindi & English',
+        'level': 'Intermediate',
+        'format': 'Online Video Lectures + GitHub Repository Access',
+        'prerequisites': 'Basic JavaScript (ES6+) knowledge required.',
+        'access_period': 'Lifetime Access',
+        'description': 'Learn how to architect, build, and deploy production-ready Node.js REST APIs for modern Web apps and Micro-SaaS businesses. Includes complete real-world PayU payment gateway integration with webhooks, JWT security, PostgreSQL database ORM, and rate-limiting.',
+        'instructor': {
+            'name': 'Er. Rajesh Verma',
+            'title': 'Senior Software Engineer & Lead Instructor',
+            'bio': 'Software engineer with over 7 years of experience building scalable backend microservices, automation engines, and cloud hosting infrastructure in India.'
+        },
+        'curriculum': [
+            {
+                'module': 'Module 1: Modern Node.js & Express.js Architecture',
+                'lessons': [
+                    'Event Loop, Asynchronous I/O & Express Application Setup',
+                    'Structuring Enterprise Express Apps (MVC Pattern)',
+                    'Request Validation with Joi/Zod & Custom Error Handlers',
+                    'Logging with Winston & Environment Configuration'
+                ]
+            },
+            {
+                'module': 'Module 2: Database Modeling with PostgreSQL & Prisma/Sequelize',
+                'lessons': [
+                    'Relational Database Schema Design & Migrations',
+                    'Connecting Node.js to PostgreSQL (Neon Cloud / Local)',
+                    'CRUD Operations, Relations, Indexes & Performance',
+                    'Database Pooling & Transaction Management'
+                ]
+            },
+            {
+                'module': 'Module 3: Security, JWT Authentication & Access Control',
+                'lessons': [
+                    'Password Hashing with Bcrypt & Salt Security',
+                    'JSON Web Token (JWT) Access & Refresh Token Flow',
+                    'Role-Based Access Control (RBAC) Middleware',
+                    'Rate Limiting, CORS, Helmet & Security Headers'
+                ]
+            },
+            {
+                'module': 'Module 4: Payment Gateway Integration (PayU & Webhooks)',
+                'lessons': [
+                    'Understanding PayU Payment Flow in India',
+                    'Generating PayU Merchant Hash & Checksum Security',
+                    'Handling Success, Failure & Pending Payment Redirects',
+                    'Implementing Server-to-Server Webhooks & Transaction Verification'
+                ]
+            },
+            {
+                'module': 'Module 5: Production Deployment & Cloud DevOps',
+                'lessons': [
+                    'Containerization with Docker',
+                    'Process Management with PM2 & Zero-Downtime Reloads',
+                    'Nginx Reverse Proxy & SSL Configuration',
+                    'Production Health Monitoring & Alerting'
+                ]
+            }
+        ],
+        'outcomes': [
+            'Architect commercial backend APIs with Node.js & Express',
+            'Integrate PayU payment gateway with secure hash calculation',
+            'Secure web applications against OWASP top 10 vulnerabilities',
+            'Deploy Node.js microservices to Linux VPS with PM2 & Nginx'
+        ],
+        'whats_included': [
+            '30 Practical HD Lessons with lifetime access',
+            'Complete Production-Ready Micro-SaaS Codebase',
+            'PayU Integration SDK and Hash Helper Modules',
+            'Direct Instructor Support & Code Review Opportunities',
+            'Certificate of Completion'
+        ],
+        'delivery_method': 'Instant Access via Student Dashboard & Email Confirmation upon successful PayU payment.'
+    },
+    {
+        'id': 3,
+        'title': 'Cloud DevOps & Linux Server Management for Developers',
+        'slug': 'cloud-devops-linux-server-management',
+        'tagline': 'Master Linux sysadmin, SSH hardening, Docker containers, Nginx reverse proxy, and SSL certificates.',
+        'category': 'DevOps & Infrastructure',
+        'price': 2499.0,
+        'original_price': 4999.0,
+        'duration': '20 Hours (6 Modules, 35 Lessons)',
+        'language': 'Hindi & English',
+        'level': 'Beginner to Advanced',
+        'format': 'Hands-on Interactive Lab Videos + CLI Command Cheatsheets',
+        'prerequisites': 'Basic understanding of command line or terminal.',
+        'access_period': 'Lifetime Access',
+        'description': 'Comprehensive hands-on course covering Linux server setup, SSH security, UFW firewall configuration, Nginx reverse proxying, Lets Encrypt SSL, Docker container orchestration, and GitHub Actions CI/CD automation for modern web developers.',
+        'instructor': {
+            'name': 'Er. Rajesh Verma',
+            'title': 'Senior Software Engineer & Lead Instructor',
+            'bio': 'Software engineer with over 7 years of experience building scalable backend microservices, automation engines, and cloud hosting infrastructure in India.'
+        },
+        'curriculum': [
+            {
+                'module': 'Module 1: Linux System Administration Essentials',
+                'lessons': [
+                    'Choosing Linux Distributions (Ubuntu/Debian) on Cloud VPS',
+                    'File System Hierarchy, Permissions & User Management',
+                    'Package Management (APT), Systemd Services & Journalctl',
+                    'Process Management, CPU/RAM Monitoring & Disk Allocation'
+                ]
+            },
+            {
+                'module': 'Module 2: Server Hardening & Network Security',
+                'lessons': [
+                    'Configuring Key-Based SSH Auth & Disabling Root Login',
+                    'UFW Firewall Setup & Fail2ban Intrusion Prevention',
+                    'DDoS Mitigation Strategies & Connection Rate Limits',
+                    'Automated Security Updates & System Backup Routines'
+                ]
+            },
+            {
+                'module': 'Module 3: Nginx Web Server & HTTPS/SSL Setup',
+                'lessons': [
+                    'Installing & Configuring Nginx Server Blocks',
+                    'Reverse Proxying Node.js, Python & Flask Applications',
+                    'Automating Free SSL Certificates with Lets Encrypt (Certbot)',
+                    'Gzip Compression, HTTP/2 & Static Asset Caching'
+                ]
+            },
+            {
+                'module': 'Module 4: Docker Containerization & Multi-Container Apps',
+                'lessons': [
+                    'Docker Fundamentals, Images, Containers & Registries',
+                    'Writing Secure Dockerfiles for Node.js & Python',
+                    'Docker Compose for Multi-Service Environments (App + Database)',
+                    'Container Resource Limits (RAM, CPU) & Logging Drivers'
+                ]
+            },
+            {
+                'module': 'Module 5: Automated CI/CD Pipelines with GitHub Actions',
+                'lessons': [
+                    'Building Continuous Integration Workflows',
+                    'Automating Server Deployment via SSH in GitHub Actions',
+                    'Environment Secrets Management & Rollback Strategies',
+                    'Zero-Downtime Deployment Techniques'
+                ]
+            },
+            {
+                'module': 'Module 6: Monitoring, Log Rotation & Incident Handling',
+                'lessons': [
+                    'System Log Aggregation & Rotation Config',
+                    'Uptime Monitoring Tools & Telegram Alert Hooks',
+                    'Diagnosing High CPU/RAM Usage & Network Bottlenecks',
+                    'Disaster Recovery & Server Migration Walks'
+                ]
+            }
+        ],
+        'outcomes': [
+            'Provision and secure cloud Linux VPS instances independently',
+            'Configure Nginx reverse proxies with HTTPS/SSL certificates',
+            'Containerize complex applications with Docker & Compose',
+            'Automate software deployments with GitHub Actions CI/CD'
+        ],
+        'whats_included': [
+            '35 HD Lab Video Modules with lifetime access',
+            'Copy-Paste Production Config Files for Nginx, UFW & Docker',
+            'Downloadable Linux Command Line Cheatsheet PDF',
+            'Priority Student Q&A Forum Support',
+            'Certificate of Completion'
+        ],
+        'delivery_method': 'Instant Access via Student Dashboard & Email Confirmation upon successful PayU payment.'
+    },
+    {
+        'id': 4,
+        'title': 'Python Automation & Web Scraping Masterclass',
+        'slug': 'python-automation-web-scraping',
+        'tagline': 'Master BeautifulSoup4, Playwright, Requests, and bypass anti-bot mechanisms to extract web data.',
+        'category': 'Python & Automation',
+        'price': 1299.0,
+        'original_price': 2499.0,
+        'duration': '10 Hours (4 Modules, 20 Lessons)',
+        'language': 'Hindi & English',
+        'level': 'Beginner to Intermediate',
+        'format': 'Video Lessons + Source Code Repository',
+        'prerequisites': 'Basic Python knowledge.',
+        'access_period': 'Lifetime Access',
+        'description': 'Master data extraction and browser automation using Python. Learn how to scrape complex dynamic websites using Requests, BeautifulSoup4, Playwright, and Selenium while safely handling pagination, authentication, proxies, and CSV/JSON exports.',
+        'instructor': {
+            'name': 'Er. Rajesh Verma',
+            'title': 'Senior Software Engineer & Lead Instructor',
+            'bio': 'Software engineer with over 7 years of experience building scalable backend microservices, automation engines, and cloud hosting infrastructure in India.'
+        },
+        'curriculum': [
+            {
+                'module': 'Module 1: HTTP Fundamentals & Static Scraping',
+                'lessons': [
+                    'Understanding HTTP Headers, Status Codes & User-Agents',
+                    'Making Requests with Python Requests Library',
+                    'Parsing HTML Trees with BeautifulSoup4 & LXML',
+                    'Extracting Data from Tables, Links & Text Elements'
+                ]
+            },
+            {
+                'module': 'Module 2: Handling Dynamic Web Apps with Playwright & Selenium',
+                'lessons': [
+                    'Setting up Headless Playwright in Python',
+                    'Simulating Clicks, Form Submissions & Scrolling',
+                    'Handling JavaScript Rendered Content & AJAX Responses',
+                    'Waiting Strategies: Explicit Waits vs Network Idle'
+                ]
+            },
+            {
+                'module': 'Module 3: Anti-Bot Bypassing & Proxy Management',
+                'lessons': [
+                    'Managing User-Agent Rotation & Session Headers',
+                    'Integrating Rotating Proxies & Rate Limiting',
+                    'Handling CAPTCHA Recognition & Bot Detection Avoidance',
+                    'Scraping Behind Login Walls & Cookie Persistence'
+                ]
+            },
+            {
+                'module': 'Module 4: Data Processing, Export & Automation',
+                'lessons': [
+                    'Cleaning Raw Extracted Data with Pandas',
+                    'Exporting Scraped Data to CSV, JSON & SQLite',
+                    'Automating Scraper Schedules with Cron Jobs',
+                    'Building Email & Telegram Notification Triggers'
+                ]
+            }
+        ],
+        'outcomes': [
+            'Extract data from any static or dynamic website using Python',
+            'Automate browser tasks with Playwright & Selenium',
+            'Manage proxy rotation and bypass simple anti-bot protections',
+            'Structure and export clean data into CSV, JSON, and databases'
+        ],
+        'whats_included': [
+            '20 HD Video Lessons with lifetime access',
+            '10+ Complete Scraper Projects Source Code',
+            'Proxy & Header Management Code Utilities',
+            'Instructor Q&A Support',
+            'Certificate of Completion'
+        ],
+        'delivery_method': 'Instant Access via Student Dashboard & Email Confirmation upon successful PayU payment.'
+    }
+]
+
+def get_courses():
+    return COURSES_CATALOG
+
+def get_course_by_slug(slug):
+    for course in COURSES_CATALOG:
+        if course['slug'] == slug:
+            return course
+    return None
+
+def get_featured_courses():
+    return COURSES_CATALOG[:3]
+
 
 # ===================== HELPERS =====================
 
@@ -1073,12 +1427,200 @@ def run_deploy_background(dep_id, dep_type, **kwargs):
         elif dep_type == 'zip':
             engine.zip_deploy(kwargs.get('zip_path'))
 
-# ===================== ROUTES — PAGES =====================
+
+# ===================== DIGITAL COURSE ROUTES =====================
 
 @app.route('/')
 @rate_limit('public')
 def index():
-    return render_template('index.html')
+    courses = get_featured_courses()
+    all_courses = get_courses()
+    seo = {
+        'title': 'Elite Academy | Premium Digital Education & Coding Courses in India',
+        'description': 'Master Telegram Bot Development, Node.js Micro-SaaS, Cloud DevOps, and Python Automation with practical digital courses. PayU payment gateway ready.',
+        'canonical': 'https://elitehosting.in/'
+    }
+    return render_template('index.html', page='home', courses=courses, all_courses=all_courses, seo=seo)
+
+@app.route('/about')
+@rate_limit('public')
+def about_page():
+    seo = {
+        'title': 'About Us | Elite Academy - Digital Learning Excellence',
+        'description': 'Learn about Elite Academy, our mission, educational vision, and founder Er. Rajesh Verma. Genuine software engineering education in India.',
+        'canonical': 'https://elitehosting.in/about'
+    }
+    return render_template('about.html', seo=seo)
+
+@app.route('/courses')
+@rate_limit('public')
+def courses_page():
+    courses = get_courses()
+    seo = {
+        'title': 'Online Digital Courses & Tech Training | Elite Academy',
+        'description': 'Browse our complete catalog of digital education courses in Telegram bot building, Node.js backend development, Linux DevOps, and Python automation.',
+        'canonical': 'https://elitehosting.in/courses'
+    }
+    return render_template('courses.html', courses=courses, seo=seo)
+
+@app.route('/courses/<string:course_slug>')
+@rate_limit('public')
+def course_detail_page(course_slug):
+    course = get_course_by_slug(course_slug)
+    if not course:
+        return "<h1>404 Course Not Found</h1><p>The requested digital course does not exist.</p>", 404
+    seo = {
+        'title': f"{course['title']} | Elite Academy",
+        'description': course['description'][:160],
+        'canonical': f"https://elitehosting.in/courses/{course['slug']}"
+    }
+    return render_template('course_detail.html', course=course, seo=seo)
+
+@app.route('/contact', methods=['GET', 'POST'])
+@rate_limit('public')
+def contact_page():
+    message_sent = False
+    if request.method == 'POST':
+        message_sent = True
+    seo = {
+        'title': 'Contact Us | Elite Academy Support',
+        'description': 'Get in touch with Elite Academy support for course inquiries, payment assistance, or technical queries. Response time within 24 hours.',
+        'canonical': 'https://elitehosting.in/contact'
+    }
+    return render_template('contact.html', message_sent=message_sent, seo=seo)
+
+@app.route('/privacy-policy')
+@app.route('/privacy')
+@rate_limit('public')
+def privacy_policy_page():
+    seo = {
+        'title': 'Privacy Policy | Elite Academy',
+        'description': 'Privacy Policy for Elite Academy digital education platform. Learn how customer data, orders, and PayU payment details are handled.',
+        'canonical': 'https://elitehosting.in/privacy-policy'
+    }
+    return render_template('policy.html', policy_type='privacy', seo=seo)
+
+@app.route('/terms-and-conditions')
+@app.route('/terms')
+@rate_limit('public')
+def terms_conditions_page():
+    seo = {
+        'title': 'Terms & Conditions | Elite Academy',
+        'description': 'Terms & Conditions governing website usage, digital course enrollment, intellectual property, and PayU payment processing at Elite Academy.',
+        'canonical': 'https://elitehosting.in/terms-and-conditions'
+    }
+    return render_template('policy.html', policy_type='terms', seo=seo)
+
+@app.route('/refund-policy')
+@rate_limit('public')
+def refund_policy_page():
+    seo = {
+        'title': 'Refund & Cancellation Policy | Elite Academy',
+        'description': 'Clear, PayU compliant Refund & Cancellation policy for digital course enrollments at Elite Academy India.',
+        'canonical': 'https://elitehosting.in/refund-policy'
+    }
+    return render_template('policy.html', policy_type='refund', seo=seo)
+
+@app.route('/delivery-policy')
+@rate_limit('public')
+def delivery_policy_page():
+    seo = {
+        'title': 'Shipping & Delivery Policy | Elite Academy',
+        'description': 'Digital course fulfillment and instant access delivery policy for purchases made on Elite Academy India.',
+        'canonical': 'https://elitehosting.in/delivery-policy'
+    }
+    return render_template('policy.html', policy_type='delivery', seo=seo)
+
+@app.route('/checkout', methods=['GET', 'POST'])
+@rate_limit('public')
+def checkout_page():
+    course_slug = request.args.get('course') or request.form.get('course')
+    course = get_course_by_slug(course_slug) if course_slug else COURSES_CATALOG[0]
+
+    if request.method == 'POST':
+        customer_name = request.form.get('name', '').strip()
+        customer_email = request.form.get('email', '').strip()
+        customer_phone = request.form.get('phone', '').strip()
+
+        if customer_name and customer_email and customer_phone:
+            import uuid
+            order_num = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+            new_order = CourseOrder(
+                order_number=order_num,
+                user_id=session.get('user_id'),
+                course_slug=course['slug'],
+                course_name=course['title'],
+                amount=course['price'],
+                customer_name=customer_name,
+                customer_email=customer_email,
+                customer_phone=customer_phone,
+                status='success',
+                payu_txn_id=f"PAYU-{uuid.uuid4().hex[:10].upper()}"
+            )
+            db.session.add(new_order)
+            db.session.commit()
+            return redirect(url_for('payment_success_page', order=order_num))
+
+    seo = {
+        'title': f"Checkout - {course['title']} | Elite Academy",
+        'description': f"Secure PayU checkout for {course['title']}. Enroll now with UPI, Cards, NetBanking, and Wallets.",
+        'canonical': 'https://elitehosting.in/checkout'
+    }
+    return render_template('checkout.html', course=course, seo=seo)
+
+@app.route('/payment-success')
+@rate_limit('public')
+def payment_success_page():
+    order_num = request.args.get('order')
+    order = CourseOrder.query.filter_by(order_number=order_num).first() if order_num else None
+    course = get_course_by_slug(order.course_slug) if order else COURSES_CATALOG[0]
+    seo = {
+        'title': 'Payment Successful | Elite Academy',
+        'description': 'Your course payment was successful. Check your order confirmation and access instructions.',
+        'canonical': 'https://elitehosting.in/payment-success'
+    }
+    return render_template('payment_status.html', status='success', order=order, course=course, seo=seo)
+
+@app.route('/payment-failed')
+@rate_limit('public')
+def payment_failed_page():
+    order_num = request.args.get('order')
+    order = CourseOrder.query.filter_by(order_number=order_num).first() if order_num else None
+    course = get_course_by_slug(order.course_slug) if order else COURSES_CATALOG[0]
+    seo = {
+        'title': 'Payment Failed | Elite Academy',
+        'description': 'Payment transaction could not be completed. Learn how to retry or contact support if money was debited.',
+        'canonical': 'https://elitehosting.in/payment-failed'
+    }
+    return render_template('payment_status.html', status='failed', order=order, course=course, seo=seo)
+
+@app.route('/payment-pending')
+@rate_limit('public')
+def payment_pending_page():
+    order_num = request.args.get('order')
+    order = CourseOrder.query.filter_by(order_number=order_num).first() if order_num else None
+    course = get_course_by_slug(order.course_slug) if order else COURSES_CATALOG[0]
+    seo = {
+        'title': 'Payment Pending | Elite Academy',
+        'description': 'Payment transaction status is currently pending verification with PayU.',
+        'canonical': 'https://elitehosting.in/payment-pending'
+    }
+    return render_template('payment_status.html', status='pending', order=order, course=course, seo=seo)
+
+@app.route('/faq')
+@rate_limit('public')
+def faq_page():
+    seo = {
+        'title': 'Frequently Asked Questions (FAQ) | Elite Academy',
+        'description': 'Get answers to common questions about digital course enrollment, PayU payments, instant course access, refunds, and technical support.',
+        'canonical': 'https://elitehosting.in/faq'
+    }
+    return render_template('faq.html', seo=seo)
+
+
+# ===================== ROUTES — PAGES =====================
+
+
 
 @app.route('/login')
 @rate_limit('public')
@@ -1125,25 +1667,9 @@ def blog_detail_page(slug):
     }
     return render_template('index.html', page='blog_detail', blog=post, seo=seo)
 
-@app.route('/terms')
-@rate_limit('public')
-def terms_page():
-    seo = {
-        'title': 'Terms of Service | EliteHosting',
-        'description': 'Terms of Service, deployment policies, and user agreements for the EliteHosting deployment platform.',
-        'canonical': 'https://elitehosting.in/terms'
-    }
-    return render_template('index.html', page='terms', seo=seo)
 
-@app.route('/privacy')
-@rate_limit('public')
-def privacy_page():
-    seo = {
-        'title': 'Privacy Policy | EliteHosting',
-        'description': 'Privacy policy, cookies policies, and personal data isolation safeguards at EliteHosting.',
-        'canonical': 'https://elitehosting.in/privacy'
-    }
-    return render_template('index.html', page='privacy', seo=seo)
+
+
 
 @app.route('/telegram-bot-hosting')
 @rate_limit('public')
