@@ -4,7 +4,10 @@ import threading
 import shutil
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
                    session, jsonify, send_from_directory)
@@ -68,13 +71,13 @@ class User(db.Model):
     is_banned = db.Column(db.Boolean, default=False)
     plan = db.Column(db.String(20), default='free')
     last_ip = db.Column(db.String(50), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class BannedIP(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ip_address = db.Column(db.String(50), unique=True, nullable=False)
     reason = db.Column(db.String(200), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class VpsSlot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -83,7 +86,7 @@ class VpsSlot(db.Model):
     ram_mb = db.Column(db.Integer, nullable=False)       # 256, 512, 1024
     status = db.Column(db.String(20), default='idle')    # idle, running
     deployment_id = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class Deployment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -107,7 +110,7 @@ class Deployment(db.Model):
     slug = db.Column(db.String(100), unique=True, nullable=True)
     visitor_count = db.Column(db.Integer, default=0)
     last_started_at = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class Referral(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -115,7 +118,7 @@ class Referral(db.Model):
     referred_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     amount = db.Column(db.Float, default=0.0)
     plan_name = db.Column(db.String(20), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -123,7 +126,7 @@ class Transaction(db.Model):
     tx_type = db.Column(db.String(50), nullable=False)
     amount = db.Column(db.Float, default=0.0)
     description = db.Column(db.String(500), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class PaymentRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -134,7 +137,7 @@ class PaymentRequest(db.Model):
     amount = db.Column(db.Float, nullable=False)
     credits = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='pending') # pending, approved, rejected
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class AdminAuth(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -147,7 +150,7 @@ class RateLimit(db.Model):
     ip_address = db.Column(db.String(50), nullable=False)
     endpoint = db.Column(db.String(100), nullable=False)
     username = db.Column(db.String(100), nullable=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -155,7 +158,7 @@ class ChatMessage(db.Model):
     message = db.Column(db.Text, nullable=False)
     sender_type = db.Column(db.String(10), nullable=False)
     is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 class BlogPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -163,7 +166,7 @@ class BlogPost(db.Model):
     slug = db.Column(db.String(200), unique=True, nullable=False)
     content = db.Column(db.Text, nullable=False)
     excerpt = db.Column(db.String(300), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
 import time
 
@@ -175,7 +178,7 @@ def free_trial_monitor_loop():
     while True:
         try:
             with app.app_context():
-                now = datetime.utcnow()
+                now = utcnow()
                 # Query all running free deployments
                 free_deps = Deployment.query.filter_by(status='running', is_free=True).all()
                 for dep in free_deps:
@@ -279,7 +282,7 @@ def rate_limit(limit_type='public'):
         def decorated(*args, **kwargs):
             ip = get_client_ip()
             endpoint = request.path
-            now = datetime.utcnow()
+            now = utcnow()
 
             if limit_type == 'auth_action':
                 limit = AUTH_ACTION_LIMIT_CONFIG['limit']
@@ -335,7 +338,7 @@ def auth_rate_limit():
         def decorated(*args, **kwargs):
             ip = get_client_ip()
             endpoint = request.path
-            now = datetime.utcnow()
+            now = utcnow()
 
             # Extract username/email from payload if any
             username = None
@@ -580,7 +583,7 @@ class DeployEngine:
         except Exception:
             pass
 
-        ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        ts = utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
         if not self.deployment.logs:
             self.deployment.logs = ""
         self.deployment.logs += f"[{ts}] {clean_msg}\n"
@@ -746,7 +749,7 @@ class DeployEngine:
         if self.deployment.is_website:
             self._log("Static website deployment detected. Active at /site/" + (self.deployment.slug or ""))
             self.deployment.status = 'running'
-            self.deployment.last_started_at = datetime.utcnow()
+            self.deployment.last_started_at = utcnow()
             db.session.commit()
             return True
 
@@ -877,7 +880,7 @@ class DeployEngine:
             return True
 
         self.deployment.status = 'running'
-        self.deployment.last_started_at = datetime.utcnow()
+        self.deployment.last_started_at = utcnow()
         db.session.commit()
 
         ram_limit = "256m"
@@ -1432,7 +1435,7 @@ def api_register():
         password_plain=password,
         referral_code=generate_referral_code(),
         referred_by=referrer.id if referrer else None,
-        free_deploy_until=datetime.utcnow() + timedelta(hours=3),
+        free_deploy_until=utcnow() + timedelta(hours=3),
         last_ip=ip
     )
     db.session.add(user)
@@ -1575,7 +1578,7 @@ def api_deploy_github():
     vps_slot = None
     is_website = (request.form.get('is_website') == 'true')
 
-    if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
+    if user.free_deploy_until and user.free_deploy_until > utcnow():
         is_free = True
         # Check if they already have an active trial deployment
         free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
@@ -1667,7 +1670,7 @@ def api_deploy_zip():
     is_free = False
     vps_slot = None
 
-    if user.free_deploy_until and user.free_deploy_until > datetime.utcnow():
+    if user.free_deploy_until and user.free_deploy_until > utcnow():
         is_free = True
         # Check if they already have an active trial deployment
         free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
@@ -1707,7 +1710,7 @@ def api_deploy_zip():
         vps_slot_id=vps_slot.id if vps_slot else None,
         is_website=is_website,
         slug=slug_val,
-        last_started_at=datetime.utcnow()
+        last_started_at=utcnow()
     )
     db.session.add(dep)
     db.session.commit()
@@ -2642,7 +2645,7 @@ def check_ip_banned_and_expired():
                     if ubanned:
                         return "<h1>403 Forbidden - Device Banned</h1><p>Your device IP address has been banned from accessing EliteHosting.</p>", 403
 
-                now = datetime.utcnow()
+                now = utcnow()
                 # Stop expired free trial deployments
                 free_deps = Deployment.query.filter_by(user_id=uid, status='running', is_free=True).all()
                 for dep in free_deps:
@@ -2677,4 +2680,11 @@ def add_security_headers(response):
     return response
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1', 'yes')
+    print('================================================================')
+    print(' EliteHosting Server Starting...')
+    print(f' Web Service: http://0.0.0.0:{port}')
+    print(' Target Domain: elitehosting.in')
+    print('================================================================')
+    app.run(debug=debug, host='0.0.0.0', port=port)
