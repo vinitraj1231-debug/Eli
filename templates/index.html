@@ -178,12 +178,12 @@
 
         <!-- Nav Links Desktop -->
         <nav class="hidden md:flex items-center gap-6 font-heading text-sm text-slate-400 font-medium">
-            <a href="/#plans" class="hover:text-cyberPrimary transition-colors">Hosting</a>
-            <a href="/#plans" class="hover:text-cyberPrimary transition-colors">VPS</a>
+            <a href="/#plans" class="hover:text-cyberPrimary transition-colors">VPS Slots</a>
+            <a href="/telegram-bot-hosting" class="hover:text-cyberPrimary transition-colors">Bot Hosting</a>
             <a href="/#features" class="hover:text-cyberPrimary transition-colors">Features</a>
-            <a href="/#latency" class="hover:text-cyberPrimary transition-colors">Server Status</a>
-            <a href="/#faq-section" class="hover:text-cyberPrimary transition-colors">FAQ</a>
-            <a href="/#contact" class="hover:text-cyberPrimary transition-colors">Contact</a>
+            <a href="/about-us" class="hover:text-cyberPrimary transition-colors">About Us</a>
+            <a href="/contact-us" class="hover:text-cyberPrimary transition-colors">Contact</a>
+            <a href="/blogs" class="hover:text-cyberPrimary transition-colors">Blogs</a>
         </nav>
 
         <div class="flex items-center gap-3">
@@ -200,13 +200,16 @@
         </div>
 
         <!-- Mobile Navigation Menu -->
-        <div id="mobile-menu" class="hidden absolute top-16 left-0 right-0 glass-panel border-b border-cyberBorder py-4 px-6 flex flex-col gap-4 font-heading text-sm text-slate-300 shadow-xl transition-all">
-            <a href="/#plans" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Hosting</a>
-            <a href="/#plans" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">VPS</a>
+        <div id="mobile-menu" class="hidden absolute top-16 left-0 right-0 glass-panel border-b border-cyberBorder py-4 px-6 flex flex-col gap-4 font-heading text-sm text-slate-300 shadow-xl transition-all z-50">
+            <a href="/#plans" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">VPS Slots</a>
+            <a href="/telegram-bot-hosting" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Bot Hosting</a>
             <a href="/#features" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Features</a>
-            <a href="/#latency" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Server Status</a>
-            <a href="/#faq-section" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">FAQ</a>
-            <a href="/#contact" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1">Contact</a>
+            <a href="/about-us" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">About Us</a>
+            <a href="/contact-us" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Contact Us</a>
+            <a href="/blogs" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Blogs</a>
+            <a href="/terms-and-conditions" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Terms</a>
+            <a href="/privacy-policy" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Privacy Policy</a>
+            <a href="/refund-policy" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Refund Policy</a>
             <a href="/login" class="text-center py-2 border border-cyberBorder hover:border-cyberPrimary rounded-lg transition-all mt-2">Client Portal</a>
         </div>
     </header>
@@ -241,33 +244,32 @@
                     Deploy high-performance cloud servers in seconds. NVMe SSD storage, free SSL, advanced DDoS protection, and 99.99% uptime guarantee.
                 </p>
 
-                <!-- Interactive Domain Search Simulated UI -->
-                <div class="w-full max-w-2xl glass-panel p-4 rounded-2xl mb-10 text-left border border-cyberBorder shadow-2xl relative">
-                    <div class="absolute -top-3 right-4 bg-cyberAccent text-white font-mono text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-bold shadow-neonBlue">
-                        Simulated Checker
+                <!-- Interactive Deployment Simulator UI -->
+                <div class="w-full max-w-2xl glass-panel p-5 rounded-2xl mb-10 text-left border border-cyberBorder shadow-2xl relative">
+                    <div class="absolute -top-3 right-4 bg-gradient-to-r from-cyberAccent to-cyberPrimary text-cyberBg font-mono text-[9px] px-2.5 py-0.5 rounded-full uppercase tracking-wider font-bold shadow-neonCyan">
+                        Interactive Deploy Simulator
                     </div>
-                    <form id="domainSimForm" onsubmit="simulateDomainCheck(event)" class="flex flex-col sm:flex-row gap-3">
+                    <form id="deploySimForm" onsubmit="simulateDeployCheck(event)" class="flex flex-col sm:flex-row gap-3">
                         <div class="flex-1 flex gap-2 items-center bg-cyberDark/80 border border-cyberBorder rounded-xl px-4 py-3 focus-within:border-cyberPrimary/50 transition-all">
-                            <i data-lucide="globe" class="w-5 h-5 text-slate-500"></i>
-                            <input type="text" id="domainInput" class="bg-transparent border-none outline-none text-white text-sm w-full placeholder-slate-500" placeholder="Find your dream website name..." required>
+                            <i data-lucide="terminal" class="w-5 h-5 text-cyberPrimary"></i>
+                            <input type="text" id="deployInput" class="bg-transparent border-none outline-none text-white text-xs sm:text-sm w-full font-mono placeholder-slate-500" placeholder="https://github.com/user/telegram-bot.git or my_bot.zip" required>
 
-                            <!-- TLD Selector -->
-                            <select id="domainTld" class="bg-cyberDark text-cyberPrimary border border-cyberBorder rounded-md px-2 py-1 text-xs font-bold outline-none cursor-pointer">
-                                <option value=".in">.in</option>
-                                <option value=".com">.com</option>
-                                <option value=".net">.net</option>
-                                <option value=".org">.org</option>
+                            <!-- Runtime Selector -->
+                            <select id="deployRuntime" class="bg-cyberDark text-cyberPrimary border border-cyberBorder rounded-md px-2 py-1 text-xs font-mono font-bold outline-none cursor-pointer">
+                                <option value="python">Python 3.10</option>
+                                <option value="node">Node.js 18</option>
+                                <option value="static">Static Web</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn-gradient px-6 py-3 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan">
-                            <i data-lucide="search" class="w-4 h-4"></i>
-                            <span>Check Domain</span>
+                        <button type="submit" class="btn-gradient px-6 py-3 rounded-xl text-cyberBg font-heading font-bold text-sm flex items-center justify-center gap-2 shadow-neonCyan shrink-0">
+                            <i data-lucide="play" class="w-4 h-4 fill-cyberBg"></i>
+                            <span>Test Deploy</span>
                         </button>
                     </form>
 
-                    <!-- Result Placeholder -->
-                    <div id="domainResult" class="hidden mt-3 p-3 rounded-lg border text-xs flex justify-between items-center bg-cyberDark/50">
-                        <!-- Filled dynamically -->
+                    <!-- Terminal Output Placeholder -->
+                    <div id="deployResult" class="hidden">
+                        <!-- Filled dynamically by simulateDeployCheck -->
                     </div>
                 </div>
 
@@ -771,7 +773,7 @@
                 <div class="text-center mb-16">
                     <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Support Hub</span>
                     <h2 class="font-heading text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
-                    <p class="text-slate-400 max-w-xl mx-auto text-sm">Everything you need to know about domain transfers, premium migrations, payment approvals, and refund policies.</p>
+                    <p class="text-slate-400 max-w-xl mx-auto text-sm">Everything you need to know about bot deployments, micro VPS slots, payment approvals, and refund policies.</p>
                 </div>
 
                 <div class="space-y-4">
@@ -779,12 +781,12 @@
                     <!-- FAQ 1 -->
                     <div class="glass-panel rounded-2xl border border-cyberBorder overflow-hidden transition-colors duration-200">
                         <button onclick="toggleAccordion(1)" class="w-full flex items-center justify-between p-6 text-left outline-none">
-                            <span class="font-heading font-semibold text-white text-base">How do I initiate a domain transfer to EliteHosting.in?</span>
+                            <span class="font-heading font-semibold text-white text-base">How quickly will my Telegram bot or script deploy?</span>
                             <span class="text-cyberPrimary" id="faq-icon-1"><i data-lucide="plus" class="w-5 h-5"></i></span>
                         </button>
                         <div id="faq-body-1" class="hidden border-t border-cyberBorder/30 p-6 bg-cyberDark/10">
                             <p class="text-slate-400 text-sm leading-relaxed">
-                                To transfer your domains to EliteHosting.in, unlock the domain at your current registrar, obtain the EPP/Auth code, and input it during our secure checkout flow. Domain transfers are fully automated and generally complete within 3 to 5 business days with zero downtime.
+                                Deployments are instant! As soon as you upload your ZIP file or paste your GitHub repository URL, our automated DeployEngine clones, builds, and launches your container within seconds for 24/7 continuous uptime.
                             </p>
                         </div>
                     </div>
@@ -968,33 +970,289 @@
                 </div>
             </div>
         </section>
+
+        {% elif page == 'refund' %}
+        <!-- ===== REFUND POLICY ===== -->
+        <section class="py-24 px-4 sm:px-8">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-12">
+                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Billing &amp; Compliance</span>
+                    <h1 class="font-heading text-3xl font-bold text-white">Refund &amp; Cancellation Policy</h1>
+                    <p class="text-slate-500 text-xs font-mono mt-2">Last updated: September 2024</p>
+                </div>
+
+                <div class="glass-panel p-8 sm:p-10 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-8">
+                    <div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">1. Refund Eligibility Window</h3>
+                        <p>We take pride in delivering fast, low-latency micro VPS hosting for Telegram bots and scripts. If you purchase a VPS slot or top up your wallet and experience an insurmountable technical failure caused directly by EliteHosting.in servers, you are eligible to request a full refund within 48 hours of transaction approval.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">2. Pre-paid Wallet Balances</h3>
+                        <p>Wallet topups via UPI QR code or bank transfer are credited to your user balance. Wallet balances that have not been spent on VPS slot purchases can be refunded upon request within 7 days, subject to payment verification fees (if any).</p>
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">3. Non-Refundable Scenarios</h3>
+                        <p>Refunds will NOT be issued under the following conditions:</p>
+                        <ul class="list-disc pl-5 mt-2 space-y-1 text-slate-400">
+                            <li>Account suspension or termination resulting from violation of our Terms &amp; Conditions or Acceptable Use Policy (e.g., crypto-mining, phishing, spamming, DDOS attacks).</li>
+                            <li>Failure caused by third-party code errors, syntax errors in user scripts, or invalid Telegram bot tokens.</li>
+                            <li>Requests submitted after 48 hours from service activation for VPS slots.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">4. Processing Time &amp; Method</h3>
+                        <p>Approved refunds are processed back to the original UPI ID or payment method within 3 to 5 business days. To initiate a refund, contact our support team at <a href="mailto:support@elitehosting.in" class="text-cyberPrimary hover:underline">support@elitehosting.in</a> or reach out on Telegram <a href="https://t.me/zolvid" target="_blank" class="text-cyberPrimary hover:underline">@zolvid</a> with your UTR / Transaction ID.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'about' %}
+        <!-- ===== ABOUT US ===== -->
+        <section class="py-24 px-4 sm:px-8">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">High-Performance Infrastructure</span>
+                    <h1 class="font-heading text-4xl sm:text-5xl font-bold text-white">Built for Telegram Bot Developers</h1>
+                    <p class="text-slate-400 text-sm max-w-2xl mx-auto mt-4 leading-relaxed">EliteHosting.in provides ultra-fast, isolated Micro VPS container slots designed specifically for 24/7 continuous Telegram bot and web application hosting.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <div class="glass-panel p-6 rounded-2xl border border-cyberBorder text-center">
+                        <div class="w-12 h-12 rounded-xl bg-cyberPrimary/10 border border-cyberPrimary/20 flex items-center justify-center mx-auto mb-4 text-cyberPrimary">
+                            <i data-lucide="cpu" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Micro VPS Containers</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Isolated Docker execution environments with strict RAM limits (256MB, 512MB, 1GB) guaranteeing zero resource leakage.</p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl border border-cyberBorder text-center">
+                        <div class="w-12 h-12 rounded-xl bg-cyberViolet/10 border border-cyberViolet/20 flex items-center justify-center mx-auto mb-4 text-cyberViolet">
+                            <i data-lucide="shield-check" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Secret Injection Safety</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Environment variables, bot tokens, and database URIs are stored with encryption and injected dynamically at runtime.</p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl border border-cyberBorder text-center">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4 text-emerald-400">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-white text-base mb-2">Instant Zip &amp; Git Deploy</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Deploy directly from GitHub repository links or ZIP archives with automated python / node runtime detection.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 sm:p-10 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-6">
+                    <h2 class="font-heading text-xl font-bold text-white">Our Mission</h2>
+                    <p>Telegram bot developers in India and worldwide face constant challenges with Heroku shutdowns, Termux battery drains, and expensive cloud server providers. EliteHosting.in was created to bridge this gap by offering affordable, instant, zero-hassle Micro VPS hosting starting at just ₹99/month.</p>
+                    <p>Whether you are running Pyrogram userbots, Telethon automation tools, Node.js bots, or static web landing pages, our hardened container platform ensures your code stays online 24 hours a day, 7 days a week, with real-time log access and instant container restarts.</p>
+                </div>
+            </div>
+        </section>
+
+        {% elif page == 'contact' %}
+        <!-- ===== CONTACT US ===== -->
+        <section class="py-24 px-4 sm:px-8">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Get In Touch</span>
+                    <h1 class="font-heading text-4xl font-bold text-white">We're Here to Help</h1>
+                    <p class="text-slate-400 text-sm max-w-xl mx-auto mt-3">Have questions about VPS slots, custom bot setups, or payment topups? Reach out to our dedicated technical support team.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Direct Contact Cards -->
+                    <div class="space-y-6">
+                        <div class="glass-panel p-6 rounded-2xl border border-cyberBorder flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-cyberPrimary/10 border border-cyberPrimary/30 flex items-center justify-center text-cyberPrimary shrink-0">
+                                <i data-lucide="send" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-bold text-white text-base">Telegram Support</h3>
+                                <p class="text-slate-400 text-xs mt-1">Connect directly with the founder &amp; lead engineer for instant assistance.</p>
+                                <a href="https://t.me/zolvid" target="_blank" class="inline-flex items-center gap-1.5 text-xs text-cyberPrimary font-bold mt-3 hover:underline">
+                                    <span>@zolvid</span>
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl border border-cyberBorder flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-cyberViolet/10 border border-cyberViolet/30 flex items-center justify-center text-cyberViolet shrink-0">
+                                <i data-lucide="mail" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-bold text-white text-base">Email Support</h3>
+                                <p class="text-slate-400 text-xs mt-1">Send us an email for billing, partnership, or general inquiries.</p>
+                                <a href="mailto:support@elitehosting.in" class="inline-flex items-center gap-1.5 text-xs text-cyberViolet font-bold mt-3 hover:underline">
+                                    <span>support@elitehosting.in</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl border border-cyberBorder flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                                <i data-lucide="clock" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-heading font-bold text-white text-base">Operating Hours</h3>
+                                <p class="text-slate-400 text-xs mt-1">Our system operates 24/7/365. Support staff are available daily from 9:00 AM to 11:00 PM IST.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Form -->
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder">
+                        <h3 class="font-heading font-bold text-white text-lg mb-4">Send a Direct Message</h3>
+                        <form onsubmit="alert('Thank you! Your message has been received. Our team will contact you shortly.'); return false;" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-mono text-slate-400 mb-1">Your Name</label>
+                                <input type="text" required class="w-full bg-cyberDark/80 border border-cyberBorder focus:border-cyberPrimary rounded-lg px-3.5 py-2.5 text-xs text-white outline-none transition-colors" placeholder="e.g. Rahul Sharma">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono text-slate-400 mb-1">Email Address</label>
+                                <input type="email" required class="w-full bg-cyberDark/80 border border-cyberBorder focus:border-cyberPrimary rounded-lg px-3.5 py-2.5 text-xs text-white outline-none transition-colors" placeholder="you@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono text-slate-400 mb-1">Subject</label>
+                                <input type="text" required class="w-full bg-cyberDark/80 border border-cyberBorder focus:border-cyberPrimary rounded-lg px-3.5 py-2.5 text-xs text-white outline-none transition-colors" placeholder="e.g. VPS Slot Inquiry">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-mono text-slate-400 mb-1">Message</label>
+                                <textarea rows="4" required class="w-full bg-cyberDark/80 border border-cyberBorder focus:border-cyberPrimary rounded-lg px-3.5 py-2.5 text-xs text-white outline-none transition-colors resize-none" placeholder="How can we help you?"></textarea>
+                            </div>
+                            <button type="submit" class="w-full btn-gradient py-3 rounded-xl font-heading font-bold text-xs text-cyberBg flex items-center justify-center gap-2">
+                                <span>Send Message</span>
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% elif page in ['shipping_policy', 'payment_policy', 'cookie_policy', 'subscription_policy', 'user_content_policy', 'acceptable_use_policy', 'disclaimer', 'copyright', 'grievance'] %}
+        <!-- ===== GENERIC POLICY CONTAINER ===== -->
+        <section class="py-24 px-4 sm:px-8">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-12">
+                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">Compliance &amp; Policy</span>
+                    <h1 class="font-heading text-3xl font-bold text-white">
+                        {% if page == 'shipping_policy' %}Shipping &amp; Delivery Policy
+                        {% elif page == 'payment_policy' %}Payment Policy
+                        {% elif page == 'cookie_policy' %}Cookie Policy
+                        {% elif page == 'subscription_policy' %}Subscription &amp; Renewal Policy
+                        {% elif page == 'user_content_policy' %}User Content Policy
+                        {% elif page == 'acceptable_use_policy' %}Acceptable Use Policy
+                        {% elif page == 'disclaimer' %}Disclaimer
+                        {% elif page == 'copyright' %}DMCA &amp; Copyright Policy
+                        {% elif page == 'grievance' %}Grievance Redressal Officer
+                        {% endif %}
+                    </h1>
+                    <p class="text-slate-500 text-xs font-mono mt-2">EliteHosting.in Compliance Documentation</p>
+                </div>
+
+                <div class="glass-panel p-8 sm:p-10 rounded-2xl border border-cyberBorder text-slate-300 text-sm leading-relaxed space-y-6">
+                    {% if page == 'shipping_policy' %}
+                    <p>At EliteHosting.in, all services provided are cloud-based digital infrastructure solutions. Upon completing payment verification for a Micro VPS slot, service delivery occurs immediately through container provisioning on your dashboard. No physical shipment or tangible goods delivery is involved.</p>
+                    {% elif page == 'payment_policy' %}
+                    <p>We accept payments via Unified Payments Interface (UPI) QR codes and manual bank verification. All payments must be accompanied by a valid UTR / Transaction Hash. Topups are manually reviewed by platform administrators to ensure fraud prevention.</p>
+                    {% elif page == 'cookie_policy' %}
+                    <p>EliteHosting.in uses essential session cookies solely to maintain secure authenticated user states and prevent CSRF attacks. We do not use third-party tracking, advertising, or cross-site profiling cookies.</p>
+                    {% elif page == 'subscription_policy' %}
+                    <p>VPS slot subscriptions are billed on a monthly prepaid cycle (Micro ₹99, Lite ₹199, Pro ₹299). Slots remain active for 30 days from allocation and can be manually renewed using your wallet balance.</p>
+                    {% elif page == 'user_content_policy' %}
+                    <p>Users retain full ownership of all source code, ZIP archives, and GitHub repositories uploaded to EliteHosting.in. We do not inspect or claim ownership over user source code except as required by automated vulnerability scans or law enforcement requests.</p>
+                    {% elif page == 'acceptable_use_policy' %}
+                    <p>Users are prohibited from deploying DDoS tools, cryptocurrency miners, illegal torrenting tools, phishing pages, or brute-force automation tools. Violation results in immediate container termination and account suspension without refund.</p>
+                    {% elif page == 'disclaimer' %}
+                    <p>EliteHosting.in provides hosting infrastructure on an "as is" and "as available" basis. While we maintain 99.99% core infrastructure uptime, we are not liable for outages caused by upstream network providers, third-party API changes, or user script bugs.</p>
+                    {% elif page == 'copyright' %}
+                    <p>EliteHosting.in respects intellectual property rights. If you believe content hosted on our platform infringes your copyright, please submit a formal DMCA notice to <a href="mailto:support@elitehosting.in" class="text-cyberPrimary hover:underline">support@elitehosting.in</a> containing proof of ownership and the target slug/URL.</p>
+                    {% elif page == 'grievance' %}
+                    <p>In accordance with Information Technology Act 2000 and rules made thereunder, the Grievance Officer details for EliteHosting.in are:</p>
+                    <div class="bg-cyberDark/80 p-4 rounded-xl border border-cyberBorder font-mono text-xs space-y-1 text-slate-300 mt-2">
+                        <div><strong class="text-white">Officer Name:</strong> Grievance Redressal Desk</div>
+                        <div><strong class="text-white">Email:</strong> support@elitehosting.in</div>
+                        <div><strong class="text-white">Telegram:</strong> @zolvid</div>
+                        <div><strong class="text-white">Response Time:</strong> Within 36 hours as mandated by law.</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
         {% endif %}
     </main>
 
     <!-- ===== FOOTER ===== -->
-    <footer class="w-full border-t border-cyberBorder/50 bg-cyberDark/60 py-12 px-4 sm:px-8">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-2">
-                <div class="w-7 h-7 flex items-center justify-center rounded bg-gradient-to-tr from-cyberAccent to-cyberPrimary">
-                    <i data-lucide="zap" class="w-4 h-4 text-cyberBg fill-cyberBg"></i>
+    <footer class="w-full border-t border-cyberBorder/50 bg-cyberDark/80 pt-16 pb-12 px-4 sm:px-8">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-cyberBorder/30">
+            <!-- Col 1: Brand & Status -->
+            <div class="space-y-4 md:col-span-1">
+                <a href="/" class="flex items-center gap-2">
+                    <img src="/static/img/logo.webp" alt="EliteHosting Logo" class="w-8 h-8 rounded-lg object-cover">
+                    <span class="font-heading font-bold text-white text-base">EliteHosting<span class="text-cyberPrimary">.in</span></span>
+                </a>
+                <p class="text-slate-400 text-xs leading-relaxed">
+                    India's premier high-performance 24/7 Telegram bot and Micro VPS deployment platform. Hardened container virtualization.
+                </p>
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>All Systems Operational</span>
                 </div>
-                <span class="font-heading font-bold text-white text-sm">EliteHosting<span class="text-cyberPrimary">.in</span></span>
             </div>
 
-            <!-- Network Status Indicator -->
-            <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>All Systems Operational</span>
+            <!-- Col 2: Services & Hosting -->
+            <div>
+                <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider mb-4 text-cyberPrimary">Services</h4>
+                <ul class="space-y-2.5 text-xs text-slate-400 font-medium">
+                    <li><a href="/#plans" class="hover:text-cyberPrimary transition-colors">Micro VPS Slots (₹99)</a></li>
+                    <li><a href="/telegram-bot-hosting" class="hover:text-cyberPrimary transition-colors">Telegram Bot Hosting</a></li>
+                    <li><a href="/#features" class="hover:text-cyberPrimary transition-colors">GitHub & ZIP Deploy</a></li>
+                    <li><a href="/#latency" class="hover:text-cyberPrimary transition-colors">Global Server Latency</a></li>
+                    <li><a href="/#faq-section" class="hover:text-cyberPrimary transition-colors">Frequently Asked Questions</a></li>
+                </ul>
             </div>
 
-            <div class="flex gap-6 font-heading text-xs text-slate-500">
-                <a href="/blogs" class="hover:text-cyberPrimary transition-colors">Blogs</a>
-                <a href="/terms" class="hover:text-cyberPrimary transition-colors">Terms of Service</a>
-                <a href="/privacy" class="hover:text-cyberPrimary transition-colors">Privacy Policy</a>
+            <!-- Col 3: Company -->
+            <div>
+                <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider mb-4 text-cyberPrimary">Company</h4>
+                <ul class="space-y-2.5 text-xs text-slate-400 font-medium">
+                    <li><a href="/about-us" class="hover:text-cyberPrimary transition-colors">About Us</a></li>
+                    <li><a href="/contact-us" class="hover:text-cyberPrimary transition-colors">Contact Us</a></li>
+                    <li><a href="/blogs" class="hover:text-cyberPrimary transition-colors">Developer Blogs</a></li>
+                    <li><a href="https://t.me/zolvid" target="_blank" class="hover:text-cyberPrimary transition-colors inline-flex items-center gap-1">Telegram Community <i data-lucide="external-link" class="w-3 h-3"></i></a></li>
+                </ul>
+            </div>
+
+            <!-- Col 4: Legal & Compliance -->
+            <div>
+                <h4 class="font-heading font-bold text-white text-xs uppercase tracking-wider mb-4 text-cyberPrimary">Legal Policies</h4>
+                <ul class="space-y-2 text-xs text-slate-400 font-medium">
+                    <li><a href="/terms-and-conditions" class="hover:text-cyberPrimary transition-colors">Terms &amp; Conditions</a></li>
+                    <li><a href="/privacy-policy" class="hover:text-cyberPrimary transition-colors">Privacy Policy</a></li>
+                    <li><a href="/refund-policy" class="hover:text-cyberPrimary transition-colors">Refund &amp; Cancellation</a></li>
+                    <li><a href="/shipping-policy" class="hover:text-cyberPrimary transition-colors">Shipping &amp; Delivery</a></li>
+                    <li><a href="/payment-policy" class="hover:text-cyberPrimary transition-colors">Payment Policy</a></li>
+                    <li><a href="/cookie-policy" class="hover:text-cyberPrimary transition-colors">Cookie Policy</a></li>
+                    <li><a href="/acceptable-use-policy" class="hover:text-cyberPrimary transition-colors">Acceptable Use Policy</a></li>
+                    <li><a href="/copyright" class="hover:text-cyberPrimary transition-colors">DMCA &amp; Copyright</a></li>
+                    <li><a href="/grievance" class="hover:text-cyberPrimary transition-colors">Grievance Officer</a></li>
+                </ul>
             </div>
         </div>
-        <div class="max-w-6xl mx-auto text-center mt-8 text-[11px] text-slate-600 border-t border-cyberBorder/30 pt-4">
-            &copy; 2024 EliteHosting.in. All rights reserved. Hardened Cloud Virtualization Engine.
+
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 mt-8 text-[11px] text-slate-500">
+            <div>
+                &copy; 2024 EliteHosting.in. All rights reserved. Hardened Cloud Virtualization Engine.
+            </div>
+            <div class="flex gap-4">
+                <a href="/terms-and-conditions" class="hover:text-slate-300">Terms</a>
+                <a href="/privacy-policy" class="hover:text-slate-300">Privacy</a>
+                <a href="/refund-policy" class="hover:text-slate-300">Refunds</a>
+                <a href="/contact-us" class="hover:text-slate-300">Support</a>
+            </div>
         </div>
     </footer>
 
