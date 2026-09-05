@@ -589,13 +589,13 @@ class DeployEngine:
     def github_deploy(self, token=None):
         repo = self.deployment.repo_url
         branch = self.deployment.branch or 'main'
-        self._log(f"Cloning {repo} (branch: {branch})")
+        self._log(f"Cloning repository: {repo} (target branch: {branch})")
 
         clone_url = repo
         if token:
             if 'github.com' in repo:
                 clone_url = repo.replace('https://github.com/', f'https://{token}@github.com/')
-                self._log("Using authentication token for private repository")
+                self._log("Using provided GitHub authentication token for private repository.")
 
         if os.path.exists(self.deploy_path):
             shutil.rmtree(self.deploy_path)
@@ -606,25 +606,46 @@ class DeployEngine:
                 ['git', 'clone', '--depth', '1', '-b', branch, clone_url, self.deploy_path],
                 capture_output=True, text=True, timeout=120
             )
+
+            if result.returncode != 0 and ('Remote branch' in result.stderr or 'not found' in result.stderr or 'Could not find' in result.stderr):
+                self._log(f"Branch '{branch}' not found. Attempting clone of default repository branch...")
+                if os.path.exists(self.deploy_path):
+                    shutil.rmtree(self.deploy_path)
+                os.makedirs(self.deploy_path, exist_ok=True)
+                result = subprocess.run(
+                    ['git', 'clone', '--depth', '1', clone_url, self.deploy_path],
+                    capture_output=True, text=True, timeout=120
+                )
+
             if result.stdout:
                 self._log(result.stdout.strip())
             if result.stderr and 'Cloning into' not in result.stderr:
-                self._log(f"GIT STDERR: {result.stderr.strip()}")
+                self._log(f"Git message: {result.stderr.strip()}")
+
             if result.returncode != 0:
-                self._log(f"Clone failed (exit {result.returncode})")
+                err_detail = result.stderr.strip() if result.stderr else "Unknown git error"
+                if "Authentication failed" in err_detail or "Repository not found" in err_detail or "terminal prompts disabled" in err_detail:
+                    self._log(f"ERROR: Cannot access repository '{repo}'. If this is a private repository, please provide a valid GitHub Personal Access Token.")
+                else:
+                    self._log(f"ERROR: Git clone failed (exit code {result.returncode}): {err_detail}")
+
                 self.deployment.status = 'error'
                 db.session.commit()
                 return False
+
+            self._log("Repository cloned successfully!")
         except subprocess.TimeoutExpired:
-            self._log("Clone timed out (120s)")
+            self._log("ERROR: Git clone timed out after 120 seconds. Please check server network connection or repository size.")
             self.deployment.status = 'error'
             db.session.commit()
             return False
         except Exception as e:
-            self._log(f"Clone exception: {str(e)}")
+            self._log(f"ERROR: Git clone exception: {str(e)}")
             self.deployment.status = 'error'
             db.session.commit()
             return False
+
+        self._flatten_if_nested()
 
         self.deployment.deploy_path = self.deploy_path
         db.session.commit()
@@ -637,12 +658,11 @@ class DeployEngine:
 
         import zipfile
         if zipfile.is_zipfile(zip_path):
-            self._log("Extracting ZIP archive safely (Zip Slip protection)...")
+            self._log("Extracting ZIP archive safely...")
             try:
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     for member in zip_ref.infolist():
                         member_name = member.filename
-                        # Rejection of traversal characters
                         if member_name.startswith('/') or '..' in member_name or '../' in member_name:
                             raise Exception(f"Directory traversal attempt detected in ZIP: {member_name}")
 
@@ -652,17 +672,15 @@ class DeployEngine:
                             raise Exception(f"Directory traversal attempt detected in ZIP: {member_name}")
 
                     zip_ref.extractall(self.deploy_path)
+                self._log("ZIP extraction complete.")
             except Exception as e:
-                self._log(f"ZIP extract failed: {str(e)}")
+                self._log(f"ERROR: ZIP extraction failed: {str(e)}")
                 self.deployment.status = 'error'
                 db.session.commit()
                 return False
         else:
-            self._log("Normal file detected, copying...")
-            # If it's not a zip, it's a single file (like .py)
+            self._log("Single script file detected...")
             filename = os.path.basename(zip_path)
-            # Remove the uuid prefix if it was added during upload
-            # format was {uuid.uuid4().hex}_{filename}
             if '_' in filename and len(filename.split('_')[0]) == 32:
                 original_name = filename.split('_', 1)[1]
             else:
@@ -670,11 +688,29 @@ class DeployEngine:
 
             dest = os.path.join(self.deploy_path, original_name)
             shutil.copy2(zip_path, dest)
-            self._log(f"File {original_name} placed in deploy directory")
+            self._log(f"File '{original_name}' placed in deploy directory.")
+
+        self._flatten_if_nested()
 
         self.deployment.deploy_path = self.deploy_path
         db.session.commit()
         return self._run_deploy()
+
+    def _flatten_if_nested(self):
+        try:
+            items = os.listdir(self.deploy_path)
+            visible_items = [i for i in items if not i.startswith('.')]
+            if len(visible_items) == 1:
+                single_item = os.path.join(self.deploy_path, visible_items[0])
+                if os.path.isdir(single_item):
+                    self._log(f"Auto-flattening nested archive directory '{visible_items[0]}'")
+                    for sub in os.listdir(single_item):
+                        src = os.path.join(single_item, sub)
+                        dst = os.path.join(self.deploy_path, sub)
+                        shutil.move(src, dst)
+                    os.rmdir(single_item)
+        except Exception as e:
+            self._log(f"Notice during path normalization: {str(e)}")
 
     def _setup_env(self):
         env = os.environ.copy()
@@ -682,7 +718,6 @@ class DeployEngine:
             try:
                 parsed = json.loads(self.deployment.env_vars)
                 if isinstance(parsed, list):
-                    # Naye style ke env vars: [{"id": "TOKEN", "key": "123"}]
                     env_data = {}
                     for item in parsed:
                         if isinstance(item, dict) and 'id' in item and 'key' in item:
@@ -694,23 +729,22 @@ class DeployEngine:
                         env_path = os.path.join(self.deploy_path, '.env')
                         with open(env_path, 'w') as f:
                             f.write(env_content)
-                        self._log(f"Environment variables set: {len(env_data)} vars")
+                        self._log(f"Environment variables configured: {len(env_data)} variable(s)")
                 elif isinstance(parsed, dict):
-                    # Purana style: {"TOKEN": "123"}
                     for k, v in parsed.items():
                         env[str(k)] = str(v)
                     env_content = '\n'.join(f'{k}={v}' for k, v in parsed.items())
                     env_path = os.path.join(self.deploy_path, '.env')
                     with open(env_path, 'w') as f:
                         f.write(env_content)
-                    self._log(f"Environment variables set: {len(parsed)} vars")
+                    self._log(f"Environment variables configured: {len(parsed)} variable(s)")
             except json.JSONDecodeError:
-                self._log("Warning: Could not parse env vars JSON")
+                self._log("Warning: Could not parse environment variables JSON format.")
         return env
 
     def _run_deploy(self):
         if self.deployment.is_website:
-            self._log("Static website deployment detected. Skipping Docker execution. Active at /site/" + (self.deployment.slug or ""))
+            self._log("Static website deployment detected. Active at /site/" + (self.deployment.slug or ""))
             self.deployment.status = 'running'
             self.deployment.last_started_at = datetime.utcnow()
             db.session.commit()
@@ -722,22 +756,21 @@ class DeployEngine:
             for fn in filenames:
                 rel = os.path.relpath(os.path.join(root, fn), self.deploy_path)
                 files.append(rel)
-        self._log(f"Found {len(files)} files in project")
+        self._log(f"Project structure analyzed: {len(files)} files found.")
 
-        # Single file detection
-        py_files = [f for f in files if f.endswith('.py') and '/' not in f]
         has_requirements = any(f == 'requirements.txt' for f in files)
+        has_package_json = any(f == 'package.json' for f in files)
 
-        if len(py_files) == 1 and not has_requirements and not self.deployment.build_command:
-            entry = py_files[0]
+        py_files_root = [f for f in files if f.endswith('.py') and '/' not in f]
+        if len(py_files_root) == 1 and not has_requirements and not self.deployment.build_command and not self.deployment.deploy_command:
+            entry = py_files_root[0]
             self.deployment.entry_file = entry
-            self._log(f"Single file detected: {entry}")
+            self._log(f"Single Python script detected: {entry}")
             cmd = f'python3 {entry}'
             return self._execute(cmd, env)
 
-        # Build command
         if self.deployment.build_command:
-            self._log(f"Running build: {self.deployment.build_command}")
+            self._log(f"Executing custom build command: {self.deployment.build_command}")
             self.deployment.status = 'building'
             db.session.commit()
             try:
@@ -751,78 +784,102 @@ class DeployEngine:
                 if r.stderr:
                     self._log(f"BUILD STDERR: {r.stderr.strip()}")
                 if r.returncode != 0:
-                    self._log(f"Build failed (exit {r.returncode})")
+                    self._log(f"ERROR: Build command failed with exit code {r.returncode}")
                     self.deployment.status = 'error'
                     db.session.commit()
                     return False
-                self._log("Build succeeded")
+                self._log("Build command completed successfully.")
             except subprocess.TimeoutExpired:
-                self._log("Build timed out (300s)")
+                self._log("ERROR: Build command timed out after 300 seconds.")
                 self.deployment.status = 'error'
                 db.session.commit()
                 return False
             except Exception as e:
-                self._log(f"Build exception: {str(e)}")
+                self._log(f"ERROR: Build exception: {str(e)}")
                 self.deployment.status = 'error'
                 db.session.commit()
                 return False
 
-        # Deploy command ya auto-detect
         if self.deployment.deploy_command:
             cmd = self.deployment.deploy_command
         else:
-            cmd = self._auto_detect(files, has_requirements)
+            cmd = self._auto_detect(files, has_requirements, has_package_json)
             if not cmd:
-                self._log("Cannot auto-detect entry point. Provide a deploy command.")
+                file_summary = ", ".join(files[:10])
+                if len(files) > 10:
+                    file_summary += f", ... (+{len(files)-10} more)"
+                self._log(f"ERROR: Unable to auto-detect main script entry point. Found files: [{file_summary}]. Please specify a Deploy Command (e.g. 'python3 my_bot.py' or 'node index.js') in your deployment settings.")
                 self.deployment.status = 'error'
                 db.session.commit()
                 return False
 
-        self._log(f"Deploy command: {cmd}")
+        self._log(f"Execution command set to: {cmd}")
         return self._execute(cmd, env)
 
-    def _auto_detect(self, files, has_req):
+    def _auto_detect(self, files, has_req, has_pkg):
         checks = [
             ('main.py', 'python3 main.py'),
+            ('bot.py', 'python3 bot.py'),
             ('app.py', 'python3 app.py'),
             ('server.py', 'python3 server.py'),
+            ('index.py', 'python3 index.py'),
+            ('run.py', 'python3 run.py'),
+            ('start.py', 'python3 start.py'),
+            ('telegram_bot.py', 'python3 telegram_bot.py'),
             ('index.js', 'node index.js'),
-            ('server.js', 'node server.js'),
+            ('bot.js', 'node bot.js'),
             ('app.js', 'node app.js'),
+            ('server.js', 'node server.js'),
+            ('main.js', 'node main.js'),
+            ('start.js', 'node start.js')
         ]
         for fname, cmd in checks:
             if fname in files:
                 self.deployment.entry_file = fname
-                self._log(f"Auto-detected: {fname}")
-                if fname.endswith('.py'):
-                    cmd = f'python3 {fname}'
-                if fname.endswith('.js'):
-                    cmd = f'node {fname}'
+                self._log(f"Auto-detected main entry file: '{fname}'")
                 return cmd
 
-        # Koi bhi .py file
-        py_files = [f for f in files if f.endswith('.py') and '/' not in f]
-        if py_files:
-            entry = py_files[0]
+        if has_pkg and os.path.exists(os.path.join(self.deploy_path, 'package.json')):
+            try:
+                with open(os.path.join(self.deploy_path, 'package.json'), 'r') as pf:
+                    pkg_data = json.load(pf)
+                    if 'scripts' in pkg_data and 'start' in pkg_data['scripts']:
+                        self._log("Auto-detected start script from package.json")
+                        return "npm start"
+                    if 'main' in pkg_data:
+                        main_file = pkg_data['main']
+                        self.deployment.entry_file = main_file
+                        self._log(f"Auto-detected main file from package.json: '{main_file}'")
+                        return f"node {main_file}"
+            except Exception:
+                pass
+
+        root_py = [f for f in files if f.endswith('.py') and '/' not in f]
+        if root_py:
+            entry = root_py[0]
             self.deployment.entry_file = entry
-            self._log(f"Fallback to: {entry}")
-            return f'python3 {entry}'
+            self._log(f"Fallback auto-detected Python file: '{entry}'")
+            return f"python3 {entry}"
+
+        root_js = [f for f in files if f.endswith('.js') and '/' not in f]
+        if root_js:
+            entry = root_js[0]
+            self.deployment.entry_file = entry
+            self._log(f"Fallback auto-detected Node.js file: '{entry}'")
+            return f"node {entry}"
 
         return None
 
     def _execute(self, cmd, env):
-        # Prevent double execution
         db.session.refresh(self.deployment)
         if self.deployment.status == 'running':
-            self._log("Deployment is already running. Aborting duplicate.")
+            self._log("Deployment is already running. Aborting duplicate execution.")
             return True
 
         self.deployment.status = 'running'
         self.deployment.last_started_at = datetime.utcnow()
         db.session.commit()
-        self._log(f"Preparing secure Docker execution...")
 
-        # Get allocated VPS slot RAM limit
         ram_limit = "256m"
         vps_slot = None
         if self.deployment.vps_slot_id:
@@ -832,58 +889,59 @@ class DeployEngine:
                 vps_slot.status = 'running'
                 db.session.commit()
 
-        # Port assign
         port = 5000 + self.deployment.id
         self.deployment.port = port
         db.session.commit()
 
         container_name = f"eh_container_{self.deployment.id}"
 
-        # Clean existing container if any
+        docker_available = False
         try:
-            subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+            d_check = subprocess.run(["docker", "info"], capture_output=True, timeout=5)
+            if d_check.returncode == 0:
+                docker_available = True
         except Exception:
-            pass
+            docker_available = False
 
-        # Autodetect runtime language based on file structure
-        is_node = False
-        if os.path.exists(os.path.join(self.deploy_path, 'package.json')) or any(f.endswith('.js') for f in os.listdir(self.deploy_path) if os.path.isfile(os.path.join(self.deploy_path, f))):
-            is_node = True
+        if docker_available:
+            self._log(f"Preparing Docker execution environment (RAM cap: {ram_limit})...")
+            try:
+                subprocess.run(["docker", "rm", "-f", container_name], capture_output=True)
+            except Exception:
+                pass
 
-        # Generate custom secure Dockerfile to build deployment image safely
-        dockerfile_path = os.path.join(self.deploy_path, "Dockerfile")
+            is_node = False
+            if os.path.exists(os.path.join(self.deploy_path, 'package.json')) or any(f.endswith('.js') for f in os.listdir(self.deploy_path) if os.path.isfile(os.path.join(self.deploy_path, f))):
+                is_node = True
 
-        # Determine build and deploy commands
-        build_step = ""
-        if self.deployment.build_command:
-            build_step = f"RUN {self.deployment.build_command}"
-        elif is_node:
-            if os.path.exists(os.path.join(self.deploy_path, 'package.json')):
-                build_step = "RUN npm install --only=production"
-        else:
-            if os.path.exists(os.path.join(self.deploy_path, 'requirements.txt')):
-                build_step = "RUN pip install --no-cache-dir -r requirements.txt"
+            dockerfile_path = os.path.join(self.deploy_path, "Dockerfile")
 
-        # Safe custom script entryfile trigger
-        run_cmd = cmd
-        if not self.deployment.deploy_command:
-            # If no manual run command was supplied, use auto-detected
+            build_step = ""
+            if self.deployment.build_command:
+                build_step = f"RUN {self.deployment.build_command}"
+            elif is_node:
+                if os.path.exists(os.path.join(self.deploy_path, 'package.json')):
+                    build_step = "RUN npm install --only=production"
+            else:
+                if os.path.exists(os.path.join(self.deploy_path, 'requirements.txt')):
+                    build_step = "RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev git && pip install --no-cache-dir -r requirements.txt"
+
             run_cmd = cmd
 
-        if is_node:
-            base_image = "node:18-alpine"
-            default_user = "node"
-            work_dir = "/home/node/app"
-            copy_prefix = f"COPY --chown={default_user}:{default_user} . ."
-            setup_user_cmd = f"RUN mkdir -p {work_dir} && chown -R {default_user}:{default_user} /home/node"
-        else:
-            base_image = "python:3.10-alpine"
-            default_user = "appuser"
-            work_dir = "/app"
-            copy_prefix = "COPY --chown=appuser:appgroup . ."
-            setup_user_cmd = f"RUN addgroup -S appgroup && adduser -S appuser -G appgroup && mkdir -p {work_dir} && chown -R appuser:appgroup {work_dir}"
+            if is_node:
+                base_image = "node:18-alpine"
+                default_user = "node"
+                work_dir = "/home/node/app"
+                copy_prefix = f"COPY --chown={default_user}:{default_user} . ."
+                setup_user_cmd = f"RUN mkdir -p {work_dir} && chown -R {default_user}:{default_user} /home/node"
+            else:
+                base_image = "python:3.10-alpine"
+                default_user = "appuser"
+                work_dir = "/app"
+                copy_prefix = "COPY --chown=appuser:appgroup . ."
+                setup_user_cmd = f"RUN addgroup -S appgroup && adduser -S appuser -G appgroup && mkdir -p {work_dir} && chown -R appuser:appgroup {work_dir}"
 
-        dockerfile_content = f"""FROM {base_image}
+            dockerfile_content = f"""FROM {base_image}
 {setup_user_cmd}
 WORKDIR {work_dir}
 {copy_prefix}
@@ -893,104 +951,131 @@ USER {default_user}
 ENV PORT={port}
 CMD {run_cmd}
 """
-        with open(dockerfile_path, "w") as df:
-            df.write(dockerfile_content)
+            with open(dockerfile_path, "w") as df:
+                df.write(dockerfile_content)
 
-        self._log("Building container image...")
-        try:
-            build_args = ["docker", "build", "-t", f"eh_image_{self.deployment.id}", self.deploy_path]
-            build_proc = subprocess.run(build_args, capture_output=True, text=True, timeout=300)
-            if build_proc.returncode != 0:
-                self._log(f"Docker Build Error:\n{build_proc.stderr}")
-                self.deployment.status = 'error'
-                if vps_slot:
-                    vps_slot.status = 'idle'
-                db.session.commit()
-                return False
-            self._log("Docker image built successfully.")
-        except Exception as e:
-            self._log(f"Docker Build exception: {str(e)}")
-            self.deployment.status = 'error'
-            if vps_slot:
-                vps_slot.status = 'idle'
-            db.session.commit()
-            return False
-
-        # Docker run flags: --memory to limit RAM, --cpus to prevent CPU exhaustion, --read-only where possible or highly secure boundaries
-        # Port mapping and passing env variables safely via docker flags
-        docker_run_cmd = [
-            "docker", "run", "-d",
-            "--name", container_name,
-            "--memory", ram_limit,
-            "--cpus", "0.5",
-            "-p", f"{port}:{port}"
-        ]
-
-        # Inject environment variables securely as separate run flags instead of writing to disk
-        if self.deployment.env_vars:
+            self._log("Building container image...")
             try:
-                parsed = json.loads(self.deployment.env_vars)
-                if isinstance(parsed, list):
-                    for item in parsed:
-                        if isinstance(item, dict) and 'id' in item and 'key' in item:
-                            docker_run_cmd += ["-e", f"{item['id']}={item['key']}"]
-                elif isinstance(parsed, dict):
-                    for k, v in parsed.items():
-                        docker_run_cmd += ["-e", f"{k}={v}"]
-            except Exception:
-                pass
-
-        # Add image name
-        docker_run_cmd.append(f"eh_image_{self.deployment.id}")
-
-        self._log(f"Spinning up container with RAM limit: {ram_limit}...")
-        try:
-            run_proc = subprocess.run(docker_run_cmd, capture_output=True, text=True, timeout=60)
-            if run_proc.returncode != 0:
-                self._log(f"Docker Run Error:\n{run_proc.stderr}")
+                build_args = ["docker", "build", "-t", f"eh_image_{self.deployment.id}", self.deploy_path]
+                build_proc = subprocess.run(build_args, capture_output=True, text=True, timeout=300)
+                if build_proc.returncode != 0:
+                    self._log(f"ERROR: Docker Build Failed:\n{build_proc.stderr}")
+                    self.deployment.status = 'error'
+                    if vps_slot:
+                        vps_slot.status = 'idle'
+                    db.session.commit()
+                    return False
+                self._log("Docker image built successfully.")
+            except Exception as e:
+                self._log(f"ERROR: Docker build exception: {str(e)}")
                 self.deployment.status = 'error'
                 if vps_slot:
                     vps_slot.status = 'idle'
                 db.session.commit()
                 return False
 
-            # Save container ID or PID dummy values to persist status tracking
-            self.deployment.pid = 999999 # dummy pid for legacy logic
-            db.session.commit()
-            self._log(f"Docker container started successfully! Running on VPS slot mapping port: {port}")
-        except Exception as e:
-            self._log(f"Docker Run exception: {str(e)}")
-            self.deployment.status = 'error'
-            if vps_slot:
-                vps_slot.status = 'idle'
-            db.session.commit()
-            return False
+            docker_run_cmd = [
+                "docker", "run", "-d",
+                "--name", container_name,
+                "--memory", ram_limit,
+                "--cpus", "0.5",
+                "-p", f"{port}:{port}"
+            ]
 
-        # Start background monitor thread for Docker logs and container status
-        def monitor_container():
-            import time
-            while True:
-                time.sleep(3)
-                with app.app_context():
-                    d = Deployment.query.get(self.deployment.id)
-                    if not d or d.status != 'running':
-                        break
+            if self.deployment.env_vars:
+                try:
+                    parsed = json.loads(self.deployment.env_vars)
+                    if isinstance(parsed, list):
+                        for item in parsed:
+                            if isinstance(item, dict) and 'id' in item and 'key' in item:
+                                docker_run_cmd += ["-e", f"{item['id']}={item['key']}"]
+                    elif isinstance(parsed, dict):
+                        for k, v in parsed.items():
+                            docker_run_cmd += ["-e", f"{k}={v}"]
+                except Exception:
+                    pass
 
-                    # Check if container is still running
-                    inspect_proc = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", container_name], capture_output=True, text=True)
-                    if inspect_proc.returncode != 0 or inspect_proc.stdout.strip() != "true":
-                        d.status = 'stopped'
-                        d.pid = None
-                        vs = VpsSlot.query.get(d.vps_slot_id) if d.vps_slot_id else None
-                        if vs:
-                            vs.status = 'idle'
-                        db.session.commit()
-                        self._log(f"Docker container stopped or exited.")
-                        break
+            docker_run_cmd.append(f"eh_image_{self.deployment.id}")
 
-        t = threading.Thread(target=monitor_container, daemon=True)
-        t.start()
-        return True
+            self._log(f"Spinning up container (RAM: {ram_limit})...")
+            try:
+                run_proc = subprocess.run(docker_run_cmd, capture_output=True, text=True, timeout=60)
+                if run_proc.returncode != 0:
+                    self._log(f"ERROR: Docker Run Failed:\n{run_proc.stderr}")
+                    self.deployment.status = 'error'
+                    if vps_slot:
+                        vps_slot.status = 'idle'
+                    db.session.commit()
+                    return False
+
+                self.deployment.pid = 999999
+                db.session.commit()
+                self._log(f"SUCCESS: Container online and running 24/7 on port {port}!")
+            except Exception as e:
+                self._log(f"ERROR: Docker run exception: {str(e)}")
+                self.deployment.status = 'error'
+                if vps_slot:
+                    vps_slot.status = 'idle'
+                db.session.commit()
+                return False
+
+            def monitor_container():
+                import time
+                while True:
+                    time.sleep(3)
+                    with app.app_context():
+                        d = Deployment.query.get(self.deployment.id)
+                        if not d or d.status != 'running':
+                            break
+
+                        inspect_proc = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", container_name], capture_output=True, text=True)
+                        if inspect_proc.returncode != 0 or inspect_proc.stdout.strip() != "true":
+                            d.status = 'stopped'
+                            d.pid = None
+                            vs = VpsSlot.query.get(d.vps_slot_id) if d.vps_slot_id else None
+                            if vs:
+                                vs.status = 'idle'
+                            db.session.commit()
+                            self._log("Container process stopped or exited.")
+                            break
+
+            t = threading.Thread(target=monitor_container, daemon=True)
+            t.start()
+            return True
+
+        else:
+            self._log("Docker daemon not detected. Starting process in isolated background runtime...")
+            try:
+                req_path = os.path.join(self.deploy_path, 'requirements.txt')
+                if os.path.exists(req_path) and not self.deployment.build_command:
+                    self._log("Installing Python dependencies from requirements.txt...")
+                    pip_res = subprocess.run(["pip", "install", "-r", "requirements.txt"], cwd=self.deploy_path, capture_output=True, text=True, timeout=120)
+                    if pip_res.returncode != 0:
+                        self._log(f"Warning/Notice during pip install:\n{pip_res.stderr.strip()}")
+
+                pkg_path = os.path.join(self.deploy_path, 'package.json')
+                if os.path.exists(pkg_path) and not self.deployment.build_command:
+                    self._log("Installing Node dependencies from package.json...")
+                    npm_res = subprocess.run(["npm", "install"], cwd=self.deploy_path, capture_output=True, text=True, timeout=120)
+                    if npm_res.returncode != 0:
+                        self._log(f"Warning/Notice during npm install:\n{npm_res.stderr.strip()}")
+
+                log_out = open(self.log_file, 'a')
+                proc = subprocess.Popen(
+                    cmd, shell=True, cwd=self.deploy_path,
+                    stdout=log_out, stderr=log_out, env=env
+                )
+                self.deployment.pid = proc.pid
+                db.session.commit()
+                self._log(f"SUCCESS: Process started background execution (PID {proc.pid})!")
+                return True
+            except Exception as e:
+                self._log(f"ERROR: Direct process execution failed: {str(e)}")
+                self.deployment.status = 'error'
+                if vps_slot:
+                    vps_slot.status = 'idle'
+                db.session.commit()
+                return False
 
     def stop(self):
         if self.deployment.is_website:
@@ -1013,6 +1098,12 @@ CMD {run_cmd}
         except Exception:
             pass
 
+        if self.deployment.pid and self.deployment.pid != 999999:
+            try:
+                os.kill(self.deployment.pid, 9)
+            except Exception:
+                pass
+
         vps_slot = None
         if self.deployment.vps_slot_id:
             vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
@@ -1022,7 +1113,11 @@ CMD {run_cmd}
         self.deployment.pid = None
         self.deployment.status = 'stopped'
         db.session.commit()
-        self._log("Docker container stopped successfully.")
+        self._log("Deployment stopped successfully.")
+
+    def start(self):
+        self.stop()
+        return self._run_deploy()
 
     def get_logs(self):
         container_name = f"eh_container_{self.deployment.id}"
@@ -1033,38 +1128,13 @@ CMD {run_cmd}
                 logs += '\n--- Container Live Output ---\n' + proc.stdout
         except Exception:
             pass
-        return logs
-
-    def start(self):
-        self.stop()
-        return self._run_deploy()
-
-    def get_logs(self):
-        logs = self.deployment.logs or ''
         if os.path.exists(self.log_file):
             try:
                 with open(self.log_file, 'r', errors='replace') as f:
-                    logs += '\n--- Live Output ---\n' + f.read()[-5000:]
-            except:
+                    logs += '\n--- Process File Output ---\n' + f.read()[-5000:]
+            except Exception:
                 pass
         return logs
-
-    def delete(self):
-        self.stop()
-        if os.path.exists(self.deploy_path):
-            shutil.rmtree(self.deploy_path)
-
-        # Release the VpsSlot back to idle if allocated
-        if self.deployment.vps_slot_id:
-            vs = VpsSlot.query.get(self.deployment.vps_slot_id)
-            if vs:
-                vs.deployment_id = None
-                vs.status = 'idle'
-
-        db.session.delete(self.deployment)
-        db.session.commit()
-
-
 def run_deploy_background(dep_id, dep_type, **kwargs):
     with app.app_context():
         engine = DeployEngine(dep_id)
@@ -1126,24 +1196,113 @@ def blog_detail_page(slug):
     return render_template('index.html', page='blog_detail', blog=post, seo=seo)
 
 @app.route('/terms')
+@app.route('/terms-and-conditions')
 @rate_limit('public')
 def terms_page():
     seo = {
-        'title': 'Terms of Service | EliteHosting',
-        'description': 'Terms of Service, deployment policies, and user agreements for the EliteHosting deployment platform.',
-        'canonical': 'https://elitehosting.in/terms'
+        'title': 'Terms & Conditions | EliteHosting.in',
+        'description': 'Terms of Service, deployment policies, acceptable use, and user agreements for EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/terms-and-conditions'
     }
     return render_template('index.html', page='terms', seo=seo)
 
 @app.route('/privacy')
+@app.route('/privacy-policy')
 @rate_limit('public')
 def privacy_page():
     seo = {
-        'title': 'Privacy Policy | EliteHosting',
-        'description': 'Privacy policy, cookies policies, and personal data isolation safeguards at EliteHosting.',
-        'canonical': 'https://elitehosting.in/privacy'
+        'title': 'Privacy Policy | EliteHosting.in',
+        'description': 'Privacy policy, secret safeguards, cookies, and data isolation at EliteHosting.in.',
+        'canonical': 'https://elitehosting.in/privacy-policy'
     }
     return render_template('index.html', page='privacy', seo=seo)
+
+@app.route('/refund')
+@app.route('/refund-policy')
+@rate_limit('public')
+def refund_page():
+    seo = {
+        'title': 'Refund Policy | EliteHosting.in',
+        'description': 'Transparent refund and credit balance policy for EliteHosting.in cloud hosting and VPS slots.',
+        'canonical': 'https://elitehosting.in/refund-policy'
+    }
+    return render_template('index.html', page='refund', seo=seo)
+
+@app.route('/about')
+@app.route('/about-us')
+@rate_limit('public')
+def about_page():
+    seo = {
+        'title': 'About Us | EliteHosting.in',
+        'description': 'Learn about EliteHosting.in, India premier high-performance Telegram Bot and Micro VPS hosting platform.',
+        'canonical': 'https://elitehosting.in/about-us'
+    }
+    return render_template('index.html', page='about', seo=seo)
+
+@app.route('/contact')
+@app.route('/contact-us')
+@rate_limit('public')
+def contact_page():
+    seo = {
+        'title': 'Contact Us | EliteHosting.in',
+        'description': 'Get in touch with EliteHosting.in support, telegram bot hosting experts, and billing team.',
+        'canonical': 'https://elitehosting.in/contact-us'
+    }
+    return render_template('index.html', page='contact', seo=seo)
+
+@app.route('/shipping-policy')
+@rate_limit('public')
+def shipping_policy_page():
+    seo = {'title': 'Shipping & Delivery Policy | EliteHosting.in', 'description': 'Digital service delivery policy for instant cloud deployments.', 'canonical': 'https://elitehosting.in/shipping-policy'}
+    return render_template('index.html', page='shipping_policy', seo=seo)
+
+@app.route('/payment-policy')
+@rate_limit('public')
+def payment_policy_page():
+    seo = {'title': 'Payment Policy | EliteHosting.in', 'description': 'UPI and wallet payment verification terms.', 'canonical': 'https://elitehosting.in/payment-policy'}
+    return render_template('index.html', page='payment_policy', seo=seo)
+
+@app.route('/cookie-policy')
+@rate_limit('public')
+def cookie_policy_page():
+    seo = {'title': 'Cookie Policy | EliteHosting.in', 'description': 'Cookie usage and session management details.', 'canonical': 'https://elitehosting.in/cookie-policy'}
+    return render_template('index.html', page='cookie_policy', seo=seo)
+
+@app.route('/subscription-policy')
+@rate_limit('public')
+def subscription_policy_page():
+    seo = {'title': 'Subscription & Renewal Policy | EliteHosting.in', 'description': 'VPS slot renewal and lifecycle policy.', 'canonical': 'https://elitehosting.in/subscription-policy'}
+    return render_template('index.html', page='subscription_policy', seo=seo)
+
+@app.route('/user-content-policy')
+@rate_limit('public')
+def user_content_policy_page():
+    seo = {'title': 'User Content Policy | EliteHosting.in', 'description': 'Codebase ownership and content restrictions.', 'canonical': 'https://elitehosting.in/user-content-policy'}
+    return render_template('index.html', page='user_content_policy', seo=seo)
+
+@app.route('/acceptable-use-policy')
+@rate_limit('public')
+def acceptable_use_policy_page():
+    seo = {'title': 'Acceptable Use Policy | EliteHosting.in', 'description': 'Allowed and prohibited server execution activities.', 'canonical': 'https://elitehosting.in/acceptable-use-policy'}
+    return render_template('index.html', page='acceptable_use_policy', seo=seo)
+
+@app.route('/disclaimer')
+@rate_limit('public')
+def disclaimer_page():
+    seo = {'title': 'Disclaimer | EliteHosting.in', 'description': 'Service level and third-party API disclaimers.', 'canonical': 'https://elitehosting.in/disclaimer'}
+    return render_template('index.html', page='disclaimer', seo=seo)
+
+@app.route('/copyright')
+@rate_limit('public')
+def copyright_page():
+    seo = {'title': 'DMCA & Copyright Policy | EliteHosting.in', 'description': 'Copyright protection and DMCA takedown procedure.', 'canonical': 'https://elitehosting.in/copyright'}
+    return render_template('index.html', page='copyright', seo=seo)
+
+@app.route('/grievance')
+@rate_limit('public')
+def grievance_page():
+    seo = {'title': 'Grievance Redressal | EliteHosting.in', 'description': 'Grievance officer contact information under IT Act 2000.', 'canonical': 'https://elitehosting.in/grievance'}
+    return render_template('index.html', page='grievance', seo=seo)
 
 @app.route('/telegram-bot-hosting')
 @rate_limit('public')

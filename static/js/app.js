@@ -75,42 +75,54 @@ function toggleBillingCycle() {
     }
 }
 
-// Simulated domain check
-function simulateDomainCheck(event) {
-    event.preventDefault();
-    const input = document.getElementById('domainInput').value.trim();
-    const tld = document.getElementById('domainTld').value;
-    const resultBox = document.getElementById('domainResult');
+// Simulated deployment compatibility check & build preview
+function simulateDeployCheck(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('deployInput') ? document.getElementById('deployInput').value.trim() : 'https://github.com/example/telegram-bot';
+    const runtime = document.getElementById('deployRuntime') ? document.getElementById('deployRuntime').value : 'python';
+    const resultBox = document.getElementById('deployResult');
 
-    if (!input) return;
-
-    const fullDomain = input.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0] + tld;
+    if (!resultBox) return;
 
     resultBox.classList.remove('hidden');
+    resultBox.className = "mt-4 p-4 rounded-xl border border-cyberPrimary/30 bg-cyberDark/90 font-mono text-xs space-y-2 text-slate-300";
+
     resultBox.innerHTML = `
-        <div class="flex items-center gap-2">
-            <span class="spinner"></span>
-            <span class="text-slate-400 font-mono">Running secure whois diagnostic query for ${fullDomain}...</span>
+        <div class="flex items-center gap-2 text-cyberPrimary font-bold">
+            <span class="w-2 h-2 rounded-full bg-cyberPrimary animate-ping"></span>
+            <span>Simulating Container Build Environment...</span>
+        </div>
+        <div class="text-[11px] text-slate-400">Target Source: <span class="text-white">${input || 'Bot Repository / ZIP'}</span> (${runtime.toUpperCase()})</div>
+        <div id="deployTerminalLogs" class="bg-black/80 p-3 rounded-lg border border-cyberBorder/50 text-[11px] text-emerald-400 space-y-1 font-mono min-h-[90px]">
+            <div>[00:01] Initializing isolated micro VPS container slot...</div>
         </div>
     `;
 
-    setTimeout(() => {
-        // Randomize availability simulation
-        const available = Math.random() > 0.4;
-        if (available) {
-            resultBox.innerHTML = `
-                <span class="font-bold text-emerald-400 font-mono">⚡ ${fullDomain} is available!</span>
-                <a href="/register" class="bg-cyberPrimary hover:bg-cyberAccent text-cyberBg font-heading font-bold text-[10px] px-3 py-1 rounded-md uppercase transition-all shadow-neonCyan">Secure Now</a>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-xs flex justify-between items-center";
-        } else {
-            resultBox.innerHTML = `
-                <span class="font-bold text-red-400 font-mono">❌ ${fullDomain} is already registered.</span>
-                <span class="text-slate-500 text-[10px]">Try a different phrase or extension.</span>
-            `;
-            resultBox.className = "mt-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs flex justify-between items-center";
-        }
-    }, 1500);
+    const logsContainer = document.getElementById('deployTerminalLogs');
+    const steps = [
+        `[00:02] Parsing runtime requirements (${runtime === 'python' ? 'requirements.txt' : 'package.json'})...`,
+        `[00:03] Injecting system environment variables and BOT_TOKEN safely...`,
+        `[00:04] Compiling Docker container layer (Memory limit: 256MB RAM)...`,
+        `[00:05] SUCCESS! Bot container online and running 24/7 with zero downtime.`
+    ];
+
+    steps.forEach((step, idx) => {
+        setTimeout(() => {
+            if (logsContainer) {
+                const line = document.createElement('div');
+                line.textContent = step;
+                if (idx === steps.length - 1) {
+                    line.className = "text-cyberPrimary font-bold border-t border-cyberBorder/40 pt-1 mt-1";
+                }
+                logsContainer.appendChild(line);
+            }
+        }, (idx + 1) * 600);
+    });
+}
+
+// Legacy alias for compatibility
+function simulateDomainCheck(event) {
+    simulateDeployCheck(event);
 }
 
 // Instant Latency diagnostic tester
