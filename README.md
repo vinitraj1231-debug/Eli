@@ -1,6 +1,18 @@
 # EliteHosting - VPS Deployment & Domain Setup Guide (`elitehosting.in`)
 
-Yeh guide aapko step-by-step batayegi ki **EliteHosting** ko apne Linux VPS (Ubuntu/Debian) par kaise deploy karein aur apne custom domain **`elitehosting.in`** se SSL certificate ke saath kaise connect karein.
+## ⚡ Instant 2-Command Quick Start (Turant Live Karein)
+
+Website aur Telegram Bot Hosting platform ko start karne ke liye bas yeh **2 commands** run karein:
+
+```bash
+# Command 1: Dependencies install karein
+pip install -r requirements.txt
+
+# Command 2: Application start karein
+python3 app.py
+```
+
+Aapki site **http://0.0.0.0:5000** par live ho jayegi!
 
 ---
 
@@ -11,8 +23,9 @@ Yeh guide aapko step-by-step batayegi ki **EliteHosting** ko apne Linux VPS (Ubu
 
 ---
 
-## 🚀 Step 1: VPS System Update & Package Installation
+## 🚀 VPS Deployment & Domain Setup Steps (`elitehosting.in`)
 
+### Step 1: VPS System Update & Package Installation
 Apne VPS me SSH ke zariye log in karein aur zaroori packages (Python3, Git, Docker, Nginx, Certbot) install karein:
 
 ```bash
@@ -31,8 +44,7 @@ sudo usermod -aG docker $USER
 
 ---
 
-## 📦 Step 2: Clone Codebase & Virtual Environment Setup
-
+### Step 2: Clone Codebase & Virtual Environment Setup
 Apne project codebase ko VPS par clone/download karein:
 
 ```bash
@@ -45,19 +57,16 @@ cd elitehosting
 python3 -m venv venv
 source venv/bin/activate
 
-# Required Dependencies install karein
-pip install --upgrade pip
+# 2 Commands:
 pip install -r requirements.txt
-pip install gunicorn  # Production WSGI server ke liye
+python3 app.py
 ```
 
 ---
 
-## ⚙️ Step 3: Environment Variables Configure Karein
+### Step 3: Environment Variables Configure Karein (Optional)
+Environment variables set karne ke liye `.env` file create karein:
 
-Environment variables set karne ke liye `/etc/systemd/system/elitehosting.service` create karenge ya `.env` file use kar sakte hain.
-
-Sample `.env` file banao:
 ```bash
 cat << 'ENVEF' > .env
 FLASK_SECRET_KEY=super-secret-random-key-change-this
@@ -71,8 +80,7 @@ ENVEF
 
 ---
 
-## 🛠️ Step 4: Systemd Background Service Setup
-
+### Step 4: Systemd Background Service Setup (24/7 Live Runtime)
 Application ko 24/7 background me chalane ke liye Systemd service banayein:
 
 Create file `/etc/systemd/system/elitehosting.service`:
@@ -91,7 +99,7 @@ Environment="FLASK_SECRET_KEY=super-secret-random-key-change-this"
 Environment="DATABASE_URL=sqlite:///elitehosting.db"
 Environment="ADMIN_USER=rajpapa"
 Environment="ADMIN_PASS=28@RajPapa"
-ExecStart=/root/elitehosting/venv/bin/gunicorn --workers 4 --bind 127.0.0.1:5000 app:app
+ExecStart=/root/elitehosting/venv/bin/python3 app.py
 Restart=always
 RestartSec=5
 
@@ -111,8 +119,7 @@ sudo systemctl status elitehosting
 
 ---
 
-## 🌐 Step 5: DNS Records Configuration (`elitehosting.in`)
-
+### Step 5: DNS Records Configuration (`elitehosting.in`)
 Apne Domain Provider (Cloudflare, GoDaddy, Namecheap, etc.) ke DNS panel me jayein aur yeh DNS A Records add karein:
 
 | Type | Name | IPv4 Address / Target | TTL |
@@ -125,8 +132,7 @@ Apne Domain Provider (Cloudflare, GoDaddy, Namecheap, etc.) ke DNS panel me jaye
 
 ---
 
-## 🔒 Step 6: Nginx Reverse Proxy & Free SSL Setup
-
+### Step 6: Nginx Reverse Proxy & Free SSL Setup
 Nginx configuration file create karein `/etc/nginx/sites-available/elitehosting.in`:
 
 ```nginx
@@ -143,7 +149,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # WebSocket support (Agar live streaming logs required ho)
+        # WebSocket support
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -158,17 +164,16 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-### Free HTTPS/SSL Certificate Install Karein (Certbot):
+#### Free HTTPS/SSL Certificate Install Karein (Certbot):
 ```bash
 sudo certbot --nginx -d elitehosting.in -d www.elitehosting.in
 ```
-Certbot automatic Nginx config modify karke HTTPS enable kar dega aur SSL redirect setup kar dega.
 
 ---
 
-## 🔍 Step 7: Verification & Useful Commands
+### Step 7: Verification & Useful Commands
 
-### Service Logs Check Karein:
+#### Service Logs Check Karein:
 ```bash
 # Application logs dekhne ke liye:
 sudo journalctl -u elitehosting -f -n 100
@@ -177,7 +182,7 @@ sudo journalctl -u elitehosting -f -n 100
 docker ps -a
 ```
 
-### Service Restart / Update Code:
+#### Service Restart / Update Code:
 ```bash
 cd /root/elitehosting
 git fetch origin && git reset --hard origin/main
