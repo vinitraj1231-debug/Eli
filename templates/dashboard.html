@@ -136,7 +136,10 @@
                         <input type="text" id="ghDeploy" class="form-input" placeholder="python3 main.py">
                     </div>
                     <div class="form-group">
-                        <label>Environment Variables</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                            <label style="margin:0">Environment Variables &amp; Links</label>
+                            <button type="button" class="btn btn-sm" style="background:rgba(0,242,254,0.15); color:var(--accent); border:1px solid rgba(0,242,254,0.3); font-size:11px; padding:4px 8px;" onclick="addMusicBotEnvTemplate('ghEnvList')"><i class="fas fa-music"></i> 🎵 Load Music Bot Env Template</button>
+                        </div>
                         <div id="ghEnvList" class="env-list">
                             <div class="env-row">
                                 <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)">
@@ -184,7 +187,10 @@
                         <input type="text" name="deploy_command" class="form-input" placeholder="node index.js">
                     </div>
                     <div class="form-group" id="zipEnvGroup">
-                        <label>Environment Variables</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                            <label style="margin:0">Environment Variables &amp; Links</label>
+                            <button type="button" class="btn btn-sm" style="background:rgba(0,242,254,0.15); color:var(--accent); border:1px solid rgba(0,242,254,0.3); font-size:11px; padding:4px 8px;" onclick="addMusicBotEnvTemplate('zipEnvList')"><i class="fas fa-music"></i> 🎵 Load Music Bot Env Template</button>
+                        </div>
                         <div id="zipEnvList" class="env-list">
                             <div class="env-row">
                                 <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)">

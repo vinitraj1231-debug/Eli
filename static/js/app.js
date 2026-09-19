@@ -765,16 +765,55 @@ async function submitPaymentRequest() {
 }
 
 /* Env Row Helpers */
-function addEnvRow(containerId) {
+function addEnvRow(containerId, envId = '', envKey = '') {
     const container = document.getElementById(containerId);
     const row = document.createElement('div');
     row.className = 'env-row';
     row.innerHTML = `
-        <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)">
-        <input type="text" class="env-key form-input" placeholder="Key (Value)">
+        <input type="text" class="env-id form-input" placeholder="ID (e.g. TOKEN)" value="${esc(envId)}">
+        <input type="text" class="env-key form-input" placeholder="Key (Value)" value="${esc(envKey)}">
         <button type="button" class="btn-del" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
     `;
     container.appendChild(row);
+}
+
+function addMusicBotEnvTemplate(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Clear existing empty rows if any
+    const rows = container.querySelectorAll('.env-row');
+    rows.forEach(r => {
+        const idInp = r.querySelector('.env-id');
+        const keyInp = r.querySelector('.env-key');
+        if (!idInp.value.trim() && !keyInp.value.trim()) {
+            r.remove();
+        }
+    });
+
+    const musicPresets = [
+        { id: 'BOT_TOKEN', key: '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz' },
+        { id: 'API_ID', key: '1234567' },
+        { id: 'API_HASH', key: 'abcdef1234567890abcdef1234567890' },
+        { id: 'MONGO_DB_URI', key: 'mongodb+srv://user:pass@cluster.mongodb.net/dbname' },
+        { id: 'OWNER_ID', key: '123456789' },
+        { id: 'SUPPORT_CHAT', key: 'https://t.me/YourSupportGroup' },
+        { id: 'SUPPORT_CHANNEL', key: 'https://t.me/YourChannel' },
+        { id: 'OWNER_LINK', key: 'https://t.me/YourTelegramUsername' },
+        { id: 'STREAM_URL', key: 'https://your-stream-server.com/live' },
+        { id: 'UPSTREAM_REPO', key: 'https://github.com/YourUsername/YourMusicBot' },
+        { id: 'START_IMG_URL', key: 'https://telegra.ph/file/your_image.jpg' },
+        { id: 'PING_IMG_URL', key: 'https://telegra.ph/file/your_ping_image.jpg' }
+    ];
+
+    musicPresets.forEach(preset => {
+        // Add if not already present
+        const existing = Array.from(container.querySelectorAll('.env-id')).some(i => i.value.trim() === preset.id);
+        if (!existing) {
+            addEnvRow(containerId, preset.id, preset.key);
+        }
+    });
+    toast('🎵 Music Bot Env Template loaded! Edit values according to your bot.', 'success');
 }
 
 function getEnvData(containerId) {
