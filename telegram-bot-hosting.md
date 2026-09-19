@@ -76,3 +76,21 @@ We don’t believe in complicated billing models or hidden resource surcharges. 
 * **Enterprise Plan (₹999/mo)**: Perfect for commercial bot networks, mass-broadcast channels, and extensive automation. Includes **8GB RAM**, completely isolated virtual machines, direct SSH console access to process workspaces, custom domain routing, and priority 24/7 technical support.
 
 Deploy your bot today on EliteHosting and experience the power of a dedicated, secure, and always-on execution engine designed exclusively for Telegram bot developers.
+
+---
+
+## Section 4: Music Bot Instant Deployment & Dynamic Link Replacement Engine
+
+For Music Bots (Yukki, AnonX, Fallen, Alexa, Vamix, Pyrogram/Telethon bots), users want the ability to customize all bot links—Support Group, Updates Channel, Owner Profile, Upstream Repository, Live Stream URL, and Welcome Images—without editing Python files directly.
+
+EliteHosting includes built-in dynamic `.env` injection. When users deploy their music bot code on EliteHosting:
+
+1. Click **"🎵 Load Music Bot Env Template"** in the deployment interface.
+2. Enter your custom values for environment variables:
+   - `SUPPORT_CHAT`: `https://t.me/YourSupportGroup`
+   - `SUPPORT_CHANNEL`: `https://t.me/YourChannel`
+   - `OWNER_LINK`: `https://t.me/YourOwnerUsername`
+   - `STREAM_URL`: `https://your-stream-server.com/live`
+   - `UPSTREAM_REPO`: `https://github.com/YourUser/YourBot`
+   - `START_IMG_URL` & `PING_IMG_URL`: Custom Telegra.ph image links.
+3. Upon clicking **Deploy**, EliteHosting compiles these into an isolated `.env` configuration file injected directly into your micro VPS container. All inline buttons and bot commands instantly update to your custom links with zero code modification!

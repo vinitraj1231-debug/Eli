@@ -192,3 +192,96 @@ sudo systemctl restart elitehosting
 ```
 
 Ab aap browser me **`https://elitehosting.in`** open karke apni site access kar sakte hain! 🚀
+
+---
+
+## 🎵 Music Bot Custom Link Configuration & Deployment Guide (Hindi & English)
+
+### 🌟 Overview (Dynamic Link System)
+Agar aapke pass ek **Telegram Music Bot** ka code (Yukki, AnonX, Fallen, Alexa, Vamix, Pyrogram/Telethon bots, etc.) hai, to code me koi bhi link **hardcode mat karein**. Saare links ko `.env` (Environment Variables) se load karwayein. Taki jab koi user aapki hosting website (`elitehosting.in`) par jaye, to wo dashboard me bas apne links (Support group, Channel, Owner link, Images, Stream links) `.env` me dale aur uske apne custom links ke sath Music Bot seconds me ready ho jaye!
+
+---
+
+### 🔑 Standard Music Bot Environment Variables List
+
+Aap apne Music Bot codebase me niche diye gaye `.env` keys use karein:
+
+| Environment Variable | Description | Example Value |
+| :--- | :--- | :--- |
+| `BOT_TOKEN` | Telegram Bot Token | `1234567890:ABCdefGHIjklMNOpqrsTUVwxyz` |
+| `API_ID` | Telegram API ID | `1234567` |
+| `API_HASH` | Telegram API Hash | `abcdef1234567890abcdef1234567890` |
+| `MONGO_DB_URI` | MongoDB Database Connection URL | `mongodb+srv://user:pass@cluster.mongodb.net/dbname` |
+| `OWNER_ID` | Bot Owner Telegram User ID | `123456789` |
+| **`SUPPORT_CHAT`** | **Support Group Link** | `https://t.me/YourSupportGroup` |
+| **`SUPPORT_CHANNEL`** | **Official Updates Channel Link** | `https://t.me/YourChannel` |
+| **`OWNER_LINK`** | **Bot Owner Telegram Profile Link** | `https://t.me/YourTelegramUsername` |
+| **`STREAM_URL`** | **Custom Live Stream / Audio Server URL** | `https://your-stream-server.com/live` |
+| **`UPSTREAM_REPO`** | **GitHub Upstream Repo URL** | `https://github.com/YourUsername/YourMusicBot` |
+| **`START_IMG_URL`** | **Start Command Welcome Image/GIF URL** | `https://telegra.ph/file/your_image.jpg` |
+| **`PING_IMG_URL`** | **Ping Command Image URL** | `https://telegra.ph/file/your_ping_image.jpg` |
+
+---
+
+### 💻 Code Example: Dynamic Link Integration in Python
+
+Apne Music Bot Python code (e.g. `config.py` ya `vars.py`) me links ko is tarah set karein:
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Basic Bot Configs
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+API_ID = int(os.getenv("API_ID", "0"))
+API_HASH = os.getenv("API_HASH", "")
+MONGO_DB_URI = os.getenv("MONGO_DB_URI", "")
+OWNER_ID = int(os.getenv("OWNER_ID", "0"))
+
+# 🔗 Dynamic Links (Env Se Change Hongi)
+SUPPORT_CHAT = os.getenv("SUPPORT_CHAT", "https://t.me/EliteHostingSupport")
+SUPPORT_CHANNEL = os.getenv("SUPPORT_CHANNEL", "https://t.me/EliteHosting")
+OWNER_LINK = os.getenv("OWNER_LINK", "https://t.me/rajpapa")
+STREAM_URL = os.getenv("STREAM_URL", "https://stream.elitehosting.in")
+UPSTREAM_REPO = os.getenv("UPSTREAM_REPO", "https://github.com/vinitraj1231-debug/Eli")
+START_IMG_URL = os.getenv("START_IMG_URL", "https://telegra.ph/file/default_start.jpg")
+PING_IMG_URL = os.getenv("PING_IMG_URL", "https://telegra.ph/file/default_ping.jpg")
+```
+
+Bot ke Start/Help/Ping Inline Keyboard Buttons me variables use karein:
+
+```python
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+import config
+
+start_buttons = InlineKeyboardMarkup([
+    [
+        InlineKeyboardButton("➕ Add Me To Group", url=f"https://t.me/{bot_username}?startgroup=true"),
+    ],
+    [
+        InlineKeyboardButton("💬 Support Group", url=config.SUPPORT_CHAT),
+        InlineKeyboardButton("📢 Channel", url=config.SUPPORT_CHANNEL),
+    ],
+    [
+        InlineKeyboardButton("👤 Owner", url=config.OWNER_LINK),
+        InlineKeyboardButton("🌐 Upstream Repo", url=config.UPSTREAM_REPO),
+    ]
+])
+```
+
+---
+
+### 🚀 Website Me Deploy Karne Ka Tarika (For Users)
+
+1. **Dashboard me Jayein**: `https://elitehosting.in/dashboard` par login karein.
+2. **Deploy Tab me Jayein**: GitHub URL ya ZIP Upload select karein.
+3. **🎵 Click "Load Music Bot Env Template"**:
+   - Environment Variables section me **"🎵 Load Music Bot Env Template"** button par click karein.
+   - Saare Music Bot links aur tokens aamne-saamne aa jayenge.
+4. **Apne Links Aur Token Fill Karein**:
+   - `BOT_TOKEN`, `API_ID`, `API_HASH`, `MONGO_DB_URI` me apna credential dalein.
+   - `SUPPORT_CHAT`, `SUPPORT_CHANNEL`, `OWNER_LINK` me apna group/channel link dalein.
+5. **Deploy Par Click Karein**:
+   - Bot turant container me build hoke live ho jayega aur aapke diye gaye saare links bot buttons me automatically lag jayenge!
