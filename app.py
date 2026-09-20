@@ -168,6 +168,70 @@ class BlogPost(db.Model):
     excerpt = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=utcnow)
 
+class SystemConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=True)
+
+class MusicBotDeployment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    deployment_id_str = db.Column(db.String(64), unique=True, nullable=False, default=lambda: uuid.uuid4().hex)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False, default="Music Bot")
+    bot_username = db.Column(db.String(100), nullable=True, default="MAHI_MUSICSBOT")
+    status = db.Column(db.String(20), default='QUEUED') # QUEUED, CLONING, INSTALLING, STARTING, RUNNING, STOPPING, STOPPED, CRASHED, ERROR, DELETING
+    restart_count = db.Column(db.Integer, default=0)
+    workspace_path = db.Column(db.String(500), nullable=True)
+    pid = db.Column(db.Integer, nullable=True)
+    container_id = db.Column(db.String(100), nullable=True)
+    logs = db.Column(db.Text, default='')
+    error_message = db.Column(db.Text, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=True)
+    stopped_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    # Required Credentials (Secrets)
+    api_id = db.Column(db.String(100), nullable=False)
+    api_hash = db.Column(db.String(200), nullable=False)
+    bot_token = db.Column(db.String(200), nullable=False)
+    owner_id = db.Column(db.String(100), nullable=False)
+    logger_id = db.Column(db.String(100), nullable=False)
+    mongo_db_uri = db.Column(db.Text, nullable=False)
+    string_session = db.Column(db.Text, nullable=False)
+
+    # Branding & Links (User Editable)
+    owner_username = db.Column(db.String(100), default="II_ALONE_BOY_Il")
+    assusername = db.Column(db.String(100), default="II_ALONE_BOY_Il")
+    support_channel = db.Column(db.String(200), default="https://t.me/II_SHAYRI_KI_DUNIYA_II")
+    support_chat = db.Column(db.String(200), default="https://t.me/+8u7DH")
+    privacy_link = db.Column(db.String(200), default="")
+
+    # Images
+    start_img_url = db.Column(db.String(500), default="https://litter.catbox.moe/xr9jf82b2umeke7j.jpg")
+    ping_img_url = db.Column(db.String(500), default="https://litter.catbox.moe/xyedznhk80hmial2.mp4")
+    must_join_img = db.Column(db.String(500), default="https://files.catbox.moe/fu6jk3.jpg")
+    log_img_url = db.Column(db.String(500), default="https://files.catbox.moe/tdj8he.jpg")
+    repo_img_url = db.Column(db.String(500), default="https://litter.catbox.moe/xr9jf82b2umeke7j.jpg")
+    playlist_img_url = db.Column(db.String(500), default="https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg")
+    stats_img_url = db.Column(db.String(500), default="https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg")
+    stream_img_url = db.Column(db.String(500), default="https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg")
+    souncloud_img_url = db.Column(db.String(500), default="https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg")
+    youtube_img_url = db.Column(db.String(500), default="https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg")
+    spotify_playlist_img_url = db.Column(db.String(500), default="https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg")
+
+DEFAULT_MASTER_REPO_URL = os.environ.get("MASTER_REPOSITORY_URL", "https://github.com/bxnxnxhzhdhdjdjjx-spec/Delulu.git")
+FIXED_SAAVN_API_URL = "https://jiosaavn-a.kvinit6421.workers.dev/api/search/songs"
+
+def get_master_repo_url():
+    try:
+        conf = SystemConfig.query.filter_by(key="MASTER_REPOSITORY_URL").first()
+        if conf and conf.value:
+            return conf.value
+    except Exception:
+        pass
+    return DEFAULT_MASTER_REPO_URL
+
 import time
 
 def free_trial_monitor_loop():
@@ -1145,6 +1209,275 @@ def run_deploy_background(dep_id, dep_type, **kwargs):
             engine.github_deploy(kwargs.get('token'))
         elif dep_type == 'zip':
             engine.zip_deploy(kwargs.get('zip_path'))
+
+def mask_secret(val):
+    if not val:
+        return ""
+    val_str = str(val).strip()
+    if len(val_str) <= 6:
+        return "*" * len(val_str)
+    return val_str[:3] + "..." + val_str[-3:]
+
+class MusicBotDeployEngine:
+    def __init__(self, bot_id):
+        self.bot = MusicBotDeployment.query.get(bot_id)
+        if self.bot:
+            self.deploy_dir = os.path.join(app.config['DEPLOY_FOLDER'], 'music_bots', str(self.bot.user_id), self.bot.deployment_id_str)
+            self.log_file = os.path.join(self.deploy_dir, 'bot.log')
+        else:
+            self.deploy_dir = None
+            self.log_file = None
+
+    def _mask_secrets(self, text):
+        if not text:
+            return ""
+        clean = str(text)
+        if self.bot:
+            secrets = [
+                self.bot.bot_token,
+                self.bot.api_hash,
+                self.bot.string_session,
+                self.bot.mongo_db_uri
+            ]
+            for sec in secrets:
+                if sec and len(str(sec)) > 3:
+                    clean = clean.replace(str(sec), "********")
+        return clean
+
+    def _log(self, msg):
+        if not self.bot:
+            return
+        clean_msg = self._mask_secrets(msg)
+        ts = utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+        if not self.bot.logs:
+            self.bot.logs = ""
+        self.bot.logs += f"[{ts}] {clean_msg}\n"
+        db.session.commit()
+
+        if self.log_file and os.path.exists(os.path.dirname(self.log_file)):
+            try:
+                with open(self.log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{ts}] {clean_msg}\n")
+            except Exception:
+                pass
+
+    def build_env_dict(self):
+        return {
+            "API_ID": str(self.bot.api_id),
+            "API_HASH": str(self.bot.api_hash),
+            "BOT_TOKEN": str(self.bot.bot_token),
+            "OWNER_ID": str(self.bot.owner_id),
+            "LOGGER_ID": str(self.bot.logger_id),
+            "MONGO_DB_URI": str(self.bot.mongo_db_uri),
+            "STRING_SESSION": str(self.bot.string_session),
+
+            "BOT_NAME": str(self.bot.name or "sejal 𝑴𝒖𝒔𝒊𝒄 𝑩𝒐𝒕"),
+            "BOT_USERNAME": str(self.bot.bot_username or "MAHI_MUSICSBOT"),
+            "OWNER_USERNAME": str(self.bot.owner_username or "II_ALONE_BOY_Il"),
+            "ASSUSERNAME": str(self.bot.assusername or "II_ALONE_BOY_Il"),
+            "SUPPORT_CHANNEL": str(self.bot.support_channel or "https://t.me/II_SHAYRI_KI_DUNIYA_II"),
+            "SUPPORT_CHAT": str(self.bot.support_chat or "https://t.me/+8u7DH"),
+            "PRIVACY_LINK": str(self.bot.privacy_link or ""),
+
+            "START_IMG_URL": str(self.bot.start_img_url or "https://litter.catbox.moe/xr9jf82b2umeke7j.jpg"),
+            "PING_IMG_URL": str(self.bot.ping_img_url or "https://litter.catbox.moe/xyedznhk80hmial2.mp4"),
+            "MUST_JOIN_IMG": str(self.bot.must_join_img or "https://files.catbox.moe/fu6jk3.jpg"),
+            "LOG_IMG_URL": str(self.bot.log_img_url or "https://files.catbox.moe/tdj8he.jpg"),
+            "REPO_IMG_URL": str(self.bot.repo_img_url or "https://litter.catbox.moe/xr9jf82b2umeke7j.jpg"),
+            "PLAYLIST_IMG_URL": str(self.bot.playlist_img_url or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"),
+            "STATS_IMG_URL": str(self.bot.stats_img_url or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"),
+            "STREAM_IMG_URL": str(self.bot.stream_img_url or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"),
+            "SOUNCLOUD_IMG_URL": str(self.bot.souncloud_img_url or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"),
+            "YOUTUBE_IMG_URL": str(self.bot.youtube_img_url or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"),
+            "SPOTIFY_PLAYLIST_IMG_URL": str(self.bot.spotify_playlist_img_url or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"),
+
+            # HARD LOCKED JIOSAAVN ENDPOINTS
+            "SAAVN_API_URL": FIXED_SAAVN_API_URL,
+            "JIOSAAVN_API_URL": FIXED_SAAVN_API_URL
+        }
+
+    def generate_env_file(self):
+        env_dict = self.build_env_dict()
+        lines = [f"{k}={v}" for k, v in env_dict.items()]
+        env_file_path = os.path.join(self.deploy_dir, ".env")
+        with open(env_file_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+        self._log("Generated isolated .env file with configured credentials and locked JioSaavn API.")
+
+    def deploy(self, is_redeploy=False):
+        if not self.bot:
+            return False
+
+        master_url = get_master_repo_url()
+
+        self.bot.status = "CLONING"
+        db.session.commit()
+        self._log(f"Preparing deployment workspace for bot: {self.bot.name}")
+        self._log(f"Cloning single master template repository: {master_url}")
+
+        if os.path.exists(self.deploy_dir):
+            shutil.rmtree(self.deploy_dir)
+        os.makedirs(self.deploy_dir, exist_ok=True)
+
+        try:
+            res = subprocess.run(
+                ['git', 'clone', '--depth', '1', master_url, self.deploy_dir],
+                capture_output=True, text=True, timeout=180
+            )
+            if res.returncode != 0:
+                self._log(f"Git clone error: {res.stderr}")
+                self.bot.status = "ERROR"
+                self.bot.error_message = "Git clone failed"
+                db.session.commit()
+                return False
+
+            self._log("Master repository cloned successfully into isolated workspace.")
+        except Exception as e:
+            self._log(f"Cloning failed: {str(e)}")
+            self.bot.status = "ERROR"
+            self.bot.error_message = str(e)
+            db.session.commit()
+            return False
+
+        self.bot.workspace_path = self.deploy_dir
+        self.generate_env_file()
+
+        self.bot.status = "INSTALLING"
+        db.session.commit()
+        self._log("Installing dependencies from requirements.txt...")
+
+        req_path = os.path.join(self.deploy_dir, "requirements.txt")
+        if os.path.exists(req_path):
+            try:
+                install_proc = subprocess.run(
+                    ["pip", "install", "-r", "requirements.txt"],
+                    cwd=self.deploy_dir, capture_output=True, text=True, timeout=300
+                )
+                if install_proc.returncode != 0:
+                    self._log(f"Dependency installation notice/warning: {install_proc.stderr[:500]}")
+                else:
+                    self._log("Dependencies installed successfully.")
+            except Exception as e:
+                self._log(f"Dependency installation exception: {str(e)}")
+
+        return self.start_bot()
+
+    def start_bot(self):
+        if not self.bot:
+            return False
+
+        self.stop_bot()
+
+        self.bot.status = "STARTING"
+        db.session.commit()
+        self._log("Starting Telegram Music Bot process...")
+
+        env_vars = os.environ.copy()
+        env_vars.update(self.build_env_dict())
+
+        cmd = ["python3", "-m", "SONALI_MUSIC"]
+
+        log_fd = open(self.log_file, "a", encoding="utf-8")
+        try:
+            proc = subprocess.Popen(
+                cmd, cwd=self.deploy_dir, env=env_vars,
+                stdout=log_fd, stderr=log_fd
+            )
+            self.bot.pid = proc.pid
+            self.bot.status = "RUNNING"
+            self.bot.started_at = utcnow()
+            db.session.commit()
+            self._log(f"Music Bot started successfully with PID {proc.pid}.")
+
+            t_health = threading.Thread(target=self._monitor_process, args=(proc.pid,), daemon=True)
+            t_health.start()
+            return True
+        except Exception as e:
+            self._log(f"Failed to start bot process: {str(e)}")
+            self.bot.status = "ERROR"
+            self.bot.error_message = str(e)
+            db.session.commit()
+            return False
+
+    def _monitor_process(self, pid):
+        import time
+        while True:
+            time.sleep(5)
+            with app.app_context():
+                b = MusicBotDeployment.query.get(self.bot.id)
+                if not b or b.status != 'RUNNING' or b.pid != pid:
+                    break
+
+                try:
+                    os.kill(pid, 0)
+                except OSError:
+                    b.status = "CRASHED"
+                    b.pid = None
+                    b.stopped_at = utcnow()
+                    db.session.commit()
+                    self._log(f"Process PID {pid} died unexpectedly.")
+
+                    if b.restart_count < 5:
+                        b.restart_count += 1
+                        db.session.commit()
+                        self._log(f"Auto-restarting bot (Attempt {b.restart_count}/5)...")
+                        time.sleep(3)
+                        self.start_bot()
+                    else:
+                        self._log("Max restart threshold reached (5/5). Bot remains CRASHED.")
+                    break
+
+    def stop_bot(self):
+        if not self.bot:
+            return
+        if self.bot.pid:
+            self._log(f"Stopping bot process PID {self.bot.pid}...")
+            try:
+                os.kill(self.bot.pid, 9)
+            except Exception:
+                pass
+            self.bot.pid = None
+
+        self.bot.status = "STOPPED"
+        self.bot.stopped_at = utcnow()
+        db.session.commit()
+        self._log("Music Bot stopped.")
+
+    def delete_bot(self):
+        if not self.bot:
+            return
+        self.stop_bot()
+        self.bot.status = "DELETING"
+        db.session.commit()
+
+        if self.deploy_dir and os.path.exists(self.deploy_dir):
+            try:
+                shutil.rmtree(self.deploy_dir)
+                self._log("Isolated deployment workspace deleted.")
+            except Exception as e:
+                pass
+
+        db.session.delete(self.bot)
+        db.session.commit()
+
+    def get_sanitized_logs(self):
+        if not self.bot:
+            return ""
+        raw_logs = self.bot.logs or ""
+        if self.log_file and os.path.exists(self.log_file):
+            try:
+                with open(self.log_file, "r", encoding="utf-8", errors="replace") as f:
+                    file_tail = f.read()[-10000:]
+                    raw_logs += "\n--- Live Process Log ---\n" + file_tail
+            except Exception:
+                pass
+
+        return self._mask_secrets(raw_logs)
+
+def run_music_bot_deploy_bg(bot_id, is_redeploy=False):
+    with app.app_context():
+        engine = MusicBotDeployEngine(bot_id)
+        engine.deploy(is_redeploy=is_redeploy)
 
 # ===================== ROUTES — PAGES =====================
 
@@ -2589,6 +2922,320 @@ def api_admin_transactions_list():
         'created_at': t.created_at.isoformat()
     } for t in txs])
 
+
+def serialize_music_bot(bot, mask_secrets=True):
+    return {
+        'id': bot.id,
+        'deployment_id_str': bot.deployment_id_str,
+        'user_id': bot.user_id,
+        'name': bot.name,
+        'bot_username': bot.bot_username,
+        'status': bot.status,
+        'restart_count': bot.restart_count,
+        'error_message': bot.error_message,
+        'started_at': bot.started_at.isoformat() if bot.started_at else None,
+        'stopped_at': bot.stopped_at.isoformat() if bot.stopped_at else None,
+        'created_at': bot.created_at.isoformat() if bot.created_at else None,
+        'updated_at': bot.updated_at.isoformat() if bot.updated_at else None,
+
+        # Credentials
+        'api_id': mask_secret(bot.api_id) if mask_secrets else bot.api_id,
+        'api_hash': mask_secret(bot.api_hash) if mask_secrets else bot.api_hash,
+        'bot_token': mask_secret(bot.bot_token) if mask_secrets else bot.bot_token,
+        'owner_id': mask_secret(bot.owner_id) if mask_secrets else bot.owner_id,
+        'logger_id': mask_secret(bot.logger_id) if mask_secrets else bot.logger_id,
+        'mongo_db_uri': mask_secret(bot.mongo_db_uri) if mask_secrets else bot.mongo_db_uri,
+        'string_session': mask_secret(bot.string_session) if mask_secrets else bot.string_session,
+
+        # Branding & Links
+        'owner_username': bot.owner_username,
+        'assusername': bot.assusername,
+        'support_channel': bot.support_channel,
+        'support_chat': bot.support_chat,
+        'privacy_link': bot.privacy_link,
+
+        # Fixed JioSaavn API endpoints (IMMUTABLE)
+        'saavn_api_url': FIXED_SAAVN_API_URL,
+        'jiosaavn_api_url': FIXED_SAAVN_API_URL,
+
+        # Images
+        'start_img_url': bot.start_img_url,
+        'ping_img_url': bot.ping_img_url,
+        'must_join_img': bot.must_join_img,
+        'log_img_url': bot.log_img_url,
+        'repo_img_url': bot.repo_img_url,
+        'playlist_img_url': bot.playlist_img_url,
+        'stats_img_url': bot.stats_img_url,
+        'stream_img_url': bot.stream_img_url,
+        'souncloud_img_url': bot.souncloud_img_url,
+        'youtube_img_url': bot.youtube_img_url,
+        'spotify_playlist_img_url': bot.spotify_playlist_img_url
+    }
+
+# ===================== ROUTES — MUSIC BOTS API =====================
+
+@app.route('/api/music-bots', methods=['GET'])
+@rate_limit('auth_action')
+@login_required
+def api_list_music_bots():
+    uid = session['user_id']
+    bots = MusicBotDeployment.query.filter_by(user_id=uid).order_by(MusicBotDeployment.created_at.desc()).all()
+    return jsonify([serialize_music_bot(b, mask_secrets=True) for b in bots])
+
+@app.route('/api/music-bots', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_create_music_bot():
+    uid = session['user_id']
+    user = User.query.get(uid)
+
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'name': {'type': str, 'required': True, 'min': 1, 'max': 100},
+        'bot_username': {'type': str, 'required': True, 'min': 3, 'max': 100},
+        'api_id': {'type': (str, int), 'required': True},
+        'api_hash': {'type': str, 'required': True, 'min': 5},
+        'bot_token': {'type': str, 'required': True, 'min': 10},
+        'owner_id': {'type': (str, int), 'required': True},
+        'logger_id': {'type': (str, int), 'required': True},
+        'mongo_db_uri': {'type': str, 'required': True, 'min': 5},
+        'string_session': {'type': str, 'required': True, 'min': 10},
+
+        # Branding (optional)
+        'owner_username': {'type': str, 'required': False},
+        'assusername': {'type': str, 'required': False},
+        'support_channel': {'type': str, 'required': False},
+        'support_chat': {'type': str, 'required': False},
+        'privacy_link': {'type': str, 'required': False},
+
+        # Images (optional)
+        'start_img_url': {'type': str, 'required': False},
+        'ping_img_url': {'type': str, 'required': False},
+        'must_join_img': {'type': str, 'required': False},
+        'log_img_url': {'type': str, 'required': False},
+        'repo_img_url': {'type': str, 'required': False},
+        'playlist_img_url': {'type': str, 'required': False},
+        'stats_img_url': {'type': str, 'required': False},
+        'stream_img_url': {'type': str, 'required': False},
+        'souncloud_img_url': {'type': str, 'required': False},
+        'youtube_img_url': {'type': str, 'required': False},
+        'spotify_playlist_img_url': {'type': str, 'required': False}
+    }
+
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    dep_str = uuid.uuid4().hex
+    workspace_path = os.path.join(app.config['DEPLOY_FOLDER'], 'music_bots', str(uid), dep_str)
+
+    bot = MusicBotDeployment(
+        deployment_id_str=dep_str,
+        user_id=uid,
+        name=cleaned.get('name'),
+        bot_username=cleaned.get('bot_username'),
+        api_id=str(cleaned.get('api_id')),
+        api_hash=cleaned.get('api_hash'),
+        bot_token=cleaned.get('bot_token'),
+        owner_id=str(cleaned.get('owner_id')),
+        logger_id=str(cleaned.get('logger_id')),
+        mongo_db_uri=cleaned.get('mongo_db_uri'),
+        string_session=cleaned.get('string_session'),
+        workspace_path=workspace_path,
+
+        owner_username=cleaned.get('owner_username') or "II_ALONE_BOY_Il",
+        assusername=cleaned.get('assusername') or "II_ALONE_BOY_Il",
+        support_channel=cleaned.get('support_channel') or "https://t.me/II_SHAYRI_KI_DUNIYA_II",
+        support_chat=cleaned.get('support_chat') or "https://t.me/+8u7DH",
+        privacy_link=cleaned.get('privacy_link') or "",
+
+        start_img_url=cleaned.get('start_img_url') or "https://litter.catbox.moe/xr9jf82b2umeke7j.jpg",
+        ping_img_url=cleaned.get('ping_img_url') or "https://litter.catbox.moe/xyedznhk80hmial2.mp4",
+        must_join_img=cleaned.get('must_join_img') or "https://files.catbox.moe/fu6jk3.jpg",
+        log_img_url=cleaned.get('log_img_url') or "https://files.catbox.moe/tdj8he.jpg",
+        repo_img_url=cleaned.get('repo_img_url') or "https://litter.catbox.moe/xr9jf82b2umeke7j.jpg",
+        playlist_img_url=cleaned.get('playlist_img_url') or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg",
+        stats_img_url=cleaned.get('stats_img_url') or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg",
+        stream_img_url=cleaned.get('stream_img_url') or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg",
+        souncloud_img_url=cleaned.get('souncloud_img_url') or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg",
+        youtube_img_url=cleaned.get('youtube_img_url') or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg",
+        spotify_playlist_img_url=cleaned.get('spotify_playlist_img_url') or "https://graph.org/file/4fb9a698630aa5b47be05-060979d72b7752fc8f.jpg"
+    )
+
+    db.session.add(bot)
+    db.session.commit()
+
+    # Trigger background deployment
+    t = threading.Thread(target=run_music_bot_deploy_bg, args=(bot.id,), daemon=True)
+    t.start()
+
+    return jsonify({
+        'message': 'Telegram Music Bot deployment queued',
+        'bot': serialize_music_bot(bot, mask_secrets=True)
+    }), 201
+
+@app.route('/api/music-bots/<int:bot_id>', methods=['GET'])
+@rate_limit('auth_action')
+@login_required
+def api_get_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+    return jsonify(serialize_music_bot(bot, mask_secrets=True))
+
+@app.route('/api/music-bots/<int:bot_id>', methods=['PATCH'])
+@app.route('/api/music-bots/<int:bot_id>/environment', methods=['PATCH'])
+@rate_limit('auth_action')
+@login_required
+def api_update_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+
+    data = request.get_json(silent=True) or {}
+
+    editable_fields = [
+        'name', 'bot_username', 'owner_username', 'assusername',
+        'support_channel', 'support_chat', 'privacy_link',
+        'start_img_url', 'ping_img_url', 'must_join_img', 'log_img_url',
+        'repo_img_url', 'playlist_img_url', 'stats_img_url', 'stream_img_url',
+        'souncloud_img_url', 'youtube_img_url', 'spotify_playlist_img_url'
+    ]
+
+    for field in editable_fields:
+        if field in data and data[field] is not None:
+            setattr(bot, field, str(data[field]).strip())
+
+    # Optional credentials update
+    if 'api_id' in data and data['api_id']: bot.api_id = str(data['api_id']).strip()
+    if 'api_hash' in data and data['api_hash']: bot.api_hash = str(data['api_hash']).strip()
+    if 'bot_token' in data and data['bot_token']: bot.bot_token = str(data['bot_token']).strip()
+    if 'owner_id' in data and data['owner_id']: bot.owner_id = str(data['owner_id']).strip()
+    if 'logger_id' in data and data['logger_id']: bot.logger_id = str(data['logger_id']).strip()
+    if 'mongo_db_uri' in data and data['mongo_db_uri']: bot.mongo_db_uri = str(data['mongo_db_uri']).strip()
+    if 'string_session' in data and data['string_session']: bot.string_session = str(data['string_session']).strip()
+
+    db.session.commit()
+
+    # Re-generate .env file
+    engine = MusicBotDeployEngine(bot.id)
+    if engine.deploy_dir and os.path.exists(engine.deploy_dir):
+        engine.generate_env_file()
+
+    return jsonify({
+        'message': 'Configuration updated successfully',
+        'bot': serialize_music_bot(bot, mask_secrets=True)
+    })
+
+@app.route('/api/music-bots/<int:bot_id>/start', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_start_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+    engine = MusicBotDeployEngine(bot_id)
+    success = engine.start_bot()
+    return jsonify({'message': 'Bot started' if success else 'Bot start failed', 'status': bot.status})
+
+@app.route('/api/music-bots/<int:bot_id>/stop', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_stop_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+    engine = MusicBotDeployEngine(bot_id)
+    engine.stop_bot()
+    return jsonify({'message': 'Bot stopped', 'status': bot.status})
+
+@app.route('/api/music-bots/<int:bot_id>/restart', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_restart_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+    engine = MusicBotDeployEngine(bot_id)
+    engine.stop_bot()
+    success = engine.start_bot()
+    return jsonify({'message': 'Bot restarted' if success else 'Bot restart failed', 'status': bot.status})
+
+@app.route('/api/music-bots/<int:bot_id>/redeploy', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_redeploy_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+
+    t = threading.Thread(target=run_music_bot_deploy_bg, args=(bot.id, True), daemon=True)
+    t.start()
+
+    return jsonify({'message': 'Redeployment queued from master repository', 'status': 'CLONING'})
+
+@app.route('/api/music-bots/<int:bot_id>', methods=['DELETE'])
+@rate_limit('auth_action')
+@login_required
+def api_delete_music_bot(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+    engine = MusicBotDeployEngine(bot_id)
+    engine.delete_bot()
+    return jsonify({'message': 'Music Bot deployment deleted successfully'})
+
+@app.route('/api/music-bots/<int:bot_id>/logs', methods=['GET'])
+@rate_limit('auth_action')
+@login_required
+def api_get_music_bot_logs(bot_id):
+    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    if bot.user_id != session['user_id']:
+        return jsonify({'error': 'Unauthorized deployment access'}), 403
+    engine = MusicBotDeployEngine(bot_id)
+    return jsonify({
+        'logs': engine.get_sanitized_logs(),
+        'status': bot.status,
+        'pid': bot.pid
+    })
+
+# Admin routes for Music Bots and Master Repository
+@app.route('/api/admin/music-bots', methods=['GET'])
+@admin_required
+def api_admin_list_music_bots():
+    bots = MusicBotDeployment.query.order_by(MusicBotDeployment.created_at.desc()).all()
+    res = []
+    for b in bots:
+        data = serialize_music_bot(b, mask_secrets=True)
+        user = User.query.get(b.user_id)
+        data['username'] = user.username if user else 'Unknown'
+        res.append(data)
+    return jsonify(res)
+
+@app.route('/api/admin/config/master-repo', methods=['GET'])
+@admin_required
+def api_admin_get_master_repo():
+    return jsonify({
+        'master_repository_url': get_master_repo_url()
+    })
+
+@app.route('/api/admin/config/master-repo', methods=['POST'])
+@admin_required
+def api_admin_update_master_repo():
+    data = request.get_json(silent=True) or {}
+    new_url = data.get('master_repository_url', '').strip()
+    if not new_url or not new_url.startswith('http'):
+        return jsonify({'error': 'Valid repository URL required'}), 400
+
+    conf = SystemConfig.query.filter_by(key="MASTER_REPOSITORY_URL").first()
+    if not conf:
+        conf = SystemConfig(key="MASTER_REPOSITORY_URL", value=new_url)
+        db.session.add(conf)
+    else:
+        conf.value = new_url
+
+    db.session.commit()
+    return jsonify({'message': 'Master repository URL updated successfully', 'master_repository_url': new_url})
 
 # ===================== ERROR HANDLING =====================
 
