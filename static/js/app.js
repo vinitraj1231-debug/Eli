@@ -360,7 +360,7 @@ function switchTab(tab) {
 
     switch (tab) {
         case 'home': loadStats(); break;
-        case 'manage': loadDeployments(); break;
+        case 'manage': loadDeployments(); loadMusicBots(); break;
         case 'deploy': initDeployForm(); break;
         case 'settings': loadSettings(); break;
     }
@@ -556,9 +556,55 @@ function initDeployForm() {
     tabs.forEach(t => t.addEventListener('click', () => {
         tabs.forEach(b => b.classList.remove('active'));
         t.classList.add('active');
+        document.getElementById('musicbotForm').classList.toggle('hidden', t.dataset.target !== 'musicbot');
         document.getElementById('githubForm').classList.toggle('hidden', t.dataset.target !== 'github');
         document.getElementById('zipForm').classList.toggle('hidden', t.dataset.target !== 'zip');
     }));
+
+    const mbForm = document.getElementById('mbDeployForm');
+    if (mbForm) {
+        mbForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = mbForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Queueing Music Bot...';
+            try {
+                const payload = {
+                    name: document.getElementById('mbName').value,
+                    bot_username: document.getElementById('mbBotUsername').value,
+                    api_id: document.getElementById('mbApiId').value,
+                    api_hash: document.getElementById('mbApiHash').value,
+                    bot_token: document.getElementById('mbBotToken').value,
+                    owner_id: document.getElementById('mbOwnerId').value,
+                    logger_id: document.getElementById('mbLoggerId').value,
+                    mongo_db_uri: document.getElementById('mbMongoUri').value,
+                    string_session: document.getElementById('mbStringSession').value,
+
+                    owner_username: document.getElementById('mbOwnerUsername').value,
+                    assusername: document.getElementById('mbAssUsername').value,
+                    support_channel: document.getElementById('mbSupportChannel').value,
+                    support_chat: document.getElementById('mbSupportChat').value,
+                    privacy_link: document.getElementById('mbPrivacyLink').value,
+
+                    start_img_url: document.getElementById('mbStartImg').value,
+                    ping_img_url: document.getElementById('mbPingImg').value,
+                    must_join_img: document.getElementById('mbMustJoinImg').value,
+                    log_img_url: document.getElementById('mbLogImg').value,
+                    repo_img_url: document.getElementById('mbRepoImg').value
+                };
+
+                await api('/api/music-bots', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                toast('Telegram Music Bot deployment queued!', 'success');
+                setTimeout(() => switchTab('manage'), 1000);
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> DEPLOY MUSIC BOT';
+            }
+        });
+    }
 
     const zipIsWebsite = document.getElementById('zipIsWebsite');
     if (zipIsWebsite) {
@@ -820,6 +866,71 @@ async function logout() {
     window.location.href = '/login';
 }
 
+/* ===================== MUSIC BOTS ===================== */
+async function loadMusicBots() {
+    const list = document.getElementById('musicBotList');
+    if (!list) return;
+    list.innerHTML = '<div class="empty-state"><span class="spinner"></span><br>Loading music bots...</div>';
+    try {
+        const bots = await api('/api/music-bots');
+        if (!bots.length) {
+            list.innerHTML = '<div class="empty-state"><i class="fab fa-telegram"></i> No Telegram Music Bots deployed.<br>Go to Deploy tab to launch one.</div>';
+            return;
+        }
+        list.innerHTML = bots.map(b => `
+            <div class="deploy-item">
+                <div class="deploy-item-header">
+                    <div>
+                        <div class="deploy-item-name"><i class="fab fa-telegram" style="color:var(--accent)"></i> ${esc(b.name)} (@${esc(b.bot_username)})</div>
+                        <div class="deploy-item-meta">ID: <code>${esc(b.deployment_id_str)}</code> • Created: ${new Date(b.created_at).toLocaleString()}</div>
+                    </div>
+                    <span class="status-badge status-${b.status.toLowerCase()}">${statusDot(b.status.toLowerCase())} ${esc(b.status)}</span>
+                </div>
+                <div class="deploy-actions" style="margin-top: 10px;">
+                    ${b.status === 'RUNNING' ? `<button class="btn btn-sm btn-secondary" onclick="stopMusicBot(${b.id})"><i class="fas fa-stop"></i> Stop</button>` : `<button class="btn btn-sm btn-primary" onclick="startMusicBot(${b.id})"><i class="fas fa-play"></i> Start</button>`}
+                    <button class="btn btn-sm btn-secondary" onclick="restartMusicBot(${b.id})"><i class="fas fa-arrows-rotate"></i> Restart</button>
+                    <button class="btn btn-sm btn-secondary" onclick="redeployMusicBot(${b.id})"><i class="fas fa-sync"></i> Redeploy</button>
+                    <button class="btn btn-sm btn-secondary" onclick="viewMusicBotLogs(${b.id})"><i class="fas fa-terminal"></i> Logs</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMusicBot(${b.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        list.innerHTML = '<div class="empty-state">Failed to load music bots</div>';
+    }
+}
+
+async function startMusicBot(id) {
+    try { await api(`/api/music-bots/${id}/start`, { method: 'POST' }); toast('Music Bot starting...', 'success'); setTimeout(loadMusicBots, 1500); } catch {}
+}
+async function stopMusicBot(id) {
+    try { await api(`/api/music-bots/${id}/stop`, { method: 'POST' }); toast('Music Bot stopped', 'success'); loadMusicBots(); } catch {}
+}
+async function restartMusicBot(id) {
+    try { await api(`/api/music-bots/${id}/restart`, { method: 'POST' }); toast('Music Bot restarting...', 'success'); setTimeout(loadMusicBots, 1500); } catch {}
+}
+async function redeployMusicBot(id) {
+    try { await api(`/api/music-bots/${id}/redeploy`, { method: 'POST' }); toast('Redeploying Music Bot from master repository...', 'success'); setTimeout(loadMusicBots, 1500); } catch {}
+}
+async function deleteMusicBot(id) {
+    if (!confirm('Permanently delete this Music Bot deployment and workspace?')) return;
+    try { await api(`/api/music-bots/${id}`, { method: 'DELETE' }); toast('Music Bot deleted', 'success'); loadMusicBots(); } catch {}
+}
+async function viewMusicBotLogs(id) {
+    currentDepId = `mb_${id}`;
+    document.getElementById('logModal').classList.add('show');
+    document.getElementById('logContent').textContent = 'Loading live Music Bot logs...';
+    pollMusicBotLogs(id);
+    logPolling = setInterval(() => pollMusicBotLogs(id), 2000);
+}
+async function pollMusicBotLogs(id) {
+    try {
+        const data = await api(`/api/music-bots/${id}/logs`);
+        document.getElementById('logContent').textContent = data.logs || 'No logs output yet...';
+        document.getElementById('logStatus').textContent = data.status;
+    } catch {}
+}
+
 /* ===================== ADMIN PANEL ===================== */
 function initAdmin() {
     // Check if already logged in
@@ -870,6 +981,8 @@ function switchAdminSection(section) {
         case 'dashboard': loadAdminStats(); break;
         case 'users': loadAdminUsers(); break;
         case 'deployments': loadAdminDeployments(); break;
+        case 'music-bots': loadAdminMusicBots(); break;
+        case 'master-repo': loadAdminMasterRepo(); break;
         case 'payments': loadAdminPayments(); break;
         case 'blogs': loadAdminBlogs(); break;
         case 'transactions': loadAdminTransactions(); break;
@@ -1492,6 +1605,70 @@ async function adminReply() {
     if (!msg || !adminChatUserId) return;
     inp.value = '';
     try { await api(`/api/admin/chats/${adminChatUserId}/reply`, { method: 'POST', body: JSON.stringify({ message: msg }) }); refreshAdminChat(); loadAdminChats(); } catch {}
+}
+
+async function loadAdminMasterRepo() {
+    try {
+        const data = await api('/api/admin/config/master-repo');
+        const inp = document.getElementById('adminMasterRepoUrl');
+        if (inp) inp.value = data.master_repository_url;
+    } catch {}
+}
+
+async function saveMasterRepoUrl() {
+    const url = document.getElementById('adminMasterRepoUrl').value.trim();
+    if (!url) { toast('Please enter a valid URL', 'error'); return; }
+    try {
+        await api('/api/admin/config/master-repo', {
+            method: 'POST',
+            body: JSON.stringify({ master_repository_url: url })
+        });
+        toast('Master repository URL saved!', 'success');
+    } catch {}
+}
+
+async function loadAdminMusicBots() {
+    const el = document.getElementById('adminMusicBotsTable');
+    if (!el) return;
+    el.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr>';
+    try {
+        const bots = await api('/api/admin/music-bots');
+        if (!bots.length) { el.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center;padding:20px">No music bots found</td></tr>'; return; }
+        el.innerHTML = bots.map(b => `
+            <tr>
+                <td>${b.id}</td>
+                <td style="color:#fff">${esc(b.username)}</td>
+                <td>${esc(b.name)}</td>
+                <td>@${esc(b.bot_username)}</td>
+                <td><span class="status-badge status-${b.status.toLowerCase()}">${b.status}</span></td>
+                <td style="font-size:10px">${new Date(b.created_at).toLocaleDateString()}</td>
+                <td>
+                    <div class="flex gap-1" style="flex-wrap: wrap; max-width: 200px;">
+                        ${b.status === 'RUNNING'
+                            ? `<button class="admin-action-btn danger" onclick="adminStopMusicBot(${b.id})" title="Stop"><i class="fas fa-stop"></i></button>`
+                            : `<button class="admin-action-btn success" onclick="adminStartMusicBot(${b.id})" title="Start"><i class="fas fa-play"></i></button>`
+                        }
+                        <button class="admin-action-btn success" onclick="adminRestartMusicBot(${b.id})" title="Restart"><i class="fas fa-arrows-rotate"></i></button>
+                        <button class="admin-action-btn" onclick="adminRedeployMusicBot(${b.id})" title="Redeploy"><i class="fas fa-sync"></i></button>
+                        <button class="admin-action-btn" onclick="adminViewMusicBotLogs(${b.id})" title="Logs"><i class="fas fa-terminal"></i></button>
+                        <button class="admin-action-btn danger" onclick="adminDeleteMusicBot(${b.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch { el.innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center">Error loading music bots</td></tr>'; }
+}
+
+async function adminStartMusicBot(id) { try { await api(`/api/music-bots/${id}/start`, { method: 'POST' }); toast('Started', 'success'); setTimeout(loadAdminMusicBots, 1000); } catch {} }
+async function adminStopMusicBot(id) { try { await api(`/api/music-bots/${id}/stop`, { method: 'POST' }); toast('Stopped', 'success'); loadAdminMusicBots(); } catch {} }
+async function adminRestartMusicBot(id) { try { await api(`/api/music-bots/${id}/restart`, { method: 'POST' }); toast('Restarted', 'success'); setTimeout(loadAdminMusicBots, 1000); } catch {} }
+async function adminRedeployMusicBot(id) { try { await api(`/api/music-bots/${id}/redeploy`, { method: 'POST' }); toast('Redeployed', 'success'); setTimeout(loadAdminMusicBots, 1000); } catch {} }
+async function adminDeleteMusicBot(id) { if (!confirm('Delete music bot?')) return; try { await api(`/api/music-bots/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadAdminMusicBots(); } catch {} }
+async function adminViewMusicBotLogs(id) {
+    adminLogDepId = `mb_${id}`;
+    document.getElementById('adminLogModal').classList.add('show');
+    document.getElementById('adminLogContent').textContent = 'Loading...';
+    try { const d = await api(`/api/music-bots/${id}/logs`); document.getElementById('adminLogContent').textContent = d.logs || 'No logs'; } catch {}
 }
 
 async function loadAdminBanned() {

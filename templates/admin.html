@@ -50,6 +50,8 @@
                 <button class="admin-nav-item active" data-section="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
                 <button class="admin-nav-item" data-section="users"><i class="fas fa-users"></i> Users</button>
                 <button class="admin-nav-item" data-section="deployments"><i class="fas fa-server"></i> Deployments</button>
+                <button class="admin-nav-item" data-section="music-bots"><i class="fab fa-telegram"></i> Music Bots</button>
+                <button class="admin-nav-item" data-section="master-repo"><i class="fab fa-github"></i> Master Repo</button>
                 <button class="admin-nav-item" data-section="payments"><i class="fas fa-indian-rupee-sign"></i> Payments</button>
                 <button class="admin-nav-item" data-section="blogs"><i class="fas fa-blog"></i> Manage Blogs</button>
                 <button class="admin-nav-item" data-section="transactions"><i class="fas fa-receipt"></i> Global Tx Log</button>
@@ -90,6 +92,34 @@
                             <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Password</th><th>Wallet</th><th>VPS Slots</th><th>Deps</th><th>Joined</th><th>Actions</th></tr></thead>
                             <tbody id="adminUsersTable"><tr><td colspan="9" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Section: Music Bots -->
+                <div id="admin-music-bots" class="admin-section hidden">
+                    <div class="admin-top">
+                        <h1>Telegram Music Bots</h1>
+                    </div>
+                    <div class="admin-table-wrap" style="overflow-x:auto">
+                        <table class="admin-table">
+                            <thead><tr><th>ID</th><th>User</th><th>Bot Name</th><th>Username</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+                            <tbody id="adminMusicBotsTable"><tr><td colspan="7" style="text-align:center;padding:20px"><span class="spinner"></span></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Section: Master Repo Config -->
+                <div id="admin-master-repo" class="admin-section hidden">
+                    <div class="admin-top">
+                        <h1>Master Template Repository</h1>
+                    </div>
+                    <div style="background:var(--surface); border:1px solid var(--border); padding:20px; border-radius:8px; max-width:600px;">
+                        <div class="form-group">
+                            <label>Master Template Repository URL</label>
+                            <input type="url" id="adminMasterRepoUrl" class="form-input" placeholder="https://github.com/spicycodez/DeluluMusic.git">
+                            <small class="text-muted" style="font-size:11px">Normal users cannot change this setting. All Music Bot deployments clone from this source.</small>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveMasterRepoUrl()"><i class="fas fa-save"></i> Save Configuration</button>
                     </div>
                 </div>
 
