@@ -97,8 +97,8 @@ class MusicBotTestCase(unittest.TestCase):
         # 3. Confirm different IDs and unique workspace paths
         self.assertNotEqual(bot_a_id, bot_b_id)
         with app.app_context():
-            bot_a = MusicBotDeployment.query.get(bot_a_id)
-            bot_b = MusicBotDeployment.query.get(bot_b_id)
+            bot_a = db.session.get(MusicBotDeployment, bot_a_id)
+            bot_b = db.session.get(MusicBotDeployment, bot_b_id)
             self.assertNotEqual(bot_a.deployment_id_str, bot_b.deployment_id_str)
             self.assertIn(str(self.user_a_id), bot_a.workspace_path or "")
             self.assertIn(str(self.user_b_id), bot_b.workspace_path or "")
@@ -166,7 +166,7 @@ class MusicBotTestCase(unittest.TestCase):
         bot_id = json.loads(res.data)['bot']['id']
 
         with app.app_context():
-            bot = MusicBotDeployment.query.get(bot_id)
+            bot = db.session.get(MusicBotDeployment, bot_id)
             bot.logs = "Starting bot with token my_top_secret_token and hash my_top_secret_hash"
             db.session.commit()
 
@@ -182,7 +182,7 @@ class MusicBotTestCase(unittest.TestCase):
         self.assertEqual(del_res.status_code, 200)
 
         with app.app_context():
-            deleted_bot = MusicBotDeployment.query.get(bot_id)
+            deleted_bot = db.session.get(MusicBotDeployment, bot_id)
             self.assertIsNone(deleted_bot)
 
 if __name__ == '__main__':

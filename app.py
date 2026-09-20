@@ -246,7 +246,7 @@ def free_trial_monitor_loop():
                 # Query all running free deployments
                 free_deps = Deployment.query.filter_by(status='running', is_free=True).all()
                 for dep in free_deps:
-                    user = User.query.get(dep.user_id)
+                    user = db.session.get(User, dep.user_id)
                     # Check overall trial expiration date (3 hours) or 15 minutes session duration
                     is_expired_session = False
                     if dep.last_started_at and (now - dep.last_started_at) >= timedelta(minutes=15):
@@ -265,6 +265,28 @@ def free_trial_monitor_loop():
 
 with app.app_context():
     db.create_all()
+    # Seed default blog posts if empty
+    try:
+        if BlogPost.query.count() == 0:
+            default_posts = [
+                BlogPost(
+                    title="Securing High-Throughput Telegram Bots",
+                    slug="securing-high-throughput-telegram-bots",
+                    excerpt="Best practices for running 24/7 Pyrogram and Telethon bots with encrypted secret vault injection and isolated container runtimes.",
+                    content="<p>Running high-throughput Telegram bots requires proper process isolation, long-polling socket monitoring, and secure variable management.</p><h3>1. Secret Vault Injection</h3><p>Never commit plaintext <code>.env</code> files or bot tokens to Git repositories. EliteHosting injects environment variables directly into system memory at runtime.</p><h3>2. Zero Sleep Long-Polling</h3><p>Ensure your bot event loop auto-recovers from network socket drops. EliteHosting continuously monitors process health and recycles hung socket connections automatically.</p>"
+                ),
+                BlogPost(
+                    title="Getting Started with Python Bot VPS Hosting",
+                    slug="getting-started-with-python-bot-vps-hosting",
+                    excerpt="How to deploy your first Python or Node.js bot on EliteHosting in under 60 seconds.",
+                    content="<p>Deploying your bot on EliteHosting is fast and seamless.</p><h3>Step 1: Upload Source Code</h3><p>Upload your ZIP file or paste your GitHub repository link in the dashboard.</p><h3>Step 2: Add Bot Tokens</h3><p>Configure your <code>BOT_TOKEN</code> and <code>API_HASH</code> in the dashboard UI.</p><h3>Step 3: Click Deploy</h3><p>Our automated builder resolves dependencies automatically and launches your bot 24/7.</p>"
+                )
+            ]
+            db.session.add_all(default_posts)
+            db.session.commit()
+    except Exception as e:
+        print(f"Blog seeding notice: {e}")
+
     # Automated Schema Migration for password_plain, RateLimit, and Deployment columns
     try:
         from sqlalchemy import inspect, text
@@ -321,7 +343,7 @@ def login_required(f):
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
             return jsonify({'error': 'Login required'}), 401
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         if not user or user.is_banned:
             session.clear()
             return jsonify({'error': 'Account banned'}), 403
@@ -633,7 +655,7 @@ def is_safe_upload_content(file_stream, filename):
 
 class DeployEngine:
     def __init__(self, deployment_id):
-        self.deployment = Deployment.query.get(deployment_id)
+        self.deployment = db.session.get(Deployment, deployment_id)
         self.deploy_path = os.path.join(app.config['DEPLOY_FOLDER'], f'deploy_{deployment_id}')
         self.log_file = os.path.join(self.deploy_path, 'process.log')
 
@@ -950,7 +972,7 @@ class DeployEngine:
         ram_limit = "256m"
         vps_slot = None
         if self.deployment.vps_slot_id:
-            vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
+            vps_slot = db.session.get(VpsSlot, self.deployment.vps_slot_id)
             if vps_slot:
                 ram_limit = f"{vps_slot.ram_mb}m"
                 vps_slot.status = 'running'
@@ -1091,7 +1113,7 @@ CMD {run_cmd}
                 while True:
                     time.sleep(3)
                     with app.app_context():
-                        d = Deployment.query.get(self.deployment.id)
+                        d = db.session.get(Deployment, self.deployment.id)
                         if not d or d.status != 'running':
                             break
 
@@ -1099,7 +1121,7 @@ CMD {run_cmd}
                         if inspect_proc.returncode != 0 or inspect_proc.stdout.strip() != "true":
                             d.status = 'stopped'
                             d.pid = None
-                            vs = VpsSlot.query.get(d.vps_slot_id) if d.vps_slot_id else None
+                            vs = db.session.get(VpsSlot, d.vps_slot_id) if d.vps_slot_id else None
                             if vs:
                                 vs.status = 'idle'
                             db.session.commit()
@@ -1149,7 +1171,7 @@ CMD {run_cmd}
             self._log("Stopping static website deployment...")
             vps_slot = None
             if self.deployment.vps_slot_id:
-                vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
+                vps_slot = db.session.get(VpsSlot, self.deployment.vps_slot_id)
                 if vps_slot:
                     vps_slot.status = 'idle'
             self.deployment.status = 'stopped'
@@ -1173,7 +1195,7 @@ CMD {run_cmd}
 
         vps_slot = None
         if self.deployment.vps_slot_id:
-            vps_slot = VpsSlot.query.get(self.deployment.vps_slot_id)
+            vps_slot = db.session.get(VpsSlot, self.deployment.vps_slot_id)
             if vps_slot:
                 vps_slot.status = 'idle'
 
@@ -1220,7 +1242,7 @@ def mask_secret(val):
 
 class MusicBotDeployEngine:
     def __init__(self, bot_id):
-        self.bot = MusicBotDeployment.query.get(bot_id)
+        self.bot = db.session.get(MusicBotDeployment, bot_id)
         if self.bot:
             self.deploy_dir = os.path.join(app.config['DEPLOY_FOLDER'], 'music_bots', str(self.bot.user_id), self.bot.deployment_id_str)
             self.log_file = os.path.join(self.deploy_dir, 'bot.log')
@@ -1404,7 +1426,7 @@ class MusicBotDeployEngine:
         while True:
             time.sleep(5)
             with app.app_context():
-                b = MusicBotDeployment.query.get(self.bot.id)
+                b = db.session.get(MusicBotDeployment, self.bot.id)
                 if not b or b.status != 'RUNNING' or b.pid != pid:
                     break
 
@@ -1820,7 +1842,7 @@ def api_logout():
 @rate_limit('auth_action')
 @login_required
 def api_me():
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     return jsonify({
         'id': user.id, 'username': user.username, 'email': user.email,
         'plan': user.plan, 'wallet': user.wallet_balance,
@@ -1836,7 +1858,7 @@ def api_stats():
     uid = session['user_id']
     deps = Deployment.query.filter_by(user_id=uid).all()
     running = sum(1 for d in deps if d.status == 'running')
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
 
     # Calculate VPS slots summary
     slots = VpsSlot.query.filter_by(user_id=uid).all()
@@ -1881,7 +1903,7 @@ def api_list_deployments():
 @rate_limit('auth_action')
 @login_required
 def api_deploy_github():
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     data = request.get_json(silent=True) or {}
     schema = {
         'name': {'type': str, 'required': True, 'min': 3, 'max': 100},
@@ -1960,7 +1982,7 @@ def api_deploy_github():
 @rate_limit('auth_action')
 @login_required
 def api_deploy_zip():
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     is_website = (request.form.get('is_website') == 'true')
 
     form_data = {
@@ -2063,7 +2085,7 @@ def api_deploy_zip():
 @rate_limit('auth_action')
 @login_required
 def api_start_deploy(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     if dep.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized'}), 403
     engine = DeployEngine(dep_id)
@@ -2074,7 +2096,7 @@ def api_start_deploy(dep_id):
 @rate_limit('auth_action')
 @login_required
 def api_stop_deploy(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     if dep.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized'}), 403
     engine = DeployEngine(dep_id)
@@ -2085,7 +2107,7 @@ def api_stop_deploy(dep_id):
 @rate_limit('auth_action')
 @login_required
 def api_get_logs(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     if dep.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized'}), 403
     engine = DeployEngine(dep_id)
@@ -2095,7 +2117,7 @@ def api_get_logs(dep_id):
 @rate_limit('auth_action')
 @login_required
 def api_delete_deploy(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     if dep.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized'}), 403
     engine = DeployEngine(dep_id)
@@ -2106,7 +2128,7 @@ def api_delete_deploy(dep_id):
 @rate_limit('auth_action')
 @login_required
 def api_update_deployment_slug(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     if dep.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized'}), 403
     if not dep.is_website:
@@ -2137,11 +2159,11 @@ def api_update_deployment_slug(dep_id):
 @rate_limit('auth_action')
 @login_required
 def api_referral_info():
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     refs = Referral.query.filter_by(referrer_id=user.id).all()
     referred_users = []
     for r in refs:
-        u = User.query.get(r.referred_id)
+        u = db.session.get(User, r.referred_id)
         referred_users.append({
             'username': u.username if u else 'Unknown',
             'amount': r.amount, 'plan': r.plan_name,
@@ -2159,7 +2181,7 @@ def api_referral_info():
 @rate_limit('auth_action')
 @login_required
 def api_withdraw():
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     data = request.get_json(silent=True) or {}
     schema = {
         'amount': {'type': float, 'required': True, 'min': 1.0, 'max': 100000.0}
@@ -2223,7 +2245,7 @@ def api_payment_request():
 def api_admin_payments():
     reqs = PaymentRequest.query.order_by(PaymentRequest.created_at.desc()).all()
     return jsonify([{
-        'id': r.id, 'user_id': r.user_id, 'username': User.query.get(r.user_id).username,
+        'id': r.id, 'user_id': r.user_id, 'username': db.session.get(User, r.user_id).username,
         'name': r.name, 'number': r.number, 'transaction_id': r.transaction_id,
         'amount': r.amount, 'credits': r.credits, 'status': r.status,
         'created_at': r.created_at.isoformat()
@@ -2232,11 +2254,11 @@ def api_admin_payments():
 @app.route('/api/admin/payments/<int:rid>/approve', methods=['POST'])
 @admin_required
 def api_admin_approve_payment(rid):
-    req = PaymentRequest.query.get_or_404(rid)
+    req = db.get_or_404(PaymentRequest, rid)
     if req.status != 'pending':
         return jsonify({'error': 'Already processed'}), 400
 
-    user = User.query.get(req.user_id)
+    user = db.session.get(User, req.user_id)
 
     # Allocate purchased VPS slots based on payment references
     # 99 INR (credits=1) -> Micro 256MB VPS slot
@@ -2262,7 +2284,7 @@ def api_admin_approve_payment(rid):
 
     # Referral commission - 30% of payment amount
     if user.referred_by:
-        referrer = User.query.get(user.referred_by)
+        referrer = db.session.get(User, user.referred_by)
         if referrer:
             commission = round(req.amount * 0.30, 2)
             referrer.wallet_balance += commission
@@ -2277,7 +2299,7 @@ def api_admin_approve_payment(rid):
 @app.route('/api/admin/payments/<int:rid>/reject', methods=['POST'])
 @admin_required
 def api_admin_reject_payment(rid):
-    req = PaymentRequest.query.get_or_404(rid)
+    req = db.get_or_404(PaymentRequest, rid)
     if req.status != 'pending':
         return jsonify({'error': 'Already processed'}), 400
     req.status = 'rejected'
@@ -2432,7 +2454,7 @@ def api_admin_users():
 @app.route('/api/admin/users/<int:uid>/ban', methods=['POST'])
 @admin_required
 def api_admin_ban(uid):
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
     user.is_banned = True
     # Uske saare deployments stop karo
     for d in Deployment.query.filter_by(user_id=uid, status='running').all():
@@ -2449,7 +2471,7 @@ def api_admin_ban(uid):
 @app.route('/api/admin/users/<int:uid>/unban', methods=['POST'])
 @admin_required
 def api_admin_unban(uid):
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
     user.is_banned = False
     db.session.commit()
     return jsonify({'message': f'{user.username} unbanned'})
@@ -2459,7 +2481,7 @@ def api_admin_unban(uid):
 def api_admin_balance(uid):
     data = request.get_json()
     amount = float(data.get('amount', 0))
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
     user.wallet_balance += amount
     if amount != 0:
         tx = Transaction(user_id=uid, tx_type='admin_balance_adjustment', amount=amount, description=f'Admin {"added" if amount > 0 else "removed"} ₹{abs(amount)} to wallet')
@@ -2472,7 +2494,7 @@ def api_admin_balance(uid):
 def api_admin_credits(uid):
     data = request.get_json()
     amount = int(data.get('amount', 0))
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
 
     # Manage VPS slots directly for admin adjustments
     if amount > 0:
@@ -2485,7 +2507,7 @@ def api_admin_credits(uid):
         for s in slots:
             # Stop any associated deployment first
             if s.deployment_id:
-                dep = Deployment.query.get(s.deployment_id)
+                dep = db.session.get(Deployment, s.deployment_id)
                 if dep:
                     engine = DeployEngine(dep.id)
                     engine.stop()
@@ -2506,7 +2528,7 @@ def api_admin_deployments():
     deps = Deployment.query.order_by(Deployment.created_at.desc()).all()
     return jsonify([{
         'id': d.id, 'name': d.name, 'type': d.deploy_type,
-        'user_id': d.user_id, 'username': User.query.get(d.user_id).username if User.query.get(d.user_id) else 'Unknown',
+        'user_id': d.user_id, 'username': db.session.get(User, d.user_id).username if db.session.get(User, d.user_id) else 'Unknown',
         'repo_url': d.repo_url, 'status': d.status, 'pid': d.pid,
         'port': d.port, 'entry_file': d.entry_file,
         'env_vars': d.env_vars,
@@ -2516,7 +2538,7 @@ def api_admin_deployments():
 @app.route('/api/admin/deployments/<int:dep_id>/stop', methods=['POST'])
 @admin_required
 def api_admin_stop_dep(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     engine = DeployEngine(dep_id)
     engine.stop()
     return jsonify({'message': 'Stopped', 'status': dep.status})
@@ -2524,7 +2546,7 @@ def api_admin_stop_dep(dep_id):
 @app.route('/api/admin/deployments/<int:dep_id>/delete', methods=['DELETE'])
 @admin_required
 def api_admin_delete_dep(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     engine = DeployEngine(dep_id)
     engine.delete()
     return jsonify({'message': 'Deleted'})
@@ -2532,7 +2554,7 @@ def api_admin_delete_dep(dep_id):
 @app.route('/api/admin/deployments/<int:dep_id>/logs', methods=['GET'])
 @admin_required
 def api_admin_dep_logs(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     engine = DeployEngine(dep_id)
     return jsonify({'logs': engine.get_logs(), 'status': dep.status})
 
@@ -2543,7 +2565,7 @@ def api_admin_chats():
     users_with_chats = db.session.query(ChatMessage.user_id).distinct().all()
     result = []
     for (uid,) in users_with_chats:
-        user = User.query.get(uid)
+        user = db.session.get(User, uid)
         last_msg = ChatMessage.query.filter_by(user_id=uid).order_by(ChatMessage.created_at.desc()).first()
         unread = ChatMessage.query.filter_by(user_id=uid, sender_type='user', is_read=False).count()
         result.append({
@@ -2562,7 +2584,7 @@ def api_admin_chat_with(uid):
     ChatMessage.query.filter_by(user_id=uid, sender_type='user', is_read=False).update({'is_read': True})
     db.session.commit()
     msgs = ChatMessage.query.filter_by(user_id=uid).order_by(ChatMessage.created_at.asc()).all()
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     return jsonify({
         'username': user.username if user else 'Unknown',
         'messages': [{'id': m.id, 'message': m.message, 'sender': m.sender_type, 'date': m.created_at.isoformat()} for m in msgs]
@@ -2611,14 +2633,14 @@ def api_admin_banned_ips():
 def api_admin_unban_ip(bid):
     if bid.startswith("admin_"):
         real_id = int(bid.replace("admin_", ""))
-        auth = AdminAuth.query.get_or_404(real_id)
+        auth = db.get_or_404(AdminAuth, real_id)
         auth.is_banned = False
         auth.failed_attempts = 0
         db.session.commit()
         return jsonify({'message': f'IP {auth.ip_address} unbanned'})
     elif bid.startswith("general_"):
         real_id = int(bid.replace("general_", ""))
-        banned = BannedIP.query.get_or_404(real_id)
+        banned = db.get_or_404(BannedIP, real_id)
         ip = banned.ip_address
         db.session.delete(banned)
         db.session.commit()
@@ -2646,7 +2668,7 @@ def api_admin_ban_ip_manually():
 @app.route('/api/admin/users/<int:uid>/ban-ip', methods=['POST'])
 @admin_required
 def api_admin_ban_user_ip(uid):
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
     if not user.last_ip:
         return jsonify({'error': 'User has no recorded IP address yet.'}), 400
 
@@ -2672,7 +2694,7 @@ def api_admin_ban_user_ip(uid):
 @app.route('/api/admin/users/<int:uid>', methods=['GET'])
 @admin_required
 def api_admin_get_user(uid):
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
     return jsonify({
         'id': user.id,
         'username': user.username,
@@ -2690,7 +2712,7 @@ def api_admin_get_user(uid):
 @app.route('/api/admin/users/<int:uid>', methods=['PUT'])
 @admin_required
 def api_admin_update_user(uid):
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
     data = request.get_json()
 
     if 'username' in data:
@@ -2746,7 +2768,7 @@ def api_admin_update_user(uid):
 @app.route('/api/admin/users/<int:uid>', methods=['DELETE'])
 @admin_required
 def api_admin_delete_user(uid):
-    user = User.query.get_or_404(uid)
+    user = db.get_or_404(User, uid)
 
     # 1. Stop and Delete all deployments of this user
     deps = Deployment.query.filter_by(user_id=uid).all()
@@ -2778,11 +2800,11 @@ def api_admin_delete_user(uid):
 @app.route('/api/admin/deployments/<int:dep_id>', methods=['GET'])
 @admin_required
 def api_admin_get_dep(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     return jsonify({
         'id': dep.id,
         'user_id': dep.user_id,
-        'username': User.query.get(dep.user_id).username if User.query.get(dep.user_id) else 'Unknown',
+        'username': db.session.get(User, dep.user_id).username if db.session.get(User, dep.user_id) else 'Unknown',
         'name': dep.name,
         'deploy_type': dep.deploy_type,
         'repo_url': dep.repo_url,
@@ -2799,7 +2821,7 @@ def api_admin_get_dep(dep_id):
 @app.route('/api/admin/deployments/<int:dep_id>', methods=['PUT'])
 @admin_required
 def api_admin_update_dep(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     data = request.get_json()
 
     if 'name' in data:
@@ -2821,7 +2843,7 @@ def api_admin_update_dep(dep_id):
 @app.route('/api/admin/deployments/<int:dep_id>/start', methods=['POST'])
 @admin_required
 def api_admin_start_dep_endpoint(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     engine = DeployEngine(dep_id)
     success = engine.start()
     return jsonify({'message': 'Started' if success else 'Failed', 'status': dep.status})
@@ -2829,7 +2851,7 @@ def api_admin_start_dep_endpoint(dep_id):
 @app.route('/api/admin/deployments/<int:dep_id>/restart', methods=['POST'])
 @admin_required
 def api_admin_restart_dep(dep_id):
-    dep = Deployment.query.get_or_404(dep_id)
+    dep = db.get_or_404(Deployment, dep_id)
     engine = DeployEngine(dep_id)
     engine.stop()
     success = engine.start()
@@ -2879,7 +2901,7 @@ def api_admin_create_blog():
 @app.route('/api/admin/blogs/<int:bid>', methods=['PUT'])
 @admin_required
 def api_admin_update_blog(bid):
-    blog = BlogPost.query.get_or_404(bid)
+    blog = db.get_or_404(BlogPost, bid)
     data = request.get_json()
 
     if 'title' in data:
@@ -2901,7 +2923,7 @@ def api_admin_update_blog(bid):
 @app.route('/api/admin/blogs/<int:bid>', methods=['DELETE'])
 @admin_required
 def api_admin_delete_blog(bid):
-    blog = BlogPost.query.get_or_404(bid)
+    blog = db.get_or_404(BlogPost, bid)
     db.session.delete(blog)
     db.session.commit()
     return jsonify({'message': 'Blog post deleted successfully'})
@@ -2915,7 +2937,7 @@ def api_admin_transactions_list():
     return jsonify([{
         'id': t.id,
         'user_id': t.user_id,
-        'username': User.query.get(t.user_id).username if User.query.get(t.user_id) else 'Unknown',
+        'username': db.session.get(User, t.user_id).username if db.session.get(User, t.user_id) else 'Unknown',
         'tx_type': t.tx_type,
         'amount': t.amount,
         'description': t.description,
@@ -2987,7 +3009,7 @@ def api_list_music_bots():
 @login_required
 def api_create_music_bot():
     uid = session['user_id']
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
 
     data = request.get_json(silent=True) or {}
     schema = {
@@ -3078,7 +3100,7 @@ def api_create_music_bot():
 @rate_limit('auth_action')
 @login_required
 def api_get_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
     return jsonify(serialize_music_bot(bot, mask_secrets=True))
@@ -3088,7 +3110,7 @@ def api_get_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_update_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
 
@@ -3131,7 +3153,7 @@ def api_update_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_start_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
     engine = MusicBotDeployEngine(bot_id)
@@ -3142,7 +3164,7 @@ def api_start_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_stop_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
     engine = MusicBotDeployEngine(bot_id)
@@ -3153,7 +3175,7 @@ def api_stop_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_restart_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
     engine = MusicBotDeployEngine(bot_id)
@@ -3165,7 +3187,7 @@ def api_restart_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_redeploy_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
 
@@ -3178,7 +3200,7 @@ def api_redeploy_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_delete_music_bot(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
     engine = MusicBotDeployEngine(bot_id)
@@ -3189,7 +3211,7 @@ def api_delete_music_bot(bot_id):
 @rate_limit('auth_action')
 @login_required
 def api_get_music_bot_logs(bot_id):
-    bot = MusicBotDeployment.query.get_or_404(bot_id)
+    bot = db.get_or_404(MusicBotDeployment, bot_id)
     if bot.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized deployment access'}), 403
     engine = MusicBotDeployEngine(bot_id)
@@ -3207,7 +3229,7 @@ def api_admin_list_music_bots():
     res = []
     for b in bots:
         data = serialize_music_bot(b, mask_secrets=True)
-        user = User.query.get(b.user_id)
+        user = db.session.get(User, b.user_id)
         data['username'] = user.username if user else 'Unknown'
         res.append(data)
     return jsonify(res)
@@ -3247,14 +3269,15 @@ logger = logging.getLogger(__name__)
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Log the full exception traceback server-side
-    logger.error("Unhandled exception occurred: %s\n%s", str(e), format_exc())
-
-    # Determine the status code
     from werkzeug.exceptions import HTTPException
     code = 500
     if isinstance(e, HTTPException):
         code = e.code
+
+    if code >= 500:
+        logger.error("Unhandled exception occurred: %s\n%s", str(e), format_exc())
+    else:
+        logger.info("HTTP %s on %s: %s", code, request.path, str(e))
 
     if request.path.startswith('/api/'):
         return jsonify({
@@ -3280,7 +3303,7 @@ def check_ip_banned_and_expired():
     if 'user_id' in session:
         try:
             uid = session['user_id']
-            user = User.query.get(uid)
+            user = db.session.get(User, uid)
             if user:
                 if user.is_banned:
                     session.clear()
