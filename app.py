@@ -173,6 +173,9 @@ class SystemConfig(db.Model):
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text, nullable=True)
 
+with app.app_context():
+    db.create_all()
+
 
 # ===================== HELPERS =====================
 
