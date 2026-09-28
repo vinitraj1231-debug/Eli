@@ -10,3 +10,4 @@ instance/
 uploads/
 deploys/
 elitehosting.db
+venv/

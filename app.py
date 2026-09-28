@@ -29,7 +29,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # Session Cookie Security Hardening
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = True  # Enforce TLS transport-level cookies securely
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() in ('true', '1', 'yes')
 
 # ===================== CONFIGURATIONS =====================
 AUTH_LIMIT_CONFIG = {
@@ -339,15 +339,6 @@ def auth_rate_limit():
                                 'retry_after_seconds': retry_after
                             }), 429
 
-            # Log current attempt
-            rl_record = None
-            try:
-                rl_record = RateLimit(ip_address=ip, endpoint=endpoint, username=username, timestamp=now)
-                db.session.add(rl_record)
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-
             # Execute view function
             response = f(*args, **kwargs)
 
@@ -375,6 +366,14 @@ def auth_rate_limit():
                     db.session.commit()
                 except Exception:
                     db.session.rollback()
+            else:
+                # Log failed attempt only
+                try:
+                    rl_record = RateLimit(ip_address=ip, endpoint=endpoint, username=username, timestamp=now)
+                    db.session.add(rl_record)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
             return response
         return decorated
     return decorator
@@ -387,7 +386,7 @@ def generate_referral_code():
 
 def get_client_ip():
     if request.headers.getlist('X-Forwarded-For'):
-        return request.headers.getlist('X-Forwarded-For')[0]
+        return request.headers.getlist('X-Forwarded-For')[0].split(',')[0].strip()
     return request.remote_addr
 
 def validate_payload(schema, data):
@@ -1350,9 +1349,9 @@ def api_register():
     password = cleaned.get('password')
     referral = cleaned.get('referral', '').upper() if cleaned.get('referral') else ''
 
-    if User.query.filter_by(username=username).first():
+    if User.query.filter(db.func.lower(User.username) == username).first():
         return jsonify({'error': 'Username taken'}), 409
-    if User.query.filter_by(email=email).first():
+    if User.query.filter(db.func.lower(User.email) == email).first():
         return jsonify({'error': 'Email already registered'}), 409
 
     referrer = None
@@ -1396,7 +1395,7 @@ def api_login():
     username = cleaned.get('username').lower()
     password = cleaned.get('password')
 
-    user = User.query.filter((User.username == username) | (User.email == username)).first()
+    user = User.query.filter((db.func.lower(User.username) == username) | (db.func.lower(User.email) == username)).first()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid credentials'}), 401
     if user.is_banned:
