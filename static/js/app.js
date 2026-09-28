@@ -24,8 +24,16 @@ async function api(url, options = {}) {
         headers: { 'Content-Type': 'application/json', ...options.headers },
         ...options
     });
-    const data = await res.json();
-    if (!res.ok) { toast(data.error || 'Request failed', 'error'); throw new Error(data.error); }
+    let data;
+    try {
+        data = await res.json();
+    } catch {
+        data = { error: `Server error (${res.status})` };
+    }
+    if (!res.ok) {
+        toast(data.error || 'Request failed', 'error');
+        throw new Error(data.error || 'Request failed');
+    }
     return data;
 }
 

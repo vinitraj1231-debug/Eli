@@ -29,7 +29,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 # Session Cookie Security Hardening
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = True  # Enforce TLS transport-level cookies securely
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1')
 
 # ===================== CONFIGURATIONS =====================
 AUTH_LIMIT_CONFIG = {
@@ -339,15 +339,6 @@ def auth_rate_limit():
                                 'retry_after_seconds': retry_after
                             }), 429
 
-            # Log current attempt
-            rl_record = None
-            try:
-                rl_record = RateLimit(ip_address=ip, endpoint=endpoint, username=username, timestamp=now)
-                db.session.add(rl_record)
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
-
             # Execute view function
             response = f(*args, **kwargs)
 
@@ -375,6 +366,15 @@ def auth_rate_limit():
                     db.session.commit()
                 except Exception:
                     db.session.rollback()
+            elif status_code >= 400 and status_code != 429:
+                # Log failed attempt
+                try:
+                    rl_record = RateLimit(ip_address=ip, endpoint=endpoint, username=username, timestamp=now)
+                    db.session.add(rl_record)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
             return response
         return decorated
     return decorator
@@ -1386,17 +1386,20 @@ def api_register():
 def api_login():
     data = request.get_json(silent=True) or {}
     schema = {
-        'username': {'type': str, 'required': True, 'min': 3, 'max': 120},
-        'password': {'type': str, 'required': True, 'min': 6, 'max': 100}
+        'username': {'type': str, 'required': True, 'min': 1, 'max': 120},
+        'password': {'type': str, 'required': True, 'min': 1, 'max': 100}
     }
     cleaned, err = validate_payload(schema, data)
     if err:
         return jsonify({'error': err}), 400
 
-    username = cleaned.get('username').lower()
+    username = cleaned.get('username').strip().lower()
     password = cleaned.get('password')
 
-    user = User.query.filter((User.username == username) | (User.email == username)).first()
+    user = User.query.filter(
+        (db.func.lower(User.username) == username) |
+        (db.func.lower(User.email) == username)
+    ).first()
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({'error': 'Invalid credentials'}), 401
     if user.is_banned:
@@ -1942,8 +1945,8 @@ def api_admin_login():
 
     data = request.get_json(silent=True) or {}
     schema = {
-        'username': {'type': str, 'required': True, 'min': 3, 'max': 50},
-        'password': {'type': str, 'required': True, 'min': 3, 'max': 100}
+        'username': {'type': str, 'required': True, 'min': 1, 'max': 50},
+        'password': {'type': str, 'required': True, 'min': 1, 'max': 100}
     }
     cleaned, err = validate_payload(schema, data)
     if err:
