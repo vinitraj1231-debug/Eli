@@ -360,7 +360,7 @@ function switchTab(tab) {
 
     switch (tab) {
         case 'home': loadStats(); break;
-        case 'manage': loadDeployments(); loadMusicBots(); break;
+        case 'manage': loadDeployments(); break;
         case 'deploy': initDeployForm(); break;
         case 'settings': loadSettings(); break;
     }
@@ -868,38 +868,10 @@ async function logout() {
 
 /* ===================== MUSIC BOTS ===================== */
 async function loadMusicBots() {
-    const list = document.getElementById('musicBotList');
+    const list = document.getElementById("musicBotList");
     if (!list) return;
-    list.innerHTML = '<div class="empty-state"><span class="spinner"></span><br>Loading music bots...</div>';
-    try {
-        const bots = await api('/api/music-bots');
-        if (!bots.length) {
-            list.innerHTML = '<div class="empty-state"><i class="fab fa-telegram"></i> No Telegram Music Bots deployed.<br>Go to Deploy tab to launch one.</div>';
-            return;
-        }
-        list.innerHTML = bots.map(b => `
-            <div class="deploy-item">
-                <div class="deploy-item-header">
-                    <div>
-                        <div class="deploy-item-name"><i class="fab fa-telegram" style="color:var(--accent)"></i> ${esc(b.name)} (@${esc(b.bot_username)})</div>
-                        <div class="deploy-item-meta">ID: <code>${esc(b.deployment_id_str)}</code> • Created: ${new Date(b.created_at).toLocaleString()}</div>
-                    </div>
-                    <span class="status-badge status-${b.status.toLowerCase()}">${statusDot(b.status.toLowerCase())} ${esc(b.status)}</span>
-                </div>
-                <div class="deploy-actions" style="margin-top: 10px;">
-                    ${b.status === 'RUNNING' ? `<button class="btn btn-sm btn-secondary" onclick="stopMusicBot(${b.id})"><i class="fas fa-stop"></i> Stop</button>` : `<button class="btn btn-sm btn-primary" onclick="startMusicBot(${b.id})"><i class="fas fa-play"></i> Start</button>`}
-                    <button class="btn btn-sm btn-secondary" onclick="restartMusicBot(${b.id})"><i class="fas fa-arrows-rotate"></i> Restart</button>
-                    <button class="btn btn-sm btn-secondary" onclick="redeployMusicBot(${b.id})"><i class="fas fa-sync"></i> Redeploy</button>
-                    <button class="btn btn-sm btn-secondary" onclick="viewMusicBotLogs(${b.id})"><i class="fas fa-terminal"></i> Logs</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteMusicBot(${b.id})"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
-    } catch (err) {
-        list.innerHTML = '<div class="empty-state">Failed to load music bots</div>';
-    }
+    list.innerHTML = "";
 }
-
 async function startMusicBot(id) {
     try { await api(`/api/music-bots/${id}/start`, { method: 'POST' }); toast('Music Bot starting...', 'success'); setTimeout(loadMusicBots, 1500); } catch {}
 }
