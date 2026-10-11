@@ -50,8 +50,6 @@
                 <button class="admin-nav-item active" data-section="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
                 <button class="admin-nav-item" data-section="users"><i class="fas fa-users"></i> Users</button>
                 <button class="admin-nav-item" data-section="deployments"><i class="fas fa-server"></i> Deployments</button>
-
-                <button class="admin-nav-item" data-section="master-repo"><i class="fab fa-github"></i> Master Repo</button>
                 <button class="admin-nav-item" data-section="payments"><i class="fas fa-indian-rupee-sign"></i> Payments</button>
                 <button class="admin-nav-item" data-section="blogs"><i class="fas fa-blog"></i> Manage Blogs</button>
                 <button class="admin-nav-item" data-section="transactions"><i class="fas fa-receipt"></i> Global Tx Log</button>
@@ -96,21 +94,6 @@
                 </div>
 
 
-
-                <!-- Section: Master Repo Config -->
-                <div id="admin-master-repo" class="admin-section hidden">
-                    <div class="admin-top">
-                        <h1>Master Template Repository</h1>
-                    </div>
-                    <div style="background:var(--surface); border:1px solid var(--border); padding:20px; border-radius:8px; max-width:600px;">
-                        <div class="form-group">
-                            <label>Master Template Repository URL</label>
-                            <input type="url" id="adminMasterRepoUrl" class="form-input" placeholder="https://github.com/spicycodez/DeluluMusic.git">
-                            <small class="text-muted" style="font-size:11px">Normal users cannot change this setting. All Music Bot deployments clone from this source.</small>
-                        </div>
-                        <button class="btn btn-primary" onclick="saveMasterRepoUrl()"><i class="fas fa-save"></i> Save Configuration</button>
-                    </div>
-                </div>
 
                 <!-- Section: Deployments -->
                 <div id="admin-deployments" class="admin-section hidden">
