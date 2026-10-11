@@ -1049,6 +1049,33 @@ CMD {run_cmd}
         self.stop()
         return self._run_deploy()
 
+    def delete(self):
+        if not self.deployment:
+            return
+        self.stop()
+
+        slots = VpsSlot.query.filter(
+            (VpsSlot.deployment_id == self.deployment.id) |
+            (VpsSlot.id == self.deployment.vps_slot_id)
+        ).all()
+        for slot in slots:
+            slot.deployment_id = None
+            slot.status = 'idle'
+
+        if os.path.exists(self.deploy_path):
+            try:
+                shutil.rmtree(self.deploy_path, ignore_errors=True)
+            except Exception:
+                pass
+
+        try:
+            subprocess.run(["docker", "rmi", "-f", f"eh_image_{self.deployment.id}"], capture_output=True)
+        except Exception:
+            pass
+
+        db.session.delete(self.deployment)
+        db.session.commit()
+
     def get_logs(self):
         container_name = f"eh_container_{self.deployment.id}"
         logs = self.deployment.logs or ''
@@ -2376,7 +2403,10 @@ def api_admin_delete_user(uid):
     # 5. Delete referrals where user is referred or referrer
     Referral.query.filter((Referral.referrer_id == uid) | (Referral.referred_id == uid)).delete()
 
-    # 6. Delete user
+    # 6. Delete VPS slots
+    VpsSlot.query.filter_by(user_id=uid).delete()
+
+    # 7. Delete user
     db.session.delete(user)
     db.session.commit()
 

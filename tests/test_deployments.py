@@ -81,5 +81,35 @@ class DeploymentsTestCase(unittest.TestCase):
         data = res.get_json()
         self.assertEqual(data['slug'], 'updated-site-slug')
 
+    def test_delete_deployment(self):
+        user = User.query.filter_by(username='deployuser').first()
+        slot = VpsSlot(user_id=user.id, plan_name='Lite 512MB', ram_mb=512, status='running')
+        db.session.add(slot)
+        db.session.commit()
+
+        dep = Deployment(
+            user_id=user.id,
+            name='Bot Deployment',
+            deploy_type='github',
+            vps_slot_id=slot.id,
+            status='running'
+        )
+        db.session.add(dep)
+        db.session.commit()
+        slot.deployment_id = dep.id
+        db.session.commit()
+
+        res = self.client.delete(f'/api/deploy/{dep.id}')
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertEqual(data['message'], 'Deleted')
+
+        deleted_dep = db.session.get(Deployment, dep.id)
+        self.assertIsNone(deleted_dep)
+
+        db.session.refresh(slot)
+        self.assertIsNone(slot.deployment_id)
+        self.assertEqual(slot.status, 'idle')
+
 if __name__ == '__main__':
     unittest.main()
