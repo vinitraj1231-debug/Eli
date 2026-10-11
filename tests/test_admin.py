@@ -86,5 +86,47 @@ class AdminTestCase(unittest.TestCase):
         self.assertIsNotNone(slot)
         self.assertEqual(slot.plan_name, 'Lite 512MB')
 
+    def test_admin_delete_deployment(self):
+        from app import Deployment
+        user = User(username='depuser', email='depuser@example.com', password_hash='hash', referral_code='REF9999')
+        db.session.add(user)
+        db.session.commit()
+
+        dep = Deployment(user_id=user.id, name='Admin Delete Test', deploy_type='zip', status='stopped')
+        db.session.add(dep)
+        db.session.commit()
+
+        res = self.client.delete(f'/api/admin/deployments/{dep.id}/delete')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.get_json()['message'], 'Deleted')
+
+        deleted_dep = db.session.get(Deployment, dep.id)
+        self.assertIsNone(deleted_dep)
+
+    def test_admin_delete_user(self):
+        from app import Deployment
+        user = User(username='deluser', email='deluser@example.com', password_hash='hash', referral_code='REF8888')
+        db.session.add(user)
+        db.session.commit()
+
+        slot = VpsSlot(user_id=user.id, plan_name='Micro 256MB', ram_mb=256, status='idle')
+        db.session.add(slot)
+        db.session.commit()
+
+        dep = Deployment(user_id=user.id, name='User Dep Test', deploy_type='zip', status='idle', vps_slot_id=slot.id)
+        db.session.add(dep)
+        db.session.commit()
+
+        user_id = user.id
+        dep_id = dep.id
+        slot_id = slot.id
+
+        res = self.client.delete(f'/api/admin/users/{user_id}')
+        self.assertEqual(res.status_code, 200)
+
+        self.assertIsNone(db.session.get(User, user_id))
+        self.assertIsNone(db.session.get(Deployment, dep_id))
+        self.assertIsNone(db.session.get(VpsSlot, slot_id))
+
 if __name__ == '__main__':
     unittest.main()
