@@ -1,0 +1,69 @@
+// Prisma database schema for EliteHosting PaaS Engine
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ProjectType {
+  NODEJS
+  PYTHON
+  STATIC
+}
+
+enum BuildStatus {
+  IDLE
+  QUEUED
+  BUILDING
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id              String        @id @default(uuid())
+  email           String        @unique
+  passwordHash    String
+  phone           String?
+  isPhoneVerified Boolean       @default(false)
+  role            Role          @default(USER)
+  isBanned        Boolean       @default(false)
+  projects        Project[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  name         String
+  slug         String        @unique
+  repoUrl      String
+  projectType  ProjectType
+  envVars      String?       // Encrypted JSON format
+  buildStatus  BuildStatus   @default(IDLE)
+  containerId  String?
+  internalPort Int?
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deployments  Deployment[]
+  createdAt    DateTime      @default(now())
+}
+
+model Deployment {
+  id         String      @id @default(uuid())
+  projectId  String
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  commitHash String?
+  buildLogs  String?     // Text or JSON format logs
+  status     BuildStatus @default(QUEUED)
+  startedAt  DateTime    @default(now())
+  finishedAt DateTime?
+}
