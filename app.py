@@ -806,7 +806,7 @@ class DeployEngine:
             self._log("Deployment is already running. Aborting duplicate execution.")
             return True
 
-        self.deployment.status = 'running'
+        self.deployment.status = 'deploying'
         self.deployment.last_started_at = utcnow()
         db.session.commit()
 
@@ -889,7 +889,8 @@ CMD {run_cmd}
                 build_args = ["docker", "build", "-t", f"eh_image_{self.deployment.id}", self.deploy_path]
                 build_proc = subprocess.run(build_args, capture_output=True, text=True, timeout=300)
                 if build_proc.returncode != 0:
-                    self._log(f"ERROR: Docker Build Failed:\n{build_proc.stderr}")
+                    err_msg = build_proc.stderr.strip() if build_proc.stderr else "Unknown build error"
+                    self._log(f"ERROR: Docker Build Failed:\n{err_msg}")
                     self.deployment.status = 'error'
                     if vps_slot:
                         vps_slot.status = 'idle'
@@ -931,7 +932,8 @@ CMD {run_cmd}
             try:
                 run_proc = subprocess.run(docker_run_cmd, capture_output=True, text=True, timeout=60)
                 if run_proc.returncode != 0:
-                    self._log(f"ERROR: Docker Run Failed:\n{run_proc.stderr}")
+                    err_msg = run_proc.stderr.strip() if run_proc.stderr else "Unknown run error"
+                    self._log(f"ERROR: Docker Run Failed:\n{err_msg}")
                     self.deployment.status = 'error'
                     if vps_slot:
                         vps_slot.status = 'idle'
@@ -940,7 +942,26 @@ CMD {run_cmd}
 
                 self.deployment.pid = 999999
                 db.session.commit()
-                self._log(f"SUCCESS: Container online and running 24/7 on port {port}!")
+
+                # Startup health check window
+                import time
+                time.sleep(2)
+                inspect_proc = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", container_name], capture_output=True, text=True)
+                if inspect_proc.returncode == 0 and inspect_proc.stdout.strip() == "true":
+                    self.deployment.status = 'running'
+                    db.session.commit()
+                    self._log(f"SUCCESS: Container online and running 24/7 on port {port}!")
+                else:
+                    logs_proc = subprocess.run(["docker", "logs", "--tail", "100", container_name], capture_output=True, text=True)
+                    err_logs = (logs_proc.stdout or "") + (logs_proc.stderr or "")
+                    err_msg = err_logs.strip() if err_logs.strip() else "No container logs captured."
+                    self._log(f"ERROR: Container started but crashed immediately:\n{err_msg}")
+                    self.deployment.status = 'error'
+                    self.deployment.pid = None
+                    if vps_slot:
+                        vps_slot.status = 'idle'
+                    db.session.commit()
+                    return False
             except Exception as e:
                 self._log(f"ERROR: Docker run exception: {str(e)}")
                 self.deployment.status = 'error'
@@ -960,13 +981,19 @@ CMD {run_cmd}
 
                         inspect_proc = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", container_name], capture_output=True, text=True)
                         if inspect_proc.returncode != 0 or inspect_proc.stdout.strip() != "true":
-                            d.status = 'stopped'
+                            logs_proc = subprocess.run(["docker", "logs", "--tail", "50", container_name], capture_output=True, text=True)
+                            err_logs = (logs_proc.stdout or "") + (logs_proc.stderr or "")
+                            d.status = 'error'
                             d.pid = None
                             vs = db.session.get(VpsSlot, d.vps_slot_id) if d.vps_slot_id else None
                             if vs:
                                 vs.status = 'idle'
+                            if err_logs.strip():
+                                err_msg = err_logs.strip()
+                                self._log(f"Container process exited/crashed with logs:\n{err_msg}")
+                            else:
+                                self._log("Container process stopped or exited.")
                             db.session.commit()
-                            self._log("Container process stopped or exited.")
                             break
 
             t = threading.Thread(target=monitor_container, daemon=True)
@@ -981,14 +1008,16 @@ CMD {run_cmd}
                     self._log("Installing Python dependencies from requirements.txt...")
                     pip_res = subprocess.run(["pip", "install", "-r", "requirements.txt"], cwd=self.deploy_path, capture_output=True, text=True, timeout=120)
                     if pip_res.returncode != 0:
-                        self._log(f"Warning/Notice during pip install:\n{pip_res.stderr.strip()}")
+                        err_msg = pip_res.stderr.strip() if pip_res.stderr else "Notice during pip install"
+                        self._log(f"Warning/Notice during pip install:\n{err_msg}")
 
                 pkg_path = os.path.join(self.deploy_path, 'package.json')
                 if os.path.exists(pkg_path) and not self.deployment.build_command:
                     self._log("Installing Node dependencies from package.json...")
                     npm_res = subprocess.run(["npm", "install"], cwd=self.deploy_path, capture_output=True, text=True, timeout=120)
                     if npm_res.returncode != 0:
-                        self._log(f"Warning/Notice during npm install:\n{npm_res.stderr.strip()}")
+                        err_msg = npm_res.stderr.strip() if npm_res.stderr else "Notice during npm install"
+                        self._log(f"Warning/Notice during npm install:\n{err_msg}")
 
                 log_out = open(self.log_file, 'a')
                 proc = subprocess.Popen(
@@ -997,7 +1026,61 @@ CMD {run_cmd}
                 )
                 self.deployment.pid = proc.pid
                 db.session.commit()
-                self._log(f"SUCCESS: Process started background execution (PID {proc.pid})!")
+
+                # Direct process startup health check
+                import time
+                time.sleep(2)
+                poll_code = proc.poll()
+                if poll_code is None:
+                    self.deployment.status = 'running'
+                    db.session.commit()
+                    self._log(f"SUCCESS: Process started background execution (PID {proc.pid})!")
+                else:
+                    proc_err_logs = ""
+                    if os.path.exists(self.log_file):
+                        try:
+                            with open(self.log_file, 'r', errors='replace') as lf:
+                                proc_err_logs = lf.read().strip()
+                        except Exception:
+                            pass
+                    err_msg = proc_err_logs if proc_err_logs else "No output recorded in log file."
+                    self._log(f"ERROR: Process failed/crashed during startup (exit code {poll_code}):\n{err_msg}")
+                    self.deployment.status = 'error'
+                    self.deployment.pid = None
+                    if vps_slot:
+                        vps_slot.status = 'idle'
+                    db.session.commit()
+                    return False
+
+                def monitor_process(pid_to_check, proc_obj):
+                    while True:
+                        time.sleep(3)
+                        with app.app_context():
+                            d = db.session.get(Deployment, self.deployment.id)
+                            if not d or d.status != 'running' or d.pid != pid_to_check:
+                                break
+
+                            exit_code = proc_obj.poll()
+                            if exit_code is not None:
+                                proc_err_logs = ""
+                                if os.path.exists(self.log_file):
+                                    try:
+                                        with open(self.log_file, 'r', errors='replace') as lf:
+                                            proc_err_logs = lf.read().strip()
+                                    except Exception:
+                                        pass
+                                d.status = 'error' if exit_code != 0 else 'stopped'
+                                d.pid = None
+                                vs = db.session.get(VpsSlot, d.vps_slot_id) if d.vps_slot_id else None
+                                if vs:
+                                    vs.status = 'idle'
+                                err_msg = proc_err_logs if proc_err_logs else "No output recorded."
+                                self._log(f"Background process (PID {pid_to_check}) exited with code {exit_code}:\n{err_msg}")
+                                db.session.commit()
+                                break
+
+                mt = threading.Thread(target=monitor_process, args=(proc.pid, proc), daemon=True)
+                mt.start()
                 return True
             except Exception as e:
                 self._log(f"ERROR: Direct process execution failed: {str(e)}")
@@ -1006,7 +1089,6 @@ CMD {run_cmd}
                     vps_slot.status = 'idle'
                 db.session.commit()
                 return False
-
     def stop(self):
         if self.deployment.is_website:
             self._log("Stopping static website deployment...")
@@ -1079,19 +1161,32 @@ CMD {run_cmd}
     def get_logs(self):
         container_name = f"eh_container_{self.deployment.id}"
         logs = self.deployment.logs or ''
+
+        # Capture live container logs (stdout + stderr)
         try:
-            proc = subprocess.run(["docker", "logs", "--tail", "200", container_name], capture_output=True, text=True)
-            if proc.returncode == 0 and proc.stdout:
-                logs += '\n--- Container Live Output ---\n' + proc.stdout
+            proc = subprocess.run(["docker", "logs", "--tail", "250", container_name], capture_output=True, text=True)
+            container_output = (proc.stdout or "") + (proc.stderr or "")
+            if container_output.strip():
+                logs += '\n--- Container Live Output ---\n' + container_output.strip()
         except Exception:
             pass
+
+        # Capture direct process log file
         if os.path.exists(self.log_file):
             try:
                 with open(self.log_file, 'r', errors='replace') as f:
-                    logs += '\n--- Process File Output ---\n' + f.read()[-5000:]
+                    file_content = f.read().strip()
+                    if file_content:
+                        logs += '\n--- Process File Output ---\n' + file_content[-8000:]
             except Exception:
                 pass
+
+        if not logs.strip():
+            logs = "No log output available for this deployment yet."
+
         return logs
+
+
 def run_deploy_background(dep_id, dep_type, **kwargs):
     with app.app_context():
         engine = DeployEngine(dep_id)
