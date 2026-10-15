@@ -113,3 +113,44 @@ class DeploymentsTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+    def test_deployment_execution_crashes_handled_properly(self):
+        import os
+        import time
+        from app import DeployEngine
+
+        user = User.query.filter_by(username='deployuser').first()
+        slot = VpsSlot(user_id=user.id, plan_name='Lite 512MB', ram_mb=512, status='idle')
+        db.session.add(slot)
+        db.session.commit()
+
+        dep = Deployment(
+            user_id=user.id,
+            name='Crashing Bot Test',
+            deploy_type='zip',
+            vps_slot_id=slot.id,
+            status='idle'
+        )
+        db.session.add(dep)
+        db.session.commit()
+
+        engine = DeployEngine(dep.id)
+        os.makedirs(engine.deploy_path, exist_ok=True)
+
+        # Write a python script that exits with non-zero exit code immediately
+        script_path = os.path.join(engine.deploy_path, 'failing_bot.py')
+        with open(script_path, 'w') as f:
+            f.write("import sys\nprint('Bot starting...', flush=True)\nsys.stderr.write('Fatal error in bot initialization\\n')\nsys.exit(1)\n")
+
+        # Execute deployment via non-docker background execution
+        res = engine._execute('python3 failing_bot.py', os.environ.copy())
+        self.assertFalse(res)
+
+        db.session.refresh(dep)
+        db.session.refresh(slot)
+        self.assertEqual(dep.status, 'error')
+        self.assertEqual(slot.status, 'idle')
+
+        logs = engine.get_logs()
+        self.assertIn("ERROR: Process failed/crashed during startup", logs)
+        self.assertIn("Fatal error in bot initialization", logs)
