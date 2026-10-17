@@ -801,19 +801,32 @@ async function askAI() {
     inp.value = '';
     container.scrollTop = container.scrollHeight;
 
-    // Simulate AI response
+    // Context-aware AI assistant responses
     setTimeout(() => {
-        const responses = [
-            "I'm analyzing your deployment logs... everything seems fine!",
-            "To fix environment errors, make sure you've added your BOT_TOKEN in the environment variables.",
-            "I recommend using a requirements.txt file for better dependency management.",
-            "Your project structure looks great! Ready for deployment.",
-            "If you face a port error, try changing the port or wait for the system to auto-assign one."
-        ];
-        const random = responses[Math.floor(Math.random() * responses.length)];
-        container.innerHTML += `<div class="chat-bubble admin">${esc(random)}</div>`;
+        const q = msg.toLowerCase();
+        let reply = "";
+
+        if (q.includes('bot') || q.includes('token') || q.includes('pyrogram') || q.includes('telethon')) {
+            reply = "For Telegram bots (Pyrogram/Telethon/Node.js), make sure your BOT_TOKEN and API_HASH are added in Environment Variables under the Deploy tab before starting.";
+        } else if (q.includes('error') || q.includes('log') || q.includes('fail') || q.includes('crash')) {
+            reply = "You can inspect live container stdout/stderr logs directly from the Manage tab by clicking 'Logs'. If dependencies fail, verify requirements.txt or package.json.";
+        } else if (q.includes('website') || q.includes('html') || q.includes('static') || q.includes('slug')) {
+            reply = "To deploy a static website, select 'Static Website' under ZIP deploy. Your archive must contain an index.html file in the root. You can customize your site's URL slug anytime!";
+        } else if (q.includes('vps') || q.includes('ram') || q.includes('slot') || q.includes('payment')) {
+            reply = "You can purchase dedicated Micro (256MB), Lite (512MB), or Pro (1GB) RAM VPS slots from the Home tab. Simply scan the UPI QR code and submit your 12-digit UTR for admin approval.";
+        } else {
+            const responses = [
+                "I'm analyzing your deployment setup... everything looks configured properly!",
+                "Tip: Ensure all sensitive keys like DB_URL and BOT_TOKEN are securely stored in Environment Variables.",
+                "Your project structure is ready! Check the Manage tab for live logs and status monitoring.",
+                "Need extra assistance? You can also message support directly via the Settings tab chat or on Telegram (@zolvid)."
+            ];
+            reply = responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        container.innerHTML += `<div class="chat-bubble admin">${esc(reply)}</div>`;
         container.scrollTop = container.scrollHeight;
-    }, 1000);
+    }, 800);
 }
 
 /* Logout */
