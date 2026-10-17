@@ -1284,6 +1284,9 @@ def serve_website(slug, filename=None):
     if dep.status != 'running':
         return "<h1>404 Not Found</h1><p>This website deployment is currently stopped or not active.</p>", 404
 
+    if not filename and not request.path.endswith('/'):
+        return redirect(request.path + '/')
+
     # Increment visitor count securely
     dep.visitor_count += 1
     db.session.commit()
@@ -1458,7 +1461,7 @@ def api_me():
     return jsonify({
         'id': user.id, 'username': user.username, 'email': user.email,
         'plan': user.plan, 'wallet': user.wallet_balance,
-        'referral_code': user.referral_code, 'created_at': user.created_at.isoformat()
+        'referral_code': user.referral_code, 'created_at': user.created_at.isoformat() + 'Z'
     })
 
 # ===================== ROUTES — DASHBOARD API =====================
@@ -1493,7 +1496,7 @@ def api_stats():
         'credits': len(slots_summary), # map total slots to credits field
         'vps_slots': slots_summary,
         'plan': user.plan,
-        'free_deploy_until': user.free_deploy_until.isoformat() if user.free_deploy_until else None
+        'free_deploy_until': (user.free_deploy_until.isoformat() + 'Z') if user.free_deploy_until else None
     })
 
 # ===================== ROUTES — DEPLOY API =====================
@@ -1508,7 +1511,7 @@ def api_list_deployments():
         'repo_url': d.repo_url, 'status': d.status, 'port': d.port,
         'entry_file': d.entry_file, 'is_website': d.is_website,
         'slug': d.slug, 'visitor_count': d.visitor_count,
-        'created_at': d.created_at.isoformat()
+        'created_at': d.created_at.isoformat() + 'Z'
     } for d in deps])
 
 @app.route('/api/deploy/github', methods=['POST'])
@@ -1525,7 +1528,8 @@ def api_deploy_github():
         'deploy_command': {'type': str, 'required': False, 'max': 1000},
         'github_token': {'type': str, 'required': False, 'max': 200},
         'env_vars': {'type': str, 'required': False, 'max': 5000, 'is_json': True},
-        'vps_slot_id': {'type': int, 'required': False}
+        'vps_slot_id': {'type': int, 'required': False},
+        'is_website': {'type': bool, 'required': False, 'default': False}
     }
     cleaned, err = validate_payload(schema, data)
     if err:
@@ -1539,42 +1543,43 @@ def api_deploy_github():
     token = cleaned.get('github_token') or None
     env_vars = cleaned.get('env_vars') or None
     slot_id = cleaned.get('vps_slot_id')
+    is_website = cleaned.get('is_website', False)
 
-    # Assign a free slot if under free trial OR look for a purchased slot
     is_free = False
     vps_slot = None
-    is_website = (request.form.get('is_website') == 'true')
+    slug_val = None
 
-    if user.free_deploy_until and user.free_deploy_until > utcnow():
-        is_free = True
-        # Check if they already have an active trial deployment
-        free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
-        if free_deps >= 1:
-            return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
-
-        # Ensure they have a trial slot allocated in DB
-        vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
-        if not vps_slot:
-            vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
-            db.session.add(vps_slot)
-            db.session.commit()
+    if is_website:
+        slug_val = uuid.uuid4().hex[:8]
     else:
-        # Require purchased VPS slot selection
-        if slot_id:
-            vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
-        else:
-            # Fall back to finding an idle slot
-            vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+        if user.free_deploy_until and user.free_deploy_until > utcnow():
+            is_free = True
+            free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
+            if free_deps >= 1:
+                return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
 
-        if not vps_slot:
-            return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
+            vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
+            if not vps_slot:
+                vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
+                db.session.add(vps_slot)
+                db.session.commit()
+        else:
+            if slot_id:
+                vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
+            else:
+                vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+
+            if not vps_slot:
+                return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
 
     dep = Deployment(
         user_id=user.id, name=name, deploy_type='github',
         repo_url=repo_url, branch=branch,
         build_command=build_cmd, deploy_command=deploy_cmd,
         env_vars=env_vars, is_free=is_free,
-        vps_slot_id=vps_slot.id if vps_slot else None
+        vps_slot_id=vps_slot.id if vps_slot else None,
+        is_website=is_website,
+        slug=slug_val
     )
     db.session.add(dep)
     db.session.commit()
@@ -1588,7 +1593,7 @@ def api_deploy_github():
     t.start()
 
     total_slots_count = VpsSlot.query.filter_by(user_id=user.id).count()
-    return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': total_slots_count}), 201
+    return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': total_slots_count, 'slug': slug_val, 'is_website': is_website}), 201
 
 @app.route('/api/deploy/zip', methods=['POST'])
 @rate_limit('auth_action')
@@ -1633,33 +1638,32 @@ def api_deploy_zip():
     if not is_safe:
         return jsonify({'error': content_err}), 400
 
-    # Assign a free slot if under free trial OR look for a purchased slot
     is_free = False
     vps_slot = None
+    slug_val = None
 
-    if user.free_deploy_until and user.free_deploy_until > utcnow():
-        is_free = True
-        # Check if they already have an active trial deployment
-        free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
-        if free_deps >= 1:
-            return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
-
-        # Ensure they have a trial slot allocated in DB
-        vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
-        if not vps_slot:
-            vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
-            db.session.add(vps_slot)
-            db.session.commit()
+    if is_website:
+        slug_val = uuid.uuid4().hex[:8]
     else:
-        # Require purchased VPS slot selection
-        if slot_id:
-            vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
-        else:
-            # Fall back to finding an idle slot
-            vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+        if user.free_deploy_until and user.free_deploy_until > utcnow():
+            is_free = True
+            free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
+            if free_deps >= 1:
+                return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
 
-        if not vps_slot:
-            return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
+            vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
+            if not vps_slot:
+                vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
+                db.session.add(vps_slot)
+                db.session.commit()
+        else:
+            if slot_id:
+                vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
+            else:
+                vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+
+            if not vps_slot:
+                return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
 
     filename = secure_filename(zip_file.filename)
     zip_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid.uuid4().hex}_{filename}')
@@ -1779,7 +1783,7 @@ def api_referral_info():
         referred_users.append({
             'username': u.username if u else 'Unknown',
             'amount': r.amount, 'plan': r.plan_name,
-            'date': r.created_at.isoformat()
+            'date': r.created_at.isoformat() + 'Z'
         })
     total_earned = sum(r.amount for r in refs)
     return jsonify({
@@ -1860,7 +1864,7 @@ def api_admin_payments():
         'id': r.id, 'user_id': r.user_id, 'username': db.session.get(User, r.user_id).username,
         'name': r.name, 'number': r.number, 'transaction_id': r.transaction_id,
         'amount': r.amount, 'credits': r.credits, 'status': r.status,
-        'created_at': r.created_at.isoformat()
+        'created_at': r.created_at.isoformat() + 'Z'
     } for r in reqs])
 
 @app.route('/api/admin/payments/<int:rid>/approve', methods=['POST'])
@@ -1925,7 +1929,7 @@ def api_transactions():
     txs = Transaction.query.filter_by(user_id=session['user_id']).order_by(Transaction.created_at.desc()).limit(50).all()
     return jsonify([{
         'type': t.tx_type, 'amount': t.amount,
-        'description': t.description, 'date': t.created_at.isoformat()
+        'description': t.description, 'date': t.created_at.isoformat() + 'Z'
     } for t in txs])
 
 # ===================== ROUTES — CHAT API =====================
@@ -1937,7 +1941,7 @@ def api_get_chat():
     msgs = ChatMessage.query.filter_by(user_id=session['user_id']).order_by(ChatMessage.created_at.asc()).all()
     return jsonify([{
         'id': m.id, 'message': m.message, 'sender': m.sender_type,
-        'is_read': m.is_read, 'date': m.created_at.isoformat()
+        'is_read': m.is_read, 'date': m.created_at.isoformat() + 'Z'
     } for m in msgs])
 
 @app.route('/api/chat', methods=['POST'])
@@ -2059,6 +2063,7 @@ def api_admin_users():
         'credits': u.User.credits,
         'is_banned': u.User.is_banned, 'referral_code': u.User.referral_code,
         'referred_by': u.username,
+        'last_ip': u.User.last_ip,
         'deployments': dep_counts.get(u.User.id, 0),
         'created_at': u.User.created_at.isoformat()
     } for u in users])
@@ -2144,7 +2149,10 @@ def api_admin_deployments():
         'repo_url': d.repo_url, 'status': d.status, 'pid': d.pid,
         'port': d.port, 'entry_file': d.entry_file,
         'env_vars': d.env_vars,
-        'created_at': d.created_at.isoformat()
+        'is_website': d.is_website,
+        'slug': d.slug,
+        'visitor_count': d.visitor_count,
+        'created_at': d.created_at.isoformat() + 'Z'
     } for d in deps])
 
 @app.route('/api/admin/deployments/<int:dep_id>/stop', methods=['POST'])
@@ -2183,7 +2191,7 @@ def api_admin_chats():
         result.append({
             'user_id': uid, 'username': user.username if user else 'Unknown',
             'last_message': last_msg.message[:80] if last_msg else '',
-            'last_date': last_msg.created_at.isoformat() if last_msg else '',
+            'last_date': (last_msg.created_at.isoformat() + 'Z') if last_msg else '',
             'unread': unread
         })
     result.sort(key=lambda x: x['last_date'], reverse=True)
@@ -2199,7 +2207,7 @@ def api_admin_chat_with(uid):
     user = db.session.get(User, uid)
     return jsonify({
         'username': user.username if user else 'Unknown',
-        'messages': [{'id': m.id, 'message': m.message, 'sender': m.sender_type, 'date': m.created_at.isoformat()} for m in msgs]
+        'messages': [{'id': m.id, 'message': m.message, 'sender': m.sender_type, 'date': m.created_at.isoformat() + 'Z'} for m in msgs]
     })
 
 @app.route('/api/admin/chats/<int:uid>/reply', methods=['POST'])
@@ -2317,8 +2325,8 @@ def api_admin_get_user(uid):
         'is_banned': user.is_banned,
         'referral_code': user.referral_code,
         'referred_by': user.referred_by,
-        'free_deploy_until': user.free_deploy_until.isoformat() if user.free_deploy_until else None,
-        'created_at': user.created_at.isoformat()
+        'free_deploy_until': (user.free_deploy_until.isoformat() + 'Z') if user.free_deploy_until else None,
+        'created_at': user.created_at.isoformat() + 'Z'
     })
 
 @app.route('/api/admin/users/<int:uid>', methods=['PUT'])
@@ -2484,7 +2492,7 @@ def api_admin_blogs_list():
         'slug': b.slug,
         'content': b.content,
         'excerpt': b.excerpt,
-        'created_at': b.created_at.isoformat()
+        'created_at': b.created_at.isoformat() + 'Z'
     } for b in blogs])
 
 @app.route('/api/admin/blogs', methods=['POST'])
@@ -2556,7 +2564,7 @@ def api_admin_transactions_list():
         'tx_type': t.tx_type,
         'amount': t.amount,
         'description': t.description,
-        'created_at': t.created_at.isoformat()
+        'created_at': t.created_at.isoformat() + 'Z'
     } for t in txs])
 
 
