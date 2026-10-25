@@ -1,0 +1,24 @@
+{
+  "short_name": "EliteHosting",
+  "name": "EliteHosting Cloud Platform",
+  "description": "Instant 24/7 Zero-Sleep Telegram Bot Hosting, Web App Deployment & Cloud VPS Slots in India.",
+  "icons": [
+    {
+      "src": "/static/img/logo.webp",
+      "type": "image/webp",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/img/logo.webp",
+      "type": "image/webp",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/?utm_source=pwa",
+  "background_color": "#07070a",
+  "theme_color": "#0091ff",
+  "display": "standalone",
+  "orientation": "portrait"
+}

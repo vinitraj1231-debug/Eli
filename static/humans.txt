@@ -1,0 +1,17 @@
+/* humans.txt */
+/* Technical Transparency and Engineering Excellence at elitehosting.in */
+
+/* TEAM */
+    Developer: EliteHosting Core Engineering Team
+    Contact: Telegram @zolvid (https://t.me/zolvid)
+    Location: New Delhi, India
+    Language: English, Hindi
+
+/* SITE TECHNOLOGY */
+    Backend: Flask (Python 3.10)
+    Database: SQLite 3 with SQLAlchemy ORM
+    Containerization: Docker (RAM/CPU Isolation, unprivileged user namespaces)
+    CSS: Futuristic Neo-Dark Glassmorphic Theme with CSS variables
+    JS: Vanilla JavaScript (Asynchronous AJAX, Dynamic Terminal Log Streaming)
+    Visual: HTML5 Canvas Interactive 3D Particle Constellation Engine
+    Standards: HTML5, CSS3, JSON-LD Schema (Organization, WebSite, Breadcrumbs, FAQPage, Article, SoftwareApplication)

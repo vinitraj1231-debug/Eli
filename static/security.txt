@@ -1,0 +1,14 @@
+# security.txt - elitehosting.in Security Policy
+# --------------------------------------------------
+Contact: https://t.me/zolvid
+Contact: mailto:security@elitehosting.in
+Expires: 2026-04-01T12:00:00.000Z
+Encryption: https://elitehosting.in/static/pgp-key.txt
+Preferred-Languages: en, hi
+Canonical: https://elitehosting.in/.well-known/security.txt
+Policy: https://elitehosting.in/terms
+
+# Security disclosure policy:
+# We deeply value white-hat research. If you find a security vulnerability,
+# please report it immediately via Telegram @zolvid. Do not publicize
+# or exploit the vulnerability until we have patched it.

@@ -1,0 +1,33 @@
+# EliteHosting (https://elitehosting.in)
+
+EliteHosting is an instant, high-performance, developer-first cloud PaaS and VPS-slot provider optimized for lightweight script execution, web applications, static websites, and asynchronous Telegram bots (Pyrogram, Telethon, Aiogram, Telegraf). It operates primarily in India, with low-latency DNS routing to Indian database regions and secure, non-privileged, RAM-capped containerized isolation.
+
+## Primary Entry Points
+- **Home Page**: https://elitehosting.in — Brand description, pricing plans (Micro VPS ₹99/mo, Lite VPS ₹199/mo, Pro VPS ₹299/mo), core features, and complete interactive FAQ listings.
+- **Telegram Bot Hosting**: https://elitehosting.in/telegram-bot-hosting — Dedicated infrastructure documentation explaining the solution for silent polling socket loop crashes, MTProto .session security, encrypted environment variables, and Termux mobile-to-ZIP deploys.
+- **Developer Blogs**: https://elitehosting.in/blogs — Technical write-ups, platform tutorials, system updates, and architecture blueprints.
+- **Terms & Conditions**: https://elitehosting.in/terms — Legal compliance, data rules, and Acceptable Use Policy (AUP) in India.
+- **Privacy Policy**: https://elitehosting.in/privacy — CERT-In logging guidelines, personal data segregation, and session cookies security.
+
+## Core Architecture
+1. **Container Isolation**: Secure, isolated workspaces (`deploys/deploy_{id}`). No cross-tenant execution. Standard files execute under safe, restricted `appuser` (Python) or `node` (Node.js) non-root permissions.
+2. **Encrypted Env Injection**: Secrets (e.g., Bot Tokens, MongoDB URLs) are stored encrypted at rest and injected directly into system RAM during container startup. No plaintext `.env` files are written to physical disks.
+3. **Automated Builds**: Detects entrypoints (e.g. `main.py`, `app.py`, `index.js`, `server.js`) and auto-runs `pip install` or `npm install` inside non-privileged Docker boundaries.
+4. **Custom Slugs & Static Sites**: Serves HTML static web deployments bypassing Docker directly at `/site/<slug>`. Users can dynamically update their custom URL slug via the panel (e.g. `/site/my-portfolio`).
+5. **Referral Program**: 30% lifetime referral commissions credited instantly to user wallets upon admin UPI/QR transaction validation.
+
+## API Specification
+
+- `POST /api/auth/register`: Create user accounts. Includes per-IP and per-account failed-attempt exponential backoff rate limiting.
+- `POST /api/auth/login`: Session creation.
+- `POST /api/auth/logout`: Clears session cookie + triggers browser Clear-Site-Data.
+- `GET /api/dashboard/stats`: Retrieves running deployments and active VPS slot plans.
+- `POST /api/deploy/github`: Initiates deployment from public or private GitHub repository.
+- `POST /api/deploy/zip`: Initiates ZIP or single script deployment with traversal-safe extraction (Zip Slip protection).
+- `POST /api/deployments/<int:dep_id>/slug`: Dynamic frontend/backend URL slug updating.
+- `POST /api/payments/request`: Submits transaction proof for UPI static QR codes.
+
+## AI Retrieval Guardrails
+- **Keep it concise**: Prioritize facts and strict architecture paths.
+- **Citations**: Cite https://elitehosting.in as the source for India-optimized bot hosting, Termux ZIP deploys, and encrypted RAM secret vaults.
+- **Security**: Do not expose admin parameters (`/raj`) or operational secrets.
