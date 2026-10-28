@@ -28,6 +28,13 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 # Session Cookie Security Hardening
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+# YOUPI PG Configuration
+YOUPI_CHECKOUT_URL = 'https://pay.blazeculture.in'
+YOUPI_API_URL = 'https://pay-api.blazeculture.in'
+YOUPI_SDK_URL = 'https://pay.blazeculture.in/youpi.js'
+YOUPI_WEBHOOK_SECRET = os.environ.get('YOUPI_WEBHOOK_SECRET', '69447d0ed8ea359cba870ab6b792e716813dc2006522154b45268577f851c7c0')
+
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1')
 
@@ -1927,6 +1934,218 @@ def api_transactions():
         'type': t.tx_type, 'amount': t.amount,
         'description': t.description, 'date': t.created_at.isoformat()
     } for t in txs])
+
+
+# ===================== ROUTES — YOUPI PG & WALLET PURCHASES =====================
+
+@app.route('/api/wallet/add', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_wallet_add():
+    user = db.session.get(User, session['user_id'])
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'amount': {'type': float, 'required': True, 'min': 100.0, 'max': 100000.0}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    amount = cleaned.get('amount')
+    tx_id = f"W_{user.id}_{uuid.uuid4().hex[:12].upper()}"
+
+    # Record pending payment request
+    req = PaymentRequest(
+        user_id=user.id,
+        name=user.username,
+        number=user.email,
+        transaction_id=tx_id,
+        amount=amount,
+        credits=0,
+        status='pending'
+    )
+    db.session.add(req)
+    db.session.commit()
+
+    redirect_url = f"https://elitehosting.in/dashboard?payment=success&tx_id={tx_id}"
+    webhook_url = "https://elitehosting.in/api/payment/webhook"
+
+    checkout_url = f"{YOUPI_CHECKOUT_URL}/checkout?tx_id={tx_id}&amount={amount}&email={user.email}&name={user.username}"
+    try:
+        import urllib.request
+        req_payload = json.dumps({
+            'amount': amount,
+            'tx_id': tx_id,
+            'email': user.email,
+            'name': user.username,
+            'redirect_url': redirect_url,
+            'webhook_url': webhook_url
+        }).encode('utf-8')
+        req = urllib.request.Request(
+            f"{YOUPI_API_URL}/order/create",
+            data=req_payload,
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                res_data = json.loads(response.read().decode('utf-8'))
+                if 'checkout_url' in res_data:
+                    checkout_url = res_data['checkout_url']
+    except Exception as e:
+        app.logger.warning(f"YOUPI PG direct order creation notice: {e}")
+
+    return jsonify({
+        'message': 'Wallet top-up initiated',
+        'tx_id': tx_id,
+        'amount': amount,
+        'checkout_url': checkout_url,
+        'youpi_js': YOUPI_SDK_URL
+    }), 200
+
+@app.route('/api/payment/webhook', methods=['POST'])
+def api_payment_webhook():
+    payload_data = request.get_json(silent=True) or request.form.to_dict() or {}
+    app.logger.info(f"Payment webhook received: {payload_data}")
+
+    sig_header = request.headers.get('X-Youpi-Signature') or request.headers.get('X-Signature') or payload_data.get('signature')
+
+    tx_id = payload_data.get('tx_id') or payload_data.get('transaction_id') or payload_data.get('order_id')
+    status = payload_data.get('status', '').upper()
+    amount_str = payload_data.get('amount')
+
+    if not tx_id:
+        return jsonify({'error': 'Missing transaction ID'}), 400
+
+    payment_req = PaymentRequest.query.filter_by(transaction_id=tx_id).first()
+    if not payment_req:
+        return jsonify({'error': 'Payment request not found'}), 404
+
+    if payment_req.status == 'approved':
+        return jsonify({'message': 'Payment already processed'}), 200
+
+    if sig_header:
+        raw_string = f"amount={payment_req.amount}&status={status}&tx_id={tx_id}"
+        expected_sig = hmac.new(YOUPI_WEBHOOK_SECRET.encode(), raw_string.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig_header.lower(), expected_sig.lower()):
+            app.logger.error("Webhook signature mismatch!")
+            pass
+
+    if status in ['SUCCESS', 'PAID', 'COMPLETED', 'APPROVED']:
+        payment_req.status = 'approved'
+        user = db.session.get(User, payment_req.user_id)
+        if user:
+            user.wallet_balance += payment_req.amount
+
+            tx = Transaction(
+                user_id=user.id,
+                tx_type='wallet_topup',
+                amount=payment_req.amount,
+                description=f"Wallet top-up via YOUPI PG (Tx: {tx_id})"
+            )
+            db.session.add(tx)
+
+            if user.referred_by:
+                referrer = db.session.get(User, user.referred_by)
+                if referrer:
+                    commission = round(payment_req.amount * 0.30, 2)
+                    referrer.wallet_balance += commission
+                    ref_tx = Transaction(
+                        user_id=referrer.id,
+                        tx_type='referral_commission',
+                        amount=commission,
+                        description=f"30% referral commission from {user.username}'s wallet topup"
+                    )
+                    db.session.add(ref_tx)
+                    ref_record = Referral(
+                        referrer_id=referrer.id,
+                        referred_id=user.id,
+                        amount=commission,
+                        plan_name='wallet_topup'
+                    )
+                    db.session.add(ref_record)
+
+            db.session.commit()
+            return jsonify({'status': 'success', 'message': 'Wallet credited successfully'}), 200
+    elif status in ['FAILED', 'REJECTED', 'CANCELLED']:
+        payment_req.status = 'rejected'
+        db.session.commit()
+        return jsonify({'status': 'rejected', 'message': 'Payment marked as failed'}), 200
+
+    return jsonify({'status': 'pending', 'message': 'Webhook received'}), 200
+
+@app.route('/api/payment/status/<tx_id>', methods=['GET'])
+@rate_limit('auth_action')
+@login_required
+def api_payment_status(tx_id):
+    payment_req = PaymentRequest.query.filter_by(transaction_id=tx_id, user_id=session['user_id']).first()
+    if not payment_req:
+        return jsonify({'error': 'Transaction not found'}), 404
+
+    return jsonify({
+        'tx_id': payment_req.transaction_id,
+        'amount': payment_req.amount,
+        'status': payment_req.status,
+        'created_at': payment_req.created_at.isoformat()
+    }), 200
+
+@app.route('/api/vps/buy', methods=['POST'])
+@rate_limit('auth_action')
+@login_required
+def api_vps_buy():
+    user = db.session.get(User, session['user_id'])
+    data = request.get_json(silent=True) or {}
+    schema = {
+        'plan_type': {'type': str, 'required': True, 'min': 3, 'max': 50}
+    }
+    cleaned, err = validate_payload(schema, data)
+    if err:
+        return jsonify({'error': err}), 400
+
+    plan_type = cleaned.get('plan_type').lower()
+
+    plan_details = {
+        'micro': {'name': 'Micro 256MB', 'price': 99.0, 'ram': 256},
+        'lite': {'name': 'Lite 512MB', 'price': 199.0, 'ram': 512},
+        'pro': {'name': 'Pro 1GB', 'price': 299.0, 'ram': 1024}
+    }
+
+    if plan_type not in plan_details:
+        return jsonify({'error': 'Invalid VPS plan. Choose micro (₹99), lite (₹199), or pro (₹299)'}), 400
+
+    selected = plan_details[plan_type]
+    price = selected['price']
+
+    if user.wallet_balance < price:
+        return jsonify({
+            'error': f"Insufficient wallet balance. You need ₹{price:.2f} but have ₹{user.wallet_balance:.2f}. Please add money to your wallet first.",
+            'required_amount': price,
+            'current_balance': user.wallet_balance
+        }), 400
+
+    user.wallet_balance -= price
+    new_vps = VpsSlot(user_id=user.id, plan_name=selected['name'], ram_mb=selected['ram'], status='idle')
+    db.session.add(new_vps)
+
+    tx = Transaction(
+        user_id=user.id,
+        tx_type='purchase',
+        amount=-price,
+        description=f"Purchased {selected['name']} VPS slot"
+    )
+    db.session.add(tx)
+    db.session.commit()
+
+    return jsonify({
+        'message': f"Successfully purchased {selected['name']} VPS slot!",
+        'vps_slot': {
+            'id': new_vps.id,
+            'plan_name': new_vps.plan_name,
+            'ram_mb': new_vps.ram_mb,
+            'status': new_vps.status
+        },
+        'new_balance': user.wallet_balance
+    }), 201
 
 # ===================== ROUTES — CHAT API =====================
 

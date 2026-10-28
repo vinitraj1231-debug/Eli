@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="icon" type="image/webp" href="/static/img/logo.webp">
+    <script src="https://pay.blazeculture.in/youpi.js"></script>
 </head>
 <body>
 
@@ -31,7 +32,7 @@
     <div class="dash-body">
 
         <!-- TAB: HOME -->
-        <div id="tab-home" class="tab-content hidden">
+        <div id="tab-home" class="tab-content">
             <div style="margin-bottom:24px">
                 <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:#fff;margin-bottom:4px">Welcome back, <span class="dash-user-name">...</span></h2>
                 <p style="font-size:12px;color:var(--muted)">Here's an overview of your deployments</p>
@@ -66,23 +67,29 @@
             </div>
 
             <div class="dash-card">
-                <div class="dash-card-title"><i class="fas fa-crown"></i> High-Performance VPS Plans</div>
-                <p style="font-size:11px;color:var(--muted);margin-bottom:15px">Free trial expires in 3 hours. Get continuous, highly-isolated VPS slots below.</p>
+                <div class="dash-card-title flex justify-between items-center">
+                    <span><i class="fas fa-crown"></i> High-Performance VPS Plans</span>
+                    <button class="btn btn-primary btn-sm" onclick="openAddWalletModal()"><i class="fas fa-wallet"></i> Add Money to Wallet</button>
+                </div>
+                <p style="font-size:11px;color:var(--muted);margin-bottom:15px">Add money to your wallet (Min ₹100), then instant-buy VPS slots below to deploy your bots/websites.</p>
                 <div class="flex justify-between items-center" style="gap:10px;flex-wrap:wrap">
-                    <div class="credit-plan" onclick="openPaymentModal(99, 1)">
+                    <div class="credit-plan flex-1" style="min-width:110px;text-align:center">
                         <div class="price">₹99</div>
-                        <div class="label">Micro 256MB VPS</div>
+                        <div class="label">Micro 256MB</div>
+                        <button class="btn btn-secondary btn-sm mt-2" style="width:100%" onclick="buyVpsSlot('micro')">Buy Service</button>
                     </div>
-                    <div class="credit-plan active" onclick="openPaymentModal(199, 2)">
+                    <div class="credit-plan active flex-1" style="min-width:110px;text-align:center">
                         <div class="price">₹199</div>
-                        <div class="label">Lite 512MB VPS</div>
+                        <div class="label">Lite 512MB</div>
+                        <button class="btn btn-primary btn-sm mt-2" style="width:100%" onclick="buyVpsSlot('lite')">Buy Service</button>
                     </div>
-                    <div class="credit-plan" onclick="openPaymentModal(299, 3)">
+                    <div class="credit-plan flex-1" style="min-width:110px;text-align:center">
                         <div class="price">₹299</div>
-                        <div class="label">Pro 1GB VPS</div>
+                        <div class="label">Pro 1GB</div>
+                        <button class="btn btn-secondary btn-sm mt-2" style="width:100%" onclick="buyVpsSlot('pro')">Buy Service</button>
                     </div>
                 </div>
-            </div>
+            </div></div>
         </div>
 
         <!-- TAB: MANAGE -->
@@ -280,47 +287,26 @@
 
     <!-- ===== LOG MODAL ===== -->
     <!-- ===== PAYMENT MODAL ===== -->
-    <div class="modal-overlay" id="paymentModal">
+    <div class="modal-overlay" id="addWalletModal" onclick="if(event.target===this)closeAddWalletModal()">
         <div class="modal" style="max-width:400px">
-            <div id="pay-step-1">
-                <h3 class="mb-2">Step 1: Your Details</h3>
-                <p class="text-muted text-sm mb-4">Enter your name and number for payment verification.</p>
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="payName" class="form-input" placeholder="Enter your name">
-                </div>
-                <div class="form-group">
-                    <label>WhatsApp Number</label>
-                    <input type="text" id="payNumber" class="form-input" placeholder="Enter your number">
-                </div>
-                <button class="btn btn-primary btn-block" onclick="payNextStep(2)">Next <i class="fas fa-arrow-right"></i></button>
+            <h3 class="mb-2"><i class="fas fa-wallet text-accent"></i> Add Money to Wallet</h3>
+            <p class="text-muted text-sm mb-4">Minimum wallet top-up amount is <strong>₹100</strong>. Instant payment via YOUPI PG (UPI / QR / Cards / NetBanking).</p>
+
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="walletTopupAmount" class="form-input" value="100" min="100" step="10" placeholder="Enter amount (Min ₹100)">
             </div>
 
-            <div id="pay-step-2" class="hidden text-center">
-                <h3 class="mb-2">Step 2: Scan & Pay</h3>
-                <p class="text-muted text-sm mb-4">Pay <span id="payAmountDisp" style="color:#fff;font-weight:700">₹0</span> via UPI QR code.</p>
-                <div style="background:#fff;padding:15px;border-radius:10px;display:inline-block;margin-bottom:15px">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=raj.papa@okicici%26pn=EliteHosting%26am=99%26cu=INR" id="payQR" style="width:200px;height:200px;display:block">
-                </div>
-                <p class="text-xs text-muted mb-4">Click "Paid" after completing payment in your UPI app.</p>
-                <div class="flex gap-2">
-                    <button class="btn btn-secondary flex-1" onclick="payNextStep(1)">Back</button>
-                    <button class="btn btn-primary flex-1" onclick="payNextStep(3)">Paid <i class="fas fa-check"></i></button>
-                </div>
+            <div class="flex gap-2 mb-4">
+                <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=100">₹100</button>
+                <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=200">₹200</button>
+                <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=500">₹500</button>
             </div>
 
-            <div id="pay-step-3" class="hidden">
-                <h3 class="mb-2">Step 3: Verify Payment</h3>
-                <p class="text-muted text-sm mb-4">Enter the Transaction ID / UTR from your payment app.</p>
-                <div class="form-group">
-                    <label>Transaction ID</label>
-                    <input type="text" id="payTxID" class="form-input" placeholder="Enter 12-digit UTR">
-                </div>
-                <button class="btn btn-primary btn-block" id="paySubmitBtn" onclick="submitPaymentRequest()">Submit Request</button>
-                <button class="btn btn-secondary btn-block mt-2" onclick="payNextStep(2)">Back</button>
-            </div>
-
-            <button class="btn btn-sm btn-secondary mt-4" style="width:100%" onclick="closePaymentModal()">Cancel</button>
+            <button class="btn btn-primary btn-block" id="addWalletSubmitBtn" onclick="submitAddWallet()">
+                <i class="fas fa-bolt"></i> Pay via YOUPI Gateway
+            </button>
+            <button class="btn btn-secondary btn-block mt-2" onclick="closeAddWalletModal()">Cancel</button>
         </div>
     </div>
 
