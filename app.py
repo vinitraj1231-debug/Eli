@@ -1127,11 +1127,15 @@ def index():
 @app.route('/login')
 @rate_limit('public')
 def login_page():
+    if 'user_id' in session:
+        return redirect('/dashboard')
     return render_template('auth.html', mode='login')
 
 @app.route('/register')
 @rate_limit('public')
 def register_page():
+    if 'user_id' in session:
+        return redirect('/dashboard')
     ref = request.args.get('ref', '')
     return render_template('auth.html', mode='register', ref=ref)
 
@@ -1359,22 +1363,20 @@ def sitemap_xml():
 import re
 
 def is_valid_email(email):
-    # Simple regex verification for email format
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(pattern, email))
 
 def is_valid_username(username):
-    # Only alphanumeric characters and underscores are allowed
     pattern = r'^\w+$'
     return bool(re.match(pattern, username))
 
 @app.route('/api/auth/register', methods=['POST'])
-@auth_rate_limit()
+@rate_limit('public')
 def api_register():
     data = request.get_json(silent=True) or {}
     schema = {
         'username': {'type': str, 'required': True, 'min': 3, 'max': 30, 'regex': r'^\w+$'},
-        'email': {'type': str, 'required': True, 'max': 120, 'regex': r'^[\w\.-]+@[\w\.-]+\.\w+$'},
+        'email': {'type': str, 'required': True, 'max': 120, 'regex': r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'},
         'password': {'type': str, 'required': True, 'min': 6, 'max': 100},
         'referral': {'type': str, 'required': False, 'max': 20}
     }

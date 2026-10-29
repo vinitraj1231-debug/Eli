@@ -20,12 +20,35 @@ function createToastContainer() {
 
 /* ===================== API HELPER ===================== */
 async function api(url, options = {}) {
-    const res = await fetch(API + url, {
-        headers: { 'Content-Type': 'application/json', ...options.headers },
-        ...options
-    });
-    const data = await res.json();
-    if (!res.ok) { toast(data.error || 'Request failed', 'error'); throw new Error(data.error); }
+    let res;
+    try {
+        res = await fetch(API + url, {
+            headers: { 'Content-Type': 'application/json', ...options.headers },
+            ...options
+        });
+    } catch (err) {
+        toast('Network error. Please check your internet connection.', 'error');
+        throw err;
+    }
+
+    let data;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+        try {
+            data = await res.json();
+        } catch (e) {
+            data = { error: 'Invalid JSON response from server' };
+        }
+    } else {
+        const text = await res.text();
+        data = { error: text ? text.replace(/<[^>]*>?/gm, '').trim().substring(0, 200) : ('HTTP ' + res.status) };
+    }
+
+    if (!res.ok) {
+        const errorMsg = data.error || ('Request failed (' + res.status + ')');
+        toast(errorMsg, 'error');
+        throw new Error(errorMsg);
+    }
     return data;
 }
 
@@ -120,10 +143,7 @@ function simulateDeployCheck(event) {
     });
 }
 
-// Legacy alias for compatibility
-function simulateDomainCheck(event) {
-    simulateDeployCheck(event);
-}
+
 
 // Instant Latency diagnostic tester
 function triggerLatencyTest() {
