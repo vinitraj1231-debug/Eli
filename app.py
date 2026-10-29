@@ -2921,6 +2921,27 @@ def add_security_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
     return response
 
+try:
+    import gunicorn.app.base
+
+    class StandaloneApplication(gunicorn.app.base.BaseApplication):
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.application = app
+            super().__init__()
+
+        def load_config(self):
+            config = {key: value for key, value in self.options.items()
+                      if key in self.cfg.settings and value is not None}
+            for key, value in config.items():
+                self.cfg.set(key.lower(), value)
+
+        def load(self):
+            return self.application
+except ImportError:
+    StandaloneApplication = None
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1', 'yes')
@@ -2929,4 +2950,12 @@ if __name__ == '__main__':
     print(f' Web Service: http://0.0.0.0:{port}')
     print(' Target Domain: elitehosting.in')
     print('================================================================')
-    app.run(debug=debug, host='0.0.0.0', port=port)
+    if StandaloneApplication and not debug:
+        options = {
+            'bind': f'0.0.0.0:{port}',
+            'workers': int(os.environ.get('WEB_CONCURRENCY', 2)),
+            'timeout': 120,
+        }
+        StandaloneApplication(app, options).run()
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=port)
