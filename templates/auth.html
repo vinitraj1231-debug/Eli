@@ -33,7 +33,12 @@
                 </div>
                 <div class="form-group">
                     <label for="loginPass">Password</label>
-                    <input type="password" id="loginPass" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+                    <div class="password-input-wrapper">
+                        <input type="password" id="loginPass" class="form-input" placeholder="Enter password" required autocomplete="current-password">
+                        <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('loginPass', this)" aria-label="Toggle password visibility">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group" style="text-align:right;margin-top:4px;margin-bottom:12px">
                     <a href="#" onclick="openForgotModal(); return false;" style="font-size:11px;color:var(--text-dim)">Forgot Password?</a>
@@ -48,7 +53,7 @@
             <form id="registerForm" autocomplete="on">
                 <div class="form-group">
                     <label for="regUser">Username</label>
-                    <input type="text" id="regUser" class="form-input" placeholder="Choose a username" required minlength="3" autocomplete="username">
+                    <input type="text" id="regUser" class="form-input" placeholder="Choose a username" required minlength="3" maxlength="30" pattern="^[a-zA-Z0-9_]+$" title="Only letters, numbers, and underscores allowed" autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="regEmail">Email</label>
@@ -56,7 +61,12 @@
                 </div>
                 <div class="form-group">
                     <label for="regPass">Password</label>
-                    <input type="password" id="regPass" class="form-input" placeholder="Min 6 characters" required minlength="6" autocomplete="new-password">
+                    <div class="password-input-wrapper">
+                        <input type="password" id="regPass" class="form-input" placeholder="Min 6 characters" required minlength="6" maxlength="100" autocomplete="new-password">
+                        <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('regPass', this)" aria-label="Toggle password visibility">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="regRef">Referral Code (optional)</label>
@@ -88,6 +98,18 @@
     <script src="/static/js/app.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', initAuth);
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'far fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'far fa-eye';
+            }
+        }
 
         function openForgotModal() {
             document.getElementById('forgotPasswordModal').classList.add('show');

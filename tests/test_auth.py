@@ -82,5 +82,14 @@ class AuthTestCase(unittest.TestCase):
         res = self.client.get('/api/admin/stats')
         self.assertEqual(res.status_code, 200)
 
+    def test_register_email_with_plus_sign(self):
+        reg_payload = {
+            'username': 'PlusUser',
+            'email': 'user+test@example.com',
+            'password': 'password123'
+        }
+        res = self.client.post('/api/auth/register', json=reg_payload)
+        self.assertEqual(res.status_code, 201)
+
 if __name__ == '__main__':
     unittest.main()
