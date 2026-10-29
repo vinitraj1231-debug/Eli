@@ -2955,6 +2955,7 @@ if __name__ == '__main__':
             'bind': f'0.0.0.0:{port}',
             'workers': int(os.environ.get('WEB_CONCURRENCY', 2)),
             'timeout': 120,
+            'loglevel': os.environ.get('GUNICORN_LOG_LEVEL', 'warning'),
         }
         StandaloneApplication(app, options).run()
     else:
