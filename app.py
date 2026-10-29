@@ -22,6 +22,7 @@ if db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 280}
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DEPLOY_FOLDER'] = 'deploys'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
@@ -886,6 +887,7 @@ WORKDIR {work_dir}
 EXPOSE {port}
 USER {default_user}
 ENV PORT={port}
+ENV PYTHONUNBUFFERED=1
 CMD {run_cmd}
 """
             with open(dockerfile_path, "w") as df:
@@ -998,9 +1000,11 @@ CMD {run_cmd}
                         self._log(f"Warning/Notice during npm install:\n{npm_res.stderr.strip()}")
 
                 log_out = open(self.log_file, 'a')
+                proc_env = dict(env) if env else dict(os.environ)
+                proc_env['PYTHONUNBUFFERED'] = '1'
                 proc = subprocess.Popen(
                     cmd, shell=True, cwd=self.deploy_path,
-                    stdout=log_out, stderr=log_out, env=env
+                    stdout=log_out, stderr=log_out, env=proc_env
                 )
                 self.deployment.pid = proc.pid
                 db.session.commit()
@@ -1412,7 +1416,12 @@ def api_register():
         last_ip=ip
     )
     db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Registration db commit error: {e}")
+        return jsonify({'error': 'Failed to complete registration due to database error. Please try again.'}), 500
 
     session['user_id'] = user.id
     return jsonify({
@@ -1446,7 +1455,11 @@ def api_login():
 
     ip = get_client_ip()
     user.last_ip = ip
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Login db commit error: {e}")
 
     session['user_id'] = user.id
     return jsonify({
@@ -1894,13 +1907,14 @@ def api_admin_approve_payment(rid):
         vps_name = 'Lite 512MB'
         vps_ram = 512
 
-    new_vps = VpsSlot(user_id=user.id, plan_name=vps_name, ram_mb=vps_ram, status='idle')
-    db.session.add(new_vps)
-
+    user.wallet_balance += req.amount
     user.credits += 1 # maintain legacy count support
     req.status = 'approved'
 
-    tx = Transaction(user_id=user.id, tx_type='vps_purchase', amount=req.amount, description=f'Purchased {vps_name} VPS slot')
+    new_vps = VpsSlot(user_id=user.id, plan_name=vps_name, ram_mb=vps_ram, status='idle')
+    db.session.add(new_vps)
+
+    tx = Transaction(user_id=user.id, tx_type='wallet_credit', amount=req.amount, description=f'Approved manual payment & credited ₹{req.amount} (Allocated {vps_name} VPS)')
     db.session.add(tx)
 
     # Referral commission - 30% of payment amount

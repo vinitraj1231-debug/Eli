@@ -361,6 +361,13 @@ function initAuth() {
 
 /* ===================== DASHBOARD ===================== */
 function initDashboard() {
+    if (window.location.search.includes('payment=success')) {
+        toast('Payment completed successfully! Wallet balance updated.', 'success');
+        if (window.history.replaceState) {
+            const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        }
+    }
     loadUser();
     switchTab('home');
 

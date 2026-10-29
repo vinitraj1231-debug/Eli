@@ -100,5 +100,29 @@ class PaymentWalletTestCase(unittest.TestCase):
             self.assertIsNotNone(slot)
             self.assertEqual(slot.ram_mb, 256)
 
+    def test_admin_approve_payment_credits_wallet(self):
+        self.register_and_login()
+        with app.app_context():
+            u = User.query.filter_by(username='payuser').first()
+            req = PaymentRequest(
+                user_id=u.id, name=u.username, number=u.email,
+                transaction_id='TX_TEST_123', amount=199.0, credits=2, status='pending'
+            )
+            db.session.add(req)
+            db.session.commit()
+            req_id = req.id
+
+        with self.client.session_transaction() as sess:
+            sess['admin_logged'] = True
+
+        res = self.client.post(f'/api/admin/payments/{req_id}/approve')
+        self.assertEqual(res.status_code, 200)
+
+        with app.app_context():
+            u = User.query.filter_by(username='payuser').first()
+            self.assertEqual(u.wallet_balance, 199.0)
+            slot = VpsSlot.query.filter_by(user_id=u.id).first()
+            self.assertIsNotNone(slot)
+
 if __name__ == '__main__':
     unittest.main()
