@@ -278,9 +278,9 @@ def auth_rate_limit():
             # Extract username/email from payload if any
             username = None
             try:
-                data = request.get_json(silent=True)
+                data = request.get_json(silent=True) or request.get_json(force=True, silent=True) or request.form.to_dict()
                 if data:
-                    username = data.get('username', '').strip().lower()
+                    username = str(data.get('username', '')).strip().lower()
             except Exception:
                 pass
 
@@ -1377,7 +1377,7 @@ def is_valid_username(username):
 @app.route('/api/auth/register', methods=['POST'])
 @rate_limit('public')
 def api_register():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     schema = {
         'username': {'type': str, 'required': True, 'min': 3, 'max': 30, 'regex': r'^\w+$'},
         'email': {'type': str, 'required': True, 'max': 120, 'regex': r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'},
@@ -1432,7 +1432,7 @@ def api_register():
 @app.route('/api/auth/login', methods=['POST'])
 @auth_rate_limit()
 def api_login():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     schema = {
         'username': {'type': str, 'required': True, 'min': 1, 'max': 120},
         'password': {'type': str, 'required': True, 'min': 1, 'max': 100}
@@ -2208,7 +2208,7 @@ def api_admin_login():
     if auth and auth.is_banned:
         return jsonify({'error': 'Device banned. Contact administrator.'}), 403
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     schema = {
         'username': {'type': str, 'required': True, 'min': 1, 'max': 50},
         'password': {'type': str, 'required': True, 'min': 1, 'max': 100}
