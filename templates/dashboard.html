@@ -22,9 +22,15 @@
             <img src="/static/img/logo.webp" alt="EliteHosting Logo" class="logo-img" style="height:32px; width:auto; border-radius:4px; object-fit:contain;">
             <span class="logo-text">EliteHosting</span>
         </a>
-        <div class="dash-user">
-            <span class="dash-user-name">...</span>
-            <div class="dash-user-avatar">?</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <button class="header-wallet-btn" onclick="openAddWalletModal()" title="Add Money / Wallet Balance">
+                <i class="fas fa-wallet" style="color:var(--accent)"></i>
+                <span id="headerWallet">₹0.00</span>
+            </button>
+            <div class="dash-user">
+                <span class="dash-user-name">...</span>
+                <div class="dash-user-avatar">?</div>
+            </div>
         </div>
     </header>
 
@@ -48,13 +54,8 @@
                     <div class="value" id="statCredits" style="color:var(--accent)">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="label">Free VPS Tier</div>
-                    <div class="value" id="statFreeTimer" style="font-size:14px;color:var(--warning)">--:--:--</div>
-                    <small style="font-size:9px;color:var(--danger)">Trial apps stop after 15 min. Restart required!</small>
-                </div>
-                <div class="stat-card">
                     <div class="label">Wallet Balance</div>
-                    <div class="value" id="statWallet">₹0</div>
+                    <div class="value" id="statWallet">₹0.00</div>
                 </div>
             </div>
 
@@ -89,7 +90,7 @@
                         <button class="btn btn-secondary btn-sm mt-2" style="width:100%" onclick="buyVpsSlot('pro')">Buy Service</button>
                     </div>
                 </div>
-            </div></div>
+            </div>
         </div>
 
         <!-- TAB: MANAGE -->
@@ -117,7 +118,7 @@
                     <div class="form-group">
                         <label>Target VPS Slot</label>
                         <select id="ghVpsSlot" class="form-input" style="background:var(--surface);color:#fff">
-                            <option value="">Auto-select Idle Slot (or Free Trial)</option>
+                            <option value="">Auto-select Idle Purchased Slot</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -172,7 +173,7 @@
                     <div class="form-group">
                         <label>Target VPS Slot</label>
                         <select id="zipVpsSlot" name="vps_slot_id" class="form-input" style="background:var(--surface);color:#fff">
-                            <option value="">Auto-select Idle Slot (or Free Trial)</option>
+                            <option value="">Auto-select Idle Purchased Slot</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -235,6 +236,18 @@
 
         <!-- TAB: SETTINGS -->
         <div id="tab-settings" class="tab-content hidden">
+
+            <!-- Wallet & Balance Section -->
+            <div class="settings-section">
+                <h3><i class="fas fa-wallet"></i> Wallet &amp; Balance</h3>
+                <div class="flex justify-between items-center mb-4" style="background: rgba(8, 11, 17, 0.5); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                    <div>
+                        <div style="font-size: 12px; color: var(--muted-light)">Current Wallet Balance</div>
+                        <div style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; color: var(--accent)" id="settingsWalletBalance">₹0.00</div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="openAddWalletModal()"><i class="fas fa-plus"></i> Add Money</button>
+                </div>
+            </div>
 
             <!-- Chat Section -->
             <div class="settings-section">

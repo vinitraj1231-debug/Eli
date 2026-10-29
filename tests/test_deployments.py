@@ -111,5 +111,48 @@ class DeploymentsTestCase(unittest.TestCase):
         self.assertIsNone(slot.deployment_id)
         self.assertEqual(slot.status, 'idle')
 
+    def test_no_free_tier_requires_purchased_vps_slot(self):
+        # Without any purchased VPS slot, deployment should fail with 402
+        res = self.client.post('/api/deploy/github', json={
+            'name': 'No Paid Slot Bot',
+            'repo_url': 'https://github.com/example/repo'
+        })
+        self.assertEqual(res.status_code, 402)
+
+    def test_vps_slot_30_day_expiry_and_data_retention(self):
+        from datetime import datetime, timedelta, timezone
+        from app import check_vps_slots_expiry, utcnow
+
+        user = User.query.filter_by(username='deployuser').first()
+        # Create a VPS slot expiring in past
+        past_date = utcnow() - timedelta(days=31)
+        slot = VpsSlot(user_id=user.id, plan_name='Lite 512MB', ram_mb=512, status='running', expires_at=past_date)
+        db.session.add(slot)
+        db.session.commit()
+
+        dep = Deployment(
+            user_id=user.id,
+            name='Expiring Bot',
+            deploy_type='github',
+            vps_slot_id=slot.id,
+            status='running'
+        )
+        db.session.add(dep)
+        slot.deployment_id = dep.id
+        db.session.commit()
+
+        # Trigger expiry check
+        check_vps_slots_expiry()
+
+        # Slot should be marked expired
+        db.session.refresh(slot)
+        self.assertEqual(slot.status, 'expired')
+
+        # Deployment should still exist (data NOT deleted), but stopped
+        dep_db = db.session.get(Deployment, dep.id)
+        db.session.refresh(dep_db)
+        self.assertIsNotNone(dep_db)
+        self.assertEqual(dep_db.status, 'stopped')
+
 if __name__ == '__main__':
     unittest.main()
