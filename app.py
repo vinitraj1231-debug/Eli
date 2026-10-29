@@ -2800,28 +2800,62 @@ def handle_exception(e):
 
     if code >= 500:
         logger.error("Unhandled exception occurred: %s\n%s", str(e), format_exc())
-    else:
-        logger.info("HTTP %s on %s: %s", code, request.path, str(e))
+    elif code != 404:
+        logger.info("HTTP %s on %s", code, request.path)
 
     if request.path.startswith('/api/'):
-        return jsonify({
-            'error': 'An internal server error occurred. Please try again later.' if code == 500 else str(e)
-        }), code
+        error_msg = 'An internal server error occurred. Please try again later.' if code == 500 else ('Resource not found' if code == 404 else str(e))
+        return jsonify({'error': error_msg}), code
     else:
-        # Generic user-facing HTML message
         if code == 404:
-            return "<h1>404 Not Found</h1><p>The requested URL was not found on the server.</p>", 404
+            return '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found — EliteHosting</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/webp" href="/static/img/logo.webp">
+    <style>
+        body { margin: 0; background-color: #0b0f19; color: #f8fafc; font-family: 'DM Sans', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; box-sizing: border-box; }
+        .container { max-width: 480px; width: 100%; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(0, 242, 254, 0.2); border-radius: 16px; padding: 40px 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); backdrop-filter: blur(12px); }
+        .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px; text-decoration: none; color: #fff; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; }
+        .logo img { height: 32px; border-radius: 4px; object-fit: contain; }
+        .code { font-family: 'Space Grotesk', sans-serif; font-size: 72px; font-weight: 700; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; line-height: 1; }
+        h1 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; margin: 16px 0 8px 0; }
+        p { color: #94a3b8; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #0b0f19; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 24px; border-radius: 8px; transition: opacity 0.2s ease; }
+        .btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="logo">
+            <img src="/static/img/logo.webp" alt="EliteHosting">
+            <span>EliteHosting</span>
+        </a>
+        <div class="code">404</div>
+        <h1>Page Not Found</h1>
+        <p>The page or endpoint you requested was not found on our servers.</p>
+        <a href="/" class="btn">Return to Home</a>
+    </div>
+</body>
+</html>''', 404
         return "<h1>500 Internal Server Error</h1><p>An internal error occurred. Please try again later.</p>", 500
+
 
 # ===================== RUN =====================
 
 @app.before_request
 def check_ip_banned_and_expired():
     # Check if client IP is banned
-    ip = get_client_ip()
-    banned = BannedIP.query.filter_by(ip_address=ip).first()
-    if banned:
-        return "<h1>403 Forbidden - Device Banned</h1><p>Your device IP address has been banned from accessing EliteHosting. If you believe this is a mistake, please contact support.</p>", 403
+    try:
+        ip = get_client_ip()
+        banned = BannedIP.query.filter_by(ip_address=ip).first()
+        if banned:
+            return "<h1>403 Forbidden - Device Banned</h1><p>Your device IP address has been banned from accessing EliteHosting. If you believe this is a mistake, please contact support.</p>", 403
+    except Exception:
+        db.session.rollback()
 
     # Stop expired trial deployments dynamically for the logged-in user
     if 'user_id' in session:
