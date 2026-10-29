@@ -373,6 +373,16 @@ function initAuth() {
 function initDashboard() {
     if (window.location.search.includes('payment=success')) {
         toast('Payment completed successfully! Wallet balance updated.', 'success');
+        const params = new URLSearchParams(window.location.search);
+        const txId = params.get('tx_id');
+        if (txId) {
+            api('/api/payment/status/' + txId).then(data => {
+                if (data && data.status === 'approved') {
+                    loadUser();
+                    loadStats();
+                }
+            }).catch(() => {});
+        }
         if (window.history.replaceState) {
             const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
             window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
@@ -403,6 +413,20 @@ function switchTab(tab) {
     }
 }
 
+function updateWalletUI(amount) {
+    if (amount === undefined || amount === null) return;
+    const formatted = '₹' + parseFloat(amount || 0).toFixed(2);
+    const headerEl = document.getElementById('headerWallet');
+    const statEl = document.getElementById('statWallet');
+    const settingsEl = document.getElementById('settingsWalletBalance');
+    const refBalEl = document.getElementById('refBalance');
+
+    if (headerEl) headerEl.textContent = formatted;
+    if (statEl) statEl.textContent = formatted;
+    if (settingsEl) settingsEl.textContent = formatted;
+    if (refBalEl) refBalEl.textContent = formatted;
+}
+
 async function loadUser() {
     try {
         currentUser = await api('/api/auth/me');
@@ -410,6 +434,9 @@ async function loadUser() {
         const name = document.querySelectorAll('.dash-user-name');
         if (avatar) avatar.textContent = currentUser.username[0].toUpperCase();
         name.forEach(el => { el.textContent = currentUser.username; });
+        if (currentUser.wallet !== undefined) {
+            updateWalletUI(currentUser.wallet);
+        }
     } catch { window.location.href = '/login'; }
 }
 
@@ -418,14 +445,7 @@ async function loadStats() {
         const s = await api('/api/dashboard/stats');
         document.getElementById('statTotal').textContent = s.total_deployments;
         document.getElementById('statCredits').textContent = s.credits;
-        document.getElementById('statWallet').textContent = '₹' + s.wallet.toFixed(2);
-
-        if (s.free_deploy_until) {
-            updateTimer(s.free_deploy_until);
-            if (!window.timerInterval) {
-                window.timerInterval = setInterval(() => updateTimer(s.free_deploy_until), 1000);
-            }
-        }
+        updateWalletUI(s.wallet);
 
         // Render VPS slots list dynamically
         const vpsContainer = document.getElementById('vpsSlotsContainer');
@@ -436,22 +456,36 @@ async function loadStats() {
             if (!s.vps_slots.length) {
                 vpsContainer.innerHTML = '<p style="font-size: 11px; color: var(--muted)">No active VPS slots. Buy a high-performance VPS below to deploy!</p>';
             } else {
-                vpsContainer.innerHTML = s.vps_slots.map(vs => `
+                vpsContainer.innerHTML = s.vps_slots.map(vs => {
+                    let expiryText = '';
+                    if (vs.expires_at) {
+                        const expDate = new Date(vs.expires_at);
+                        const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+                        if (vs.is_expired || daysLeft <= 0) {
+                            expiryText = ` • <span style="color:var(--danger)">Expired</span>`;
+                        } else {
+                            expiryText = ` • <span style="color:var(--warning)">Expires in ${daysLeft}d</span>`;
+                        }
+                    }
+                    const badgeClass = vs.status === 'running' ? 'running' : (vs.status === 'expired' ? 'error' : 'idle');
+                    return `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; border-radius: var(--radius-md)">
                         <div>
                             <span style="font-weight: 600; color: #fff; font-size:12px">${esc(vs.plan_name)}</span>
-                            <span style="font-size: 10px; color: var(--muted)"> • Dedicated RAM: ${vs.ram_mb}MB</span>
+                            <span style="font-size: 10px; color: var(--muted)"> • Dedicated RAM: ${vs.ram_mb}MB${expiryText}</span>
                         </div>
-                        <span class="status-badge status-${vs.status === 'running' ? 'running' : 'idle'}">${vs.status}</span>
+                        <span class="status-badge status-${badgeClass}">${vs.status}</span>
                     </div>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
 
         // Populate Target VPS dropdowns
         if (ghSelect && zipSelect && s.vps_slots) {
-            const options = s.vps_slots.map(vs => `<option value="${vs.id}">${vs.plan_name} (${vs.status})</option>`).join('');
-            const defaultOpt = `<option value="">Auto-select Idle Slot (or Free Trial)</option>`;
+            const activeSlots = s.vps_slots.filter(vs => !vs.is_expired);
+            const options = activeSlots.map(vs => `<option value="${vs.id}">${vs.plan_name} (${vs.status})</option>`).join('');
+            const defaultOpt = activeSlots.length ? `<option value="">Auto-select Idle Purchased Slot</option>` : `<option value="">No Active VPS Slots - Buy One Below</option>`;
             ghSelect.innerHTML = defaultOpt + options;
             zipSelect.innerHTML = defaultOpt + options;
         }
@@ -677,7 +711,7 @@ async function loadReferralInfo() {
         document.getElementById('refCode').textContent = data.referral_code;
         document.getElementById('refLink').value = window.location.origin + '/register?ref=' + data.referral_code;
         document.getElementById('refEarned').textContent = '₹' + data.total_earned.toFixed(2);
-        document.getElementById('refBalance').textContent = '₹' + data.wallet_balance.toFixed(2);
+        updateWalletUI(data.wallet_balance);
         const refList = document.getElementById('refList');
         if (!data.referrals.length) {
             refList.innerHTML = '<div class="text-muted text-sm">No referrals yet</div>';

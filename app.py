@@ -92,8 +92,9 @@ class VpsSlot(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     plan_name = db.Column(db.String(50), nullable=False) # e.g. 'Micro 256MB', 'Lite 512MB', 'Pro 1GB'
     ram_mb = db.Column(db.Integer, nullable=False)       # 256, 512, 1024
-    status = db.Column(db.String(20), default='idle')    # idle, running
+    status = db.Column(db.String(20), default='idle')    # idle, running, expired
     deployment_id = db.Column(db.Integer, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=utcnow)
 
 class Deployment(db.Model):
@@ -183,6 +184,17 @@ class SystemConfig(db.Model):
 
 with app.app_context():
     db.create_all()
+    # Migration helper to add expires_at column to vps_slot if missing
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        columns = [c['name'] for c in inspector.get_columns('vps_slot')]
+        if 'expires_at' not in columns:
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE vps_slot ADD COLUMN expires_at TIMESTAMP"))
+                conn.commit()
+    except Exception as e:
+        app.logger.warning(f"DB Migration notice: {e}")
 
 
 # ===================== HELPERS =====================
@@ -1111,6 +1123,39 @@ def run_deploy_background(dep_id, dep_type, **kwargs):
         elif dep_type == 'zip':
             engine.zip_deploy(kwargs.get('zip_path'))
 
+def check_vps_slots_expiry():
+    try:
+        now = utcnow()
+        expired_slots = VpsSlot.query.filter(
+            VpsSlot.expires_at.isnot(None),
+            VpsSlot.expires_at <= now,
+            VpsSlot.status != 'expired'
+        ).all()
+
+        for slot in expired_slots:
+            deps_to_stop = []
+            if slot.deployment_id:
+                d = db.session.get(Deployment, slot.deployment_id)
+                if d:
+                    deps_to_stop.append(d)
+            deps_by_slot = Deployment.query.filter_by(vps_slot_id=slot.id).all()
+            for d in deps_by_slot:
+                if d not in deps_to_stop:
+                    deps_to_stop.append(d)
+
+            for dep in deps_to_stop:
+                if dep.status == 'running':
+                    engine = DeployEngine(dep.id)
+                    engine.stop()
+                    engine._log("VPS Slot plan expired after 30 days. Service stopped. All code, database, and project files are safely retained. Please purchase a new VPS slot to resume service.")
+
+            slot.status = 'expired'
+        if expired_slots:
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error checking VPS slot expirations: {e}")
+
 def mask_secret(val):
     if not val:
         return ""
@@ -1412,7 +1457,7 @@ def api_register():
         password_plain=password,
         referral_code=generate_referral_code(),
         referred_by=referrer.id if referrer else None,
-        free_deploy_until=utcnow() + timedelta(hours=3),
+        free_deploy_until=None,
         last_ip=ip
     )
     db.session.add(user)
@@ -1497,13 +1542,16 @@ def api_stats():
     # Calculate VPS slots summary
     slots = VpsSlot.query.filter_by(user_id=uid).all()
     slots_summary = []
+    now = utcnow()
     for s in slots:
         slots_summary.append({
             'id': s.id,
             'plan_name': s.plan_name,
             'ram_mb': s.ram_mb,
             'status': s.status,
-            'deployment_id': s.deployment_id
+            'deployment_id': s.deployment_id,
+            'expires_at': s.expires_at.isoformat() if s.expires_at else None,
+            'is_expired': bool(s.expires_at and s.expires_at <= now)
         })
 
     # Return slots_summary and count as credits to prevent frontend UI formatting crashes
@@ -1515,7 +1563,7 @@ def api_stats():
         'credits': len(slots_summary), # map total slots to credits field
         'vps_slots': slots_summary,
         'plan': user.plan,
-        'free_deploy_until': user.free_deploy_until.isoformat() if user.free_deploy_until else None
+        'free_deploy_until': None
     })
 
 # ===================== ROUTES — DEPLOY API =====================
@@ -1562,40 +1610,26 @@ def api_deploy_github():
     env_vars = cleaned.get('env_vars') or None
     slot_id = cleaned.get('vps_slot_id')
 
-    # Assign a free slot if under free trial OR look for a purchased slot
-    is_free = False
+    now = utcnow()
     vps_slot = None
-    is_website = (request.form.get('is_website') == 'true')
-
-    if user.free_deploy_until and user.free_deploy_until > utcnow():
-        is_free = True
-        # Check if they already have an active trial deployment
-        free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
-        if free_deps >= 1:
-            return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
-
-        # Ensure they have a trial slot allocated in DB
-        vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
-        if not vps_slot:
-            vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
-            db.session.add(vps_slot)
-            db.session.commit()
+    if slot_id:
+        vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
+        if vps_slot and vps_slot.expires_at and vps_slot.expires_at <= now:
+            return jsonify({'error': 'Selected VPS slot has expired. Please purchase a new VPS slot.'}), 402
     else:
-        # Require purchased VPS slot selection
-        if slot_id:
-            vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
-        else:
-            # Fall back to finding an idle slot
-            vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+        # Fall back to finding an active (non-expired), idle slot
+        vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').filter(
+            db.or_(VpsSlot.expires_at.is_(None), VpsSlot.expires_at > now)
+        ).first()
 
-        if not vps_slot:
-            return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
+    if not vps_slot:
+        return jsonify({'error': 'No available active VPS slots! Please add money to your wallet and purchase a VPS plan (Micro, Lite, or Pro) to deploy.'}), 402
 
     dep = Deployment(
         user_id=user.id, name=name, deploy_type='github',
         repo_url=repo_url, branch=branch,
         build_command=build_cmd, deploy_command=deploy_cmd,
-        env_vars=env_vars, is_free=is_free,
+        env_vars=env_vars, is_free=False,
         vps_slot_id=vps_slot.id if vps_slot else None
     )
     db.session.add(dep)
@@ -1655,33 +1689,20 @@ def api_deploy_zip():
     if not is_safe:
         return jsonify({'error': content_err}), 400
 
-    # Assign a free slot if under free trial OR look for a purchased slot
-    is_free = False
+    now = utcnow()
     vps_slot = None
-
-    if user.free_deploy_until and user.free_deploy_until > utcnow():
-        is_free = True
-        # Check if they already have an active trial deployment
-        free_deps = Deployment.query.filter_by(user_id=user.id, is_free=True).count()
-        if free_deps >= 1:
-            return jsonify({'error': 'Free deployment limit reached (1 trial slot max). Buy premium to deploy more.'}), 402
-
-        # Ensure they have a trial slot allocated in DB
-        vps_slot = VpsSlot.query.filter_by(user_id=user.id, plan_name='Trial 256MB').first()
-        if not vps_slot:
-            vps_slot = VpsSlot(user_id=user.id, plan_name='Trial 256MB', ram_mb=256, status='idle')
-            db.session.add(vps_slot)
-            db.session.commit()
+    if slot_id:
+        vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
+        if vps_slot and vps_slot.expires_at and vps_slot.expires_at <= now:
+            return jsonify({'error': 'Selected VPS slot has expired. Please purchase a new VPS slot.'}), 402
     else:
-        # Require purchased VPS slot selection
-        if slot_id:
-            vps_slot = VpsSlot.query.filter_by(id=slot_id, user_id=user.id).first()
-        else:
-            # Fall back to finding an idle slot
-            vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').first()
+        # Fall back to finding an active (non-expired), idle slot
+        vps_slot = VpsSlot.query.filter_by(user_id=user.id, status='idle').filter(
+            db.or_(VpsSlot.expires_at.is_(None), VpsSlot.expires_at > now)
+        ).first()
 
-        if not vps_slot:
-            return jsonify({'error': 'No available VPS slots! Please purchase a VPS slot first.'}), 402
+    if not vps_slot:
+        return jsonify({'error': 'No available active VPS slots! Please add money to your wallet and purchase a VPS plan (Micro, Lite, or Pro) to deploy.'}), 402
 
     filename = secure_filename(zip_file.filename)
     zip_path = os.path.join(app.config['UPLOAD_FOLDER'], f'{uuid.uuid4().hex}_{filename}')
@@ -1722,6 +1743,26 @@ def api_start_deploy(dep_id):
     dep = db.get_or_404(Deployment, dep_id)
     if dep.user_id != session['user_id']:
         return jsonify({'error': 'Unauthorized'}), 403
+
+    now = utcnow()
+    vps_slot = None
+    if dep.vps_slot_id:
+        vps_slot = db.session.get(VpsSlot, dep.vps_slot_id)
+
+    # If linked slot is missing or expired, try to re-link to an active (non-expired) idle slot
+    if not vps_slot or (vps_slot.expires_at and vps_slot.expires_at <= now) or vps_slot.status == 'expired':
+        active_idle = VpsSlot.query.filter_by(user_id=session['user_id'], status='idle').filter(
+            db.or_(VpsSlot.expires_at.is_(None), VpsSlot.expires_at > now)
+        ).first()
+
+        if active_idle:
+            dep.vps_slot_id = active_idle.id
+            active_idle.deployment_id = dep.id
+            db.session.commit()
+            vps_slot = active_idle
+        else:
+            return jsonify({'error': 'No active VPS slot available. Your plan has expired or no idle slot is available. Please purchase a VPS plan to start your service.'}), 402
+
     engine = DeployEngine(dep_id)
     success = engine.start()
     return jsonify({'message': 'Started' if success else 'Failed', 'status': dep.status})
