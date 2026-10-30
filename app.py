@@ -1883,7 +1883,7 @@ def api_payment_request():
         'name': {'type': str, 'required': True, 'min': 2, 'max': 100},
         'number': {'type': str, 'required': True, 'min': 10, 'max': 20, 'regex': r'^\+?[0-9 ]+$'},
         'transaction_id': {'type': str, 'required': True, 'min': 5, 'max': 100, 'regex': r'^[a-zA-Z0-9_\-]+$'},
-        'amount': {'type': float, 'required': True, 'min': 99.0, 'max': 100000.0}
+        'amount': {'type': float, 'required': True, 'min': 10.0, 'max': 100000.0}
     }
     cleaned, err = validate_payload(schema, data)
     if err:
@@ -1897,15 +1897,15 @@ def api_payment_request():
     if PaymentRequest.query.filter_by(transaction_id=tx_id).first():
         return jsonify({'error': 'Transaction ID already submitted'}), 400
 
-    # VPS Slots Pricing mappings:
+    # VPS Slots Pricing mappings or custom wallet top-up:
     # 99 INR -> Micro 256MB VPS slot
     # 199 INR -> Lite 512MB VPS slot
     # 299 INR -> Pro 1GB VPS slot
     credits = 0
-    if amount >= 299: credits = 3 # map Pro 1GB as id reference indicator
-    elif amount >= 199: credits = 2 # Lite 512MB
-    elif amount >= 99: credits = 1 # Micro 256MB
-    else: return jsonify({'error': 'Minimum amount is ₹99'}), 400
+    if amount >= 299: credits = 3
+    elif amount >= 199: credits = 2
+    elif amount >= 99: credits = 1
+    else: credits = 0
 
     req = PaymentRequest(
         user_id=session['user_id'], name=name, number=number,
@@ -1913,7 +1913,7 @@ def api_payment_request():
     )
     db.session.add(req)
     db.session.commit()
-    return jsonify({'message': 'Payment request submitted. Admin will approve soon.'})
+    return jsonify({'message': 'Payment request submitted successfully. Admin will review and approve your transaction shortly.'})
 
 @app.route('/api/admin/payments', methods=['GET'])
 @admin_required

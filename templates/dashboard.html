@@ -301,25 +301,78 @@
     <!-- ===== LOG MODAL ===== -->
     <!-- ===== PAYMENT MODAL ===== -->
     <div class="modal-overlay" id="addWalletModal" onclick="if(event.target===this)closeAddWalletModal()">
-        <div class="modal" style="max-width:400px">
+        <div class="modal" style="max-width:480px">
             <h3 class="mb-2"><i class="fas fa-wallet text-accent"></i> Add Money to Wallet</h3>
-            <p class="text-muted text-sm mb-4">Minimum wallet top-up amount is <strong>₹100</strong>. Instant payment via YOUPI PG (UPI / QR / Cards / NetBanking).</p>
+            <p class="text-muted text-sm mb-4">Select your preferred payment method below to top up your wallet balance.</p>
 
-            <div class="form-group">
-                <label>Amount (₹)</label>
-                <input type="number" id="walletTopupAmount" class="form-input" value="100" min="100" step="10" placeholder="Enter amount (Min ₹100)">
+            <!-- Payment Method Tabs -->
+            <div class="flex gap-2 mb-4 border-b border-gray-800 pb-2">
+                <button class="btn btn-sm btn-primary flex-1" id="payTabQrBtn" onclick="switchPayTab('qr')">
+                    <i class="fas fa-qrcode"></i> Scan UPI QR Code
+                </button>
+                <button class="btn btn-sm btn-secondary flex-1" id="payTabPgBtn" onclick="switchPayTab('pg')">
+                    <i class="fas fa-bolt"></i> Instant YOUPI Gateway
+                </button>
             </div>
 
-            <div class="flex gap-2 mb-4">
-                <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=100">₹100</button>
-                <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=200">₹200</button>
-                <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=500">₹500</button>
+            <!-- Tab 1: Direct UPI QR Code Payment -->
+            <div id="payTabQr" class="pay-tab-content">
+                <div class="text-center p-3 mb-3" style="background:rgba(0,242,254,0.05);border:1px solid rgba(0,242,254,0.2);border-radius:12px">
+                    <p class="text-sm font-semibold mb-2 text-white"><i class="fas fa-camera text-accent"></i> Scan &amp; Pay via Any UPI App</p>
+                    <img id="qrCodeImg" src="/static/img/qr_199.png" alt="Scan UPI QR" style="max-width:180px;height:auto;margin:0 auto;border-radius:12px;border:2px solid rgba(255,255,255,0.1)">
+                    <p class="text-xs text-muted mt-2">GPay / PhonePe / Paytm / BHIM</p>
+                </div>
+
+                <div class="form-group mb-2">
+                    <label class="text-xs">Select Preset Amount / Plan</label>
+                    <div class="flex gap-2">
+                        <button class="btn btn-secondary btn-sm flex-1" onclick="setQrAmount(99, '/static/img/qr_99.png')">₹99 (Micro)</button>
+                        <button class="btn btn-secondary btn-sm flex-1" onclick="setQrAmount(199, '/static/img/qr_199.png')">₹199 (Lite)</button>
+                        <button class="btn btn-secondary btn-sm flex-1" onclick="setQrAmount(299, '/static/img/qr_299.png')">₹299 (Pro)</button>
+                    </div>
+                </div>
+
+                <div class="form-group mb-2">
+                    <label class="text-xs">Your Name</label>
+                    <input type="text" id="manualPayName" class="form-input" placeholder="Enter full name">
+                </div>
+                <div class="form-group mb-2">
+                    <label class="text-xs">Mobile Number</label>
+                    <input type="tel" id="manualPayPhone" class="form-input" placeholder="Enter 10-digit mobile number">
+                </div>
+                <div class="form-group mb-2">
+                    <label class="text-xs">Amount Paid (₹)</label>
+                    <input type="number" id="manualPayAmount" class="form-input" value="199" min="10" step="1">
+                </div>
+                <div class="form-group mb-3">
+                    <label class="text-xs">12-Digit UTR / Transaction ID <span class="text-accent">*</span></label>
+                    <input type="text" id="manualPayTxId" class="form-input" placeholder="e.g. 428901234567 or UPI Tx ID">
+                </div>
+
+                <button class="btn btn-primary btn-block" id="submitManualPayBtn" onclick="submitManualPayment()">
+                    <i class="fas fa-check-circle"></i> Submit Payment for Approval
+                </button>
             </div>
 
-            <button class="btn btn-primary btn-block" id="addWalletSubmitBtn" onclick="submitAddWallet()">
-                <i class="fas fa-bolt"></i> Pay via YOUPI Gateway
-            </button>
-            <button class="btn btn-secondary btn-block mt-2" onclick="closeAddWalletModal()">Cancel</button>
+            <!-- Tab 2: YOUPI PG -->
+            <div id="payTabPg" class="pay-tab-content hidden">
+                <div class="form-group mb-2">
+                    <label>Amount (₹)</label>
+                    <input type="number" id="walletTopupAmount" class="form-input" value="100" min="100" step="10" placeholder="Enter amount (Min ₹100)">
+                </div>
+
+                <div class="flex gap-2 mb-4">
+                    <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=100">₹100</button>
+                    <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=200">₹200</button>
+                    <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('walletTopupAmount').value=500">₹500</button>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="addWalletSubmitBtn" onclick="submitAddWallet()">
+                    <i class="fas fa-bolt"></i> Pay via YOUPI Gateway
+                </button>
+            </div>
+
+            <button class="btn btn-secondary btn-block mt-3" onclick="closeAddWalletModal()">Cancel</button>
         </div>
     </div>
 

@@ -46,7 +46,7 @@ class DeploymentsTestCase(unittest.TestCase):
             'name': 'Deployer Test',
             'number': '9876543210',
             'transaction_id': 'TXN123456',
-            'amount': 50.0
+            'amount': 5.0
         })
         self.assertEqual(res.status_code, 400)
 
