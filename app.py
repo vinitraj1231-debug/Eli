@@ -1213,7 +1213,12 @@ def mask_secret(val):
 @app.route('/')
 @rate_limit('public')
 def index():
-    return render_template('index.html')
+    seo = {
+        'title': 'Free Python Bot Hosting & 24/7 Telegram Bot VPS | EliteHosting.in',
+        'description': 'Deploy high-performance Python & Node.js bots in seconds. EliteHosting is the leading affordable VPS hosting India & cheap Node.js hosting platform with 24/7 zero-sleep runtimes.',
+        'canonical': 'https://elitehosting.in/'
+    }
+    return render_template('index.html', seo=seo)
 
 @app.route('/login')
 @rate_limit('public')
@@ -1516,16 +1521,37 @@ def sitemap_xml():
     # High Priority Core Pages
     add_url("https://elitehosting.in/", priority="1.0", changefreq="daily")
     add_url("https://elitehosting.in/telegram-bot-hosting", priority="0.9", changefreq="daily")
+    add_url("https://elitehosting.in/features", priority="0.9", changefreq="weekly")
     add_url("https://elitehosting.in/features.html", priority="0.9", changefreq="weekly")
     add_url("https://elitehosting.in/blog/how-to-deploy-my-code.html", priority="0.9", changefreq="weekly")
+    add_url("https://elitehosting.in/how-to-deploy-my-code", priority="0.9", changefreq="weekly")
     add_url("https://elitehosting.in/pyrogram-bot-hosting", priority="0.8", changefreq="weekly")
     add_url("https://elitehosting.in/python-bot-hosting", priority="0.8", changefreq="weekly")
     add_url("https://elitehosting.in/termux-telegram-bot-hosting", priority="0.8", changefreq="weekly")
     add_url("https://elitehosting.in/blogs", priority="0.8", changefreq="daily")
     add_url("https://elitehosting.in/about-us", priority="0.7", changefreq="monthly")
+    add_url("https://elitehosting.in/about", priority="0.7", changefreq="monthly")
     add_url("https://elitehosting.in/contact-us", priority="0.7", changefreq="monthly")
+    add_url("https://elitehosting.in/contact", priority="0.7", changefreq="monthly")
 
-    # Static routes dynamic discovery
+    # Compliance & Legal Policy Pages
+    add_url("https://elitehosting.in/terms-and-conditions", priority="0.6", changefreq="monthly")
+    add_url("https://elitehosting.in/terms", priority="0.6", changefreq="monthly")
+    add_url("https://elitehosting.in/privacy-policy", priority="0.6", changefreq="monthly")
+    add_url("https://elitehosting.in/privacy", priority="0.6", changefreq="monthly")
+    add_url("https://elitehosting.in/refund-policy", priority="0.6", changefreq="monthly")
+    add_url("https://elitehosting.in/refund", priority="0.6", changefreq="monthly")
+    add_url("https://elitehosting.in/shipping-policy", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/payment-policy", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/cookie-policy", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/subscription-policy", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/user-content-policy", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/acceptable-use-policy", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/disclaimer", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/copyright", priority="0.5", changefreq="monthly")
+    add_url("https://elitehosting.in/grievance", priority="0.5", changefreq="monthly")
+
+    # Static routes dynamic discovery fallback
     for rule in app.url_map.iter_rules():
         if "GET" in rule.methods and len(rule.arguments) == 0:
             route = str(rule.rule)
