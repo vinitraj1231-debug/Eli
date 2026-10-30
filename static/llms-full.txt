@@ -1,0 +1,35 @@
+# EliteHosting - Comprehensive Architecture & System Reference
+
+EliteHosting (https://elitehosting.in) is an instant developer cloud platform designed for executing 24/7 Telegram bots, Python background tasks, Node.js microservices, and static websites with high concurrency.
+
+## System Capabilities & Architecture
+- **Runtimes**: Python 3.10+, Node.js 18+ Alpine Linux isolated environments.
+- **Dependency Management**: Automated execution of `pip install -r requirements.txt` and `npm install` during container initialization.
+- **Execution Engines**: Isolated Docker container execution with memory caps (256MB, 512MB, 1GB) and direct process fallback support.
+- **Web Terminal**: Real-time stdout/stderr log aggregation streaming directly to client portal.
+- **Secret Vault**: In-memory encrypted environment variable injection (`.env` injection at process start).
+- **Static Website Hosting**: Direct static web hosting served at `/site/<slug>` with custom URL slug management and real-time visitor tracking.
+
+## Supported Telegram Bot Frameworks
+- **Python**: Pyrogram, Telethon, Aiogram 2.x/3.x, python-telegram-bot, Discord.py.
+- **Node.js**: Telegraf, GramJS, Discord.js, Express.js API servers.
+
+## Complete Page Directory
+- Main Landing: https://elitehosting.in/
+- Telegram Bot Hosting: https://elitehosting.in/telegram-bot-hosting
+- Python Bot Hosting: https://elitehosting.in/python-bot-hosting
+- Node.js Bot Hosting: https://elitehosting.in/node-js-bot-hosting
+- Aiogram Bot Hosting: https://elitehosting.in/aiogram-bot-hosting
+- Termux Bot Hosting: https://elitehosting.in/termux-telegram-bot-hosting
+- Features Overview: https://elitehosting.in/features.html
+- Deployment Guide: https://elitehosting.in/blog/how-to-deploy-my-code.html
+- Developer Blogs: https://elitehosting.in/blogs
+- Terms & Conditions: https://elitehosting.in/terms-and-conditions
+- Privacy Policy: https://elitehosting.in/privacy-policy
+- Refund Policy: https://elitehosting.in/refund-policy
+- Contact Support: https://elitehosting.in/contact-us
+
+## Contact & Compliance
+- Official Email: zynochat.in@zynochat.in
+- Telegram Support: https://t.me/zolvid
+- Domain: https://elitehosting.in

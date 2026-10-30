@@ -4,6 +4,7 @@ import threading
 import shutil
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 def utcnow():
@@ -22,7 +23,13 @@ if db_url.startswith('postgres://'):
     db_url = db_url.replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 280}
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 280,
+    'pool_size': 50,
+    'max_overflow': 100,
+    'pool_timeout': 30
+}
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['DEPLOY_FOLDER'] = 'deploys'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
@@ -62,6 +69,9 @@ AUTH_ACTION_LIMIT_CONFIG = {
 db = SQLAlchemy(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['DEPLOY_FOLDER'], exist_ok=True)
+
+# High-concurrency background deployment worker queue (up to 50 concurrent deployment builds)
+deploy_executor = ThreadPoolExecutor(max_workers=int(os.environ.get('DEPLOY_WORKERS', 50)))
 
 # ===================== MODELS =====================
 
@@ -1442,6 +1452,10 @@ def how_to_deploy_page():
 @app.route('/pyrogram-bot-hosting')
 @app.route('/python-bot-hosting')
 @app.route('/termux-telegram-bot-hosting')
+@app.route('/node-js-bot-hosting')
+@app.route('/aiogram-bot-hosting')
+@app.route('/telethon-bot-hosting')
+@app.route('/discord-bot-hosting')
 @rate_limit('public')
 def seo_landing_bot_hosting():
     return render_template('telegram-bot-hosting.html')
@@ -1496,6 +1510,16 @@ def robots_txt():
 def llm_txt():
     return send_from_directory(app.static_folder, 'llm.txt')
 
+@app.route('/llms.txt')
+@rate_limit('public')
+def llms_txt():
+    return send_from_directory(app.static_folder, 'llms.txt')
+
+@app.route('/llms-full.txt')
+@rate_limit('public')
+def llms_full_txt():
+    return send_from_directory(app.static_folder, 'llms-full.txt')
+
 @app.route('/sitemap.xml')
 @rate_limit('public')
 def sitemap_xml():
@@ -1520,10 +1544,15 @@ def sitemap_xml():
     add_url("https://elitehosting.in/blog/how-to-deploy-my-code.html", priority="0.9", changefreq="weekly")
     add_url("https://elitehosting.in/pyrogram-bot-hosting", priority="0.8", changefreq="weekly")
     add_url("https://elitehosting.in/python-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/node-js-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/aiogram-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/telethon-bot-hosting", priority="0.8", changefreq="weekly")
     add_url("https://elitehosting.in/termux-telegram-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/discord-bot-hosting", priority="0.8", changefreq="weekly")
     add_url("https://elitehosting.in/blogs", priority="0.8", changefreq="daily")
     add_url("https://elitehosting.in/about-us", priority="0.7", changefreq="monthly")
     add_url("https://elitehosting.in/contact-us", priority="0.7", changefreq="monthly")
+    add_url("https://elitehosting.in/llms.txt", priority="0.7", changefreq="weekly")
 
     # Static routes dynamic discovery
     for rule in app.url_map.iter_rules():
@@ -1780,8 +1809,7 @@ def api_deploy_github():
         vps_slot.status = 'running'
         db.session.commit()
 
-    t = threading.Thread(target=run_deploy_background, args=(dep.id, 'github'), kwargs={'token': token}, daemon=True)
-    t.start()
+    deploy_executor.submit(run_deploy_background, dep.id, 'github', token=token)
 
     total_slots_count = VpsSlot.query.filter_by(user_id=user.id).count()
     return jsonify({'message': 'Deployment started', 'id': dep.id, 'credits': total_slots_count}), 201
@@ -1870,8 +1898,7 @@ def api_deploy_zip():
         vps_slot.status = 'running'
         db.session.commit()
 
-    t = threading.Thread(target=run_deploy_background, args=(dep.id, 'zip'), kwargs={'zip_path': zip_path}, daemon=True)
-    t.start()
+    deploy_executor.submit(run_deploy_background, dep.id, 'zip', zip_path=zip_path)
 
     total_slots_count = VpsSlot.query.filter_by(user_id=user.id).count()
     return jsonify({'message': 'ZIP deployment started', 'id': dep.id, 'credits': total_slots_count, 'slug': slug_val, 'is_website': is_website}), 201
@@ -3089,8 +3116,11 @@ def check_ip_banned_and_expired():
 @app.after_request
 def add_security_headers(response):
     """
-    Appends security headers to all HTTP responses.
+    Appends security headers and optimizes static asset caching for high concurrency.
     """
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
