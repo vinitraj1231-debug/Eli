@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /dashboard/
 Disallow: /raj/
 Disallow: /api/
@@ -8,16 +10,50 @@ Disallow: /api/
 User-agent: Googlebot
 Allow: /
 Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /dashboard/
 Disallow: /raj/
 Disallow: /api/
 
-User-agent: Bingbot
+User-agent: GPTBot
 Allow: /
 Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
 Disallow: /dashboard/
 Disallow: /raj/
 Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: Bytespider
+Allow: /
+Allow: /llm.txt
+Allow: /llms.txt
+Allow: /llms-full.txt
 
 Crawl-delay: 1
 

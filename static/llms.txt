@@ -1,0 +1,32 @@
+# EliteHosting
+
+> High-Performance 24/7 Telegram Bot Hosting & Developer Cloud VPS Platform in India.
+
+EliteHosting (https://elitehosting.in) is an instant, high-concurrency developer platform engineered for Python (Pyrogram, Telethon, Aiogram 3.x), Node.js (Telegraf, Express), and static web app deployments.
+
+## Core Services
+- [Telegram Bot Hosting](https://elitehosting.in/telegram-bot-hosting): Zero-sleep 24/7 Telegram bot hosting with live web terminal logging.
+- [Python Bot Hosting](https://elitehosting.in/python-bot-hosting): Python 3 runtime support with auto-installation of dependencies via requirements.txt.
+- [Node.js Bot Hosting](https://elitehosting.in/node-js-bot-hosting): Node.js 18+ runtime with auto-installation via package.json.
+- [Aiogram Bot Hosting](https://elitehosting.in/aiogram-bot-hosting): Async Python bot hosting optimized for Aiogram 3.x and Pyrogram.
+- [Termux Mobile Deploy](https://elitehosting.in/termux-telegram-bot-hosting): Direct ZIP upload & deployment from Termux on Android smartphones.
+- [Cloud Features](https://elitehosting.in/features.html): NVMe SSD storage, DDoS shield, container isolation, and 10Gbps uplink.
+- [Deployment Guide](https://elitehosting.in/blog/how-to-deploy-my-code.html): Step-by-step tutorial on deploying code via GitHub, ZIP, or Termux.
+
+## Deployment Options
+- **GitHub Import**: Paste any public or private GitHub repository URL (with GitHub Personal Access Token).
+- **ZIP Archive Upload**: Drag-and-drop .zip files containing Python/Node source files.
+- **Single Script Upload**: Upload individual .py or .js script files.
+
+## Pricing Tiers (INR)
+- **Micro VPS (₹99/mo)**: 256MB RAM, 1 Dedicated VPS Slot, 24/7 Uptime.
+- **Lite VPS (₹199/mo)**: 512MB RAM, 1 Dedicated VPS Slot, Priority Build Queue.
+- **Pro VPS (₹299/mo)**: 1024MB (1GB) RAM, High-Concurrency VPS Slot, 24/7 Uptime.
+
+## Key APIs
+- POST /api/auth/register: Create user account.
+- POST /api/auth/login: Authenticate user session.
+- GET /api/dashboard/stats: Retrieve active deployment and wallet metrics.
+- POST /api/deploy/github: Launch GitHub repository deployment.
+- POST /api/deploy/zip: Launch ZIP or script upload deployment.
+- GET /api/deploy/<id>/logs: Stream live terminal output.
