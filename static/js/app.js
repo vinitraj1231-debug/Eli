@@ -791,6 +791,65 @@ function closeAddWalletModal() {
     if (modal) modal.classList.remove('show');
 }
 
+function switchPayTab(tab) {
+    const qrTab = document.getElementById('payTabQr');
+    const pgTab = document.getElementById('payTabPg');
+    const qrBtn = document.getElementById('payTabQrBtn');
+    const pgBtn = document.getElementById('payTabPgBtn');
+
+    if (tab === 'qr') {
+        if (qrTab) qrTab.classList.remove('hidden');
+        if (pgTab) pgTab.classList.add('hidden');
+        if (qrBtn) { qrBtn.className = 'btn btn-sm btn-primary flex-1'; }
+        if (pgBtn) { pgBtn.className = 'btn btn-sm btn-secondary flex-1'; }
+    } else {
+        if (qrTab) qrTab.classList.add('hidden');
+        if (pgTab) pgTab.classList.remove('hidden');
+        if (qrBtn) { qrBtn.className = 'btn btn-sm btn-secondary flex-1'; }
+        if (pgBtn) { pgBtn.className = 'btn btn-sm btn-primary flex-1'; }
+    }
+}
+
+function setQrAmount(amt, imgSrc) {
+    const amtInput = document.getElementById('manualPayAmount');
+    const imgEl = document.getElementById('qrCodeImg');
+    if (amtInput) amtInput.value = amt;
+    if (imgEl && imgSrc) imgEl.src = imgSrc;
+}
+
+async function submitManualPayment() {
+    const name = document.getElementById('manualPayName')?.value.trim();
+    const phone = document.getElementById('manualPayPhone')?.value.trim();
+    const amount = parseFloat(document.getElementById('manualPayAmount')?.value || 0);
+    const txId = document.getElementById('manualPayTxId')?.value.trim();
+
+    if (!name) { toast('Please enter your name', 'error'); return; }
+    if (!phone || phone.length < 10) { toast('Please enter a valid mobile number', 'error'); return; }
+    if (isNaN(amount) || amount < 10) { toast('Please enter a valid amount (Min ₹10)', 'error'); return; }
+    if (!txId || txId.length < 5) { toast('Please enter a valid 12-digit UTR or Transaction ID', 'error'); return; }
+
+    const btn = document.getElementById('submitManualPayBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Submitting...'; }
+
+    try {
+        const res = await api('/api/payments/request', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: name,
+                number: phone,
+                transaction_id: txId,
+                amount: amount
+            })
+        });
+
+        toast(res.message || 'Payment submitted successfully!', 'success');
+        closeAddWalletModal();
+        loadDashboardStats();
+    } catch (err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> Submit Payment for Approval'; }
+    }
+}
+
 async function submitAddWallet() {
     const amtInput = document.getElementById('walletTopupAmount');
     const amount = parseFloat(amtInput ? amtInput.value : 100);
