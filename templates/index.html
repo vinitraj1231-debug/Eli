@@ -178,7 +178,8 @@
         <nav class="hidden md:flex items-center gap-6 font-heading text-sm text-slate-400 font-medium">
             <a href="/#plans" class="hover:text-cyberPrimary transition-colors">VPS Slots</a>
             <a href="/telegram-bot-hosting" class="hover:text-cyberPrimary transition-colors">Bot Hosting</a>
-            <a href="/#features" class="hover:text-cyberPrimary transition-colors">Features</a>
+            <a href="/features.html" class="hover:text-cyberPrimary transition-colors">Features</a>
+            <a href="/blog/how-to-deploy-my-code.html" class="hover:text-cyberPrimary transition-colors">Deploy Guide</a>
             <a href="/about-us" class="hover:text-cyberPrimary transition-colors">About Us</a>
             <a href="/contact-us" class="hover:text-cyberPrimary transition-colors">Contact</a>
             <a href="/blogs" class="hover:text-cyberPrimary transition-colors">Blogs</a>
@@ -201,7 +202,8 @@
         <div id="mobile-menu" class="hidden absolute top-16 left-0 right-0 glass-panel border-b border-cyberBorder py-4 px-6 flex flex-col gap-4 font-heading text-sm text-slate-300 shadow-xl transition-all z-50">
             <a href="/#plans" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">VPS Slots</a>
             <a href="/telegram-bot-hosting" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Bot Hosting</a>
-            <a href="/#features" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Features</a>
+            <a href="/features.html" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Features</a>
+            <a href="/blog/how-to-deploy-my-code.html" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Deploy Guide</a>
             <a href="/about-us" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">About Us</a>
             <a href="/contact-us" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Contact Us</a>
             <a href="/blogs" onclick="toggleMobileDropdown()" class="hover:text-cyberPrimary py-1 border-b border-cyberBorder/30">Blogs</a>
@@ -851,6 +853,89 @@
             </div>
         </section>
 
+        {% elif page == 'features' %}
+        <!-- ===== FEATURES PAGE ===== -->
+        <section class="py-24 px-4 sm:px-8">
+            <div class="max-w-6xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-cyberPrimary font-heading text-xs font-semibold tracking-widest uppercase mb-3 block">High-Performance Cloud Architecture</span>
+                    <h1 class="font-heading text-4xl sm:text-5xl font-bold text-white mb-4">Platform Features & Infrastructure</h1>
+                    <p class="text-slate-400 max-w-2xl mx-auto text-sm leading-relaxed">Built from the ground up for zero-sleep Telegram bots, async microservices, Python/Node apps, and web hosting with complete isolation and enterprise DDoS mitigation.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder hover:border-cyberPrimary transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-cyberPrimary/10 flex items-center justify-center text-cyberPrimary mb-6 border border-cyberPrimary/20">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-white mb-2">100% Enterprise NVMe SSD</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Ultra-low latency I/O speeds (up to 3500 MB/s). Ideal for SQLite database queries, rapid Python virtual environment builds, and persistent session state handling.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder hover:border-cyberPrimary transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-cyberAccent/10 flex items-center justify-center text-cyberAccent mb-6 border border-cyberAccent/20">
+                            <i data-lucide="clock" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-white mb-2">24/7 Always-On Zero Sleep</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Unlike traditional free tiers that sleep after inactivity, EliteHosting keeps your long-polling Telegram socket connections and background event loops alive non-stop.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder hover:border-cyberPrimary transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 mb-6 border border-purple-500/20">
+                            <i data-lucide="shield" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-white mb-2">Containerized RAM Isolation</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Dedicated memory allocations (Micro 256MB, Lite 512MB, Pro 1GB) inside non-privileged Docker spaces ensure neighboring processes can never access your bot memory or session tokens.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder hover:border-cyberPrimary transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-6 border border-emerald-500/20">
+                            <i data-lucide="key" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-white mb-2">Encrypted Secret Vault</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Store Bot Tokens, MongoDB URIs, and API keys securely in our encrypted vault. Secrets are injected at runtime into in-memory system env scopes without hardcoding in files.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder hover:border-cyberPrimary transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-6 border border-blue-500/20">
+                            <i data-lucide="terminal" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-white mb-2">Live Terminal Output Logs</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Inspect real-time stdout and stderr output directly in your web client dashboard with 1-click start, stop, restart, and debugging controls.
+                        </p>
+                    </div>
+
+                    <div class="glass-panel p-8 rounded-2xl border border-cyberBorder hover:border-cyberPrimary transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 mb-6 border border-amber-500/20">
+                            <i data-lucide="globe" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-heading font-bold text-lg text-white mb-2">Instant Static Web Hosting</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            Deploy web portfolios or landing pages directly at custom slugs (e.g. <code>/site/my-slug</code>) with built-in visitor counters and fast asset delivery.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-8 rounded-2xl border border-cyberBorder text-center">
+                    <h2 class="font-heading text-2xl font-bold text-white mb-3">Ready to experience next-gen cloud hosting?</h2>
+                    <p class="text-slate-400 text-sm max-w-xl mx-auto mb-6">Deploy your code from GitHub or ZIP archive in under 60 seconds.</p>
+                    <a href="/register" class="btn-gradient inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-cyberBg font-heading font-bold text-sm shadow-neonCyan">
+                        <span>Deploy Your Server Now</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
         {% elif page == 'blogs' %}
         <!-- ===== BLOGS LISTING ===== -->
         <section class="py-24 px-4 sm:px-8">
@@ -1215,7 +1300,8 @@
                 <ul class="space-y-2.5 text-xs text-slate-400 font-medium">
                     <li><a href="/#plans" class="hover:text-cyberPrimary transition-colors">Micro VPS Slots (₹99)</a></li>
                     <li><a href="/telegram-bot-hosting" class="hover:text-cyberPrimary transition-colors">Telegram Bot Hosting</a></li>
-                    <li><a href="/#features" class="hover:text-cyberPrimary transition-colors">GitHub & ZIP Deploy</a></li>
+                    <li><a href="/features.html" class="hover:text-cyberPrimary transition-colors">Features & Architecture</a></li>
+                    <li><a href="/blog/how-to-deploy-my-code.html" class="hover:text-cyberPrimary transition-colors">How to Deploy Guide</a></li>
                     <li><a href="/#latency" class="hover:text-cyberPrimary transition-colors">Global Server Latency</a></li>
                     <li><a href="/#faq-section" class="hover:text-cyberPrimary transition-colors">Frequently Asked Questions</a></li>
                 </ul>

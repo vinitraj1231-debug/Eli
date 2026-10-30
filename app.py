@@ -196,6 +196,48 @@ with app.app_context():
     except Exception as e:
         app.logger.warning(f"DB Migration notice: {e}")
 
+    # Seed default blog posts for SEO ranking if not existing
+    try:
+        if not BlogPost.query.filter_by(slug='how-to-deploy-my-code').first():
+            deploy_post = BlogPost(
+                title="How to Deploy My Code on EliteHosting — Step-by-Step Guide",
+                slug="how-to-deploy-my-code",
+                content="""<h2>Complete Step-by-Step Code Deployment Guide</h2>
+<p>Deploying your Python Telegram bot, Node.js app, or static web application on <strong>EliteHosting.in</strong> is fast, automated, and secure. Follow this simple guide to deploy your project in under 60 seconds.</p>
+
+<h3>Step 1: Choose Your Deployment Method</h3>
+<p>EliteHosting supports three convenient deployment methods:</p>
+<ul>
+    <li><strong>GitHub Repository Import:</strong> Simply paste your public or private GitHub repository URL (e.g. <code>https://github.com/username/my-telegram-bot.git</code>). For private repositories, enter your GitHub Personal Access Token.</li>
+    <li><strong>ZIP Archive Upload:</strong> Compress your project folder into a <code>.zip</code> file and drag-and-drop or select it in your dashboard.</li>
+    <li><strong>Termux Mobile Deploy (Android):</strong> Mobile developers using Termux on Android can compress their Python/Node bot folder into a ZIP file and upload directly from their smartphone browser.</li>
+</ul>
+
+<h3>Step 2: Configure Environment Variables (Secret Vault)</h3>
+<p>Never commit plain-text API keys or bot tokens to Git repositories. In your EliteHosting dashboard:</p>
+<ol>
+    <li>Navigate to the <strong>Environment Variables</strong> panel.</li>
+    <li>Add key-value pairs for variables such as <code>TELEGRAM_BOT_TOKEN</code>, <code>MONGO_URI</code>, <code>DATABASE_URL</code>, and <code>API_SECRET</code>.</li>
+    <li>Our runtime scheduler encrypts these keys and injects them directly into your application's in-memory environment at container startup.</li>
+</ol>
+
+<h3>Step 3: Define Custom Build or Deploy Commands (Optional)</h3>
+<p>Our intelligent <strong>DeployEngine</strong> automatically detects entry points (such as <code>bot.py</code>, <code>main.py</code>, <code>app.py</code>, <code>index.js</code>, or <code>package.json</code> start scripts) and installs dependencies (via <code>requirements.txt</code> or <code>package.json</code>). If your project requires custom commands:</p>
+<ul>
+    <li><strong>Build Command:</strong> e.g., <code>pip install -r requirements.txt</code> or <code>npm install</code></li>
+    <li><strong>Deploy Command:</strong> e.g., <code>python3 bot.py</code> or <code>node index.js</code></li>
+</ul>
+
+<h3>Step 4: Launch and View Live Logs</h3>
+<p>Click <strong>Deploy Server</strong>. Our container runner clones, builds, and starts your project instantly. You can inspect live terminal output, monitor memory usage, and manage process state directly from your client portal with 24/7 zero-sleep execution guarantee.</p>""",
+                excerpt="Learn how to deploy your Python, Pyrogram, Node.js Telegram bots or static websites on EliteHosting in under 60 seconds with GitHub, ZIP, Termux Android, and secure .env secret vault."
+            )
+            db.session.add(deploy_post)
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.warning(f"Blog post seeding notice: {e}")
+
 
 # ===================== HELPERS =====================
 
@@ -1336,6 +1378,74 @@ def grievance_page():
 def telegram_bot_hosting_page():
     return render_template('telegram-bot-hosting.html')
 
+@app.route('/features')
+@app.route('/features.html')
+@rate_limit('public')
+def features_page():
+    seo = {
+        'title': 'High-Performance Cloud Features & Infrastructure | EliteHosting.in',
+        'description': 'Explore EliteHosting features: NVMe SSD storage, 24/7 zero-sleep execution, container isolation, advanced DDoS shield, live terminal logs, and 10Gbps uplink.',
+        'canonical': 'https://elitehosting.in/features.html'
+    }
+    return render_template('index.html', page='features', seo=seo)
+
+@app.route('/blog/how-to-deploy-my-code.html')
+@app.route('/how-to-deploy-my-code.html')
+@app.route('/how-to-deploy-my-code')
+@app.route('/blogs/how-to-deploy-my-code')
+@rate_limit('public')
+def how_to_deploy_page():
+    post = BlogPost.query.filter_by(slug='how-to-deploy-my-code').first()
+    seo = {
+        'title': 'How to Deploy My Code on EliteHosting — Step-by-Step Guide',
+        'description': 'Learn how to deploy Python, Pyrogram, Telethon, Node.js Telegram bots or static web applications on EliteHosting with GitHub, ZIP, Termux, and .env secret vault.',
+        'canonical': 'https://elitehosting.in/blog/how-to-deploy-my-code.html'
+    }
+    if post:
+        return render_template('index.html', page='blog_detail', blog=post, seo=seo)
+
+    # Fallback if DB post is missing
+    fallback_blog = {
+        'title': 'How to Deploy My Code on EliteHosting — Step-by-Step Guide',
+        'created_at': utcnow(),
+        'content': '''<h2>Complete Step-by-Step Code Deployment Guide</h2>
+<p>Deploying your Python Telegram bot, Node.js app, or static web application on <strong>EliteHosting.in</strong> is fast, automated, and secure. Follow this simple guide to deploy your project in under 60 seconds.</p>
+
+<h3>Step 1: Choose Your Deployment Method</h3>
+<p>EliteHosting supports three convenient deployment methods:</p>
+<ul>
+    <li><strong>GitHub Repository Import:</strong> Simply paste your public or private GitHub repository URL (e.g. <code>https://github.com/username/my-telegram-bot.git</code>). For private repositories, enter your GitHub Personal Access Token.</li>
+    <li><strong>ZIP Archive Upload:</strong> Compress your project folder into a <code>.zip</code> file and drag-and-drop or select it in your dashboard.</li>
+    <li><strong>Termux Mobile Deploy (Android):</strong> Mobile developers using Termux on Android can compress their Python/Node bot folder into a ZIP file and upload directly from their smartphone browser.</li>
+</ul>
+
+<h3>Step 2: Configure Environment Variables (Secret Vault)</h3>
+<p>Never commit plain-text API keys or bot tokens to Git repositories. In your EliteHosting dashboard:</p>
+<ol>
+    <li>Navigate to the <strong>Environment Variables</strong> panel.</li>
+    <li>Add key-value pairs for variables such as <code>TELEGRAM_BOT_TOKEN</code>, <code>MONGO_URI</code>, <code>DATABASE_URL</code>, and <code>API_SECRET</code>.</li>
+    <li>Our runtime scheduler encrypts these keys and injects them directly into your application's in-memory environment at container startup.</li>
+</ol>
+
+<h3>Step 3: Define Custom Build or Deploy Commands (Optional)</h3>
+<p>Our intelligent <strong>DeployEngine</strong> automatically detects entry points (such as <code>bot.py</code>, <code>main.py</code>, <code>app.py</code>, <code>index.js</code>, or <code>package.json</code> start scripts) and installs dependencies (via <code>requirements.txt</code> or <code>package.json</code>). If your project requires custom commands:</p>
+<ul>
+    <li><strong>Build Command:</strong> e.g., <code>pip install -r requirements.txt</code> or <code>npm install</code></li>
+    <li><strong>Deploy Command:</strong> e.g., <code>python3 bot.py</code> or <code>node index.js</code></li>
+</ul>
+
+<h3>Step 4: Launch and View Live Logs</h3>
+<p>Click <strong>Deploy Server</strong>. Our container runner clones, builds, and starts your project instantly. You can inspect live terminal output, monitor memory usage, and manage process state directly from your client portal with 24/7 zero-sleep execution guarantee.</p>'''
+    }
+    return render_template('index.html', page='blog_detail', blog=fallback_blog, seo=seo)
+
+@app.route('/pyrogram-bot-hosting')
+@app.route('/python-bot-hosting')
+@app.route('/termux-telegram-bot-hosting')
+@rate_limit('public')
+def seo_landing_bot_hosting():
+    return render_template('telegram-bot-hosting.html')
+
 @app.route('/site/<string:slug>')
 @app.route('/site/<string:slug>/')
 @app.route('/site/<string:slug>/<path:filename>')
@@ -1389,22 +1499,52 @@ def llm_txt():
 @app.route('/sitemap.xml')
 @rate_limit('public')
 def sitemap_xml():
-    pages = []
-    # Static pages
     now = datetime.now().strftime("%Y-%m-%d")
+    urls = []
+    seen = set()
+
+    def add_url(loc, priority='0.8', changefreq='weekly', lastmod=now):
+        if loc not in seen:
+            seen.add(loc)
+            urls.append({
+                'loc': loc,
+                'lastmod': lastmod,
+                'changefreq': changefreq,
+                'priority': priority
+            })
+
+    # High Priority Core Pages
+    add_url("https://elitehosting.in/", priority="1.0", changefreq="daily")
+    add_url("https://elitehosting.in/telegram-bot-hosting", priority="0.9", changefreq="daily")
+    add_url("https://elitehosting.in/features.html", priority="0.9", changefreq="weekly")
+    add_url("https://elitehosting.in/blog/how-to-deploy-my-code.html", priority="0.9", changefreq="weekly")
+    add_url("https://elitehosting.in/pyrogram-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/python-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/termux-telegram-bot-hosting", priority="0.8", changefreq="weekly")
+    add_url("https://elitehosting.in/blogs", priority="0.8", changefreq="daily")
+    add_url("https://elitehosting.in/about-us", priority="0.7", changefreq="monthly")
+    add_url("https://elitehosting.in/contact-us", priority="0.7", changefreq="monthly")
+
+    # Static routes dynamic discovery
     for rule in app.url_map.iter_rules():
         if "GET" in rule.methods and len(rule.arguments) == 0:
-            if not str(rule.rule).startswith(('/api', '/raj', '/dashboard')):
-                pages.append(["https://elitehosting.in" + str(rule.rule), now])
+            route = str(rule.rule)
+            if not route.startswith(('/api', '/raj', '/dashboard', '/login', '/register', '/site/')):
+                full_url = "https://elitehosting.in" + (route if route != '/' else '')
+                if full_url and full_url not in seen:
+                    priority = "0.5" if any(p in route for p in ['terms', 'privacy', 'refund', 'policy', 'disclaimer', 'copyright', 'grievance']) else "0.7"
+                    add_url(full_url, priority=priority, changefreq="monthly")
 
     # Dynamic blog posts
     posts = BlogPost.query.all()
     for post in posts:
-        pages.append(["https://elitehosting.in/blogs/" + post.slug, post.created_at.strftime("%Y-%m-%d")])
+        post_url = f"https://elitehosting.in/blogs/{post.slug}"
+        post_date = post.created_at.strftime("%Y-%m-%d") if post.created_at else now
+        add_url(post_url, priority="0.8", changefreq="weekly", lastmod=post_date)
 
-    sitemap_template = render_template('sitemap.xml', pages=pages)
+    sitemap_template = render_template('sitemap.xml', urls=urls)
     response = app.make_response(sitemap_template)
-    response.headers["Content-Type"] = "application/xml"
+    response.headers["Content-Type"] = "application/xml; charset=utf-8"
     return response
 
 # ===================== ROUTES — AUTH API =====================

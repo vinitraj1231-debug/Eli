@@ -45,5 +45,26 @@ class CompliancePagesTestCase(unittest.TestCase):
         html = res.data.decode('utf-8')
         self.assertIn('Contact Us', html)
 
+    def test_features_page(self):
+        res = self.client.get('/features.html')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+        self.assertIn('Platform Features', html)
+        self.assertIn('NVMe SSD', html)
+
+    def test_how_to_deploy_page(self):
+        res = self.client.get('/blog/how-to-deploy-my-code.html')
+        self.assertEqual(res.status_code, 200)
+        html = res.data.decode('utf-8')
+        self.assertIn('How to Deploy My Code', html)
+
+    def test_sitemap_xml(self):
+        res = self.client.get('/sitemap.xml')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.content_type, 'application/xml; charset=utf-8')
+        xml = res.data.decode('utf-8')
+        self.assertIn('https://elitehosting.in/features.html', xml)
+        self.assertIn('https://elitehosting.in/blog/how-to-deploy-my-code.html', xml)
+
 if __name__ == '__main__':
     unittest.main()
