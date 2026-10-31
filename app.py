@@ -1383,17 +1383,119 @@ def grievance_page():
     seo = {'title': 'Grievance Redressal | EliteHosting.in', 'description': 'Grievance officer contact information under IT Act 2000.', 'canonical': 'https://elitehosting.in/grievance'}
     return render_template('index.html', page='grievance', seo=seo)
 
+BOT_LANDING_CONFIGS = {
+    '/telegram-bot-hosting': {
+        'title': '24/7 Telegram Bot Hosting — Python & Node.js VPS | EliteHosting',
+        'h1': '24/7 Always-On Telegram Bot Hosting',
+        'subheading': 'Zero-sleep cloud runtimes designed specifically for Telegram bots with automated GitHub and ZIP deployments.',
+        'badge': 'Telegram Core Infrastructure',
+        'description': 'Host Telegram bots 24/7 starting at ₹99/mo with zero sleep mode, live logs, encrypted environment secrets, and NVMe SSD speeds.',
+        'canonical': 'https://elitehosting.in/telegram-bot-hosting',
+        'framework_name': 'Telegram Bots',
+        'snippet_tag': 'TELEGRAM BOT HOSTING',
+        'snippet': 'A persistent, zero-sleep environment is critical to keep MTProto Python frameworks, asyncio native systems, and Node.js bot configurations running 24/7 without socket dropouts.'
+    },
+    '/python-bot-hosting': {
+        'title': 'Python Bot Hosting — Fast 24/7 Cloud Servers | EliteHosting',
+        'h1': 'High-Speed Python Bot Hosting',
+        'subheading': 'Deploy asynchronous Python bots, webhooks, and automation scripts with automatic virtual environment builds.',
+        'badge': 'Python 3.10+ Runtime',
+        'description': 'High-performance Python bot hosting with automated requirements.txt installation, isolated CPU/RAM tiers, and zero socket dropouts.',
+        'canonical': 'https://elitehosting.in/python-bot-hosting',
+        'framework_name': 'Python Bots',
+        'snippet_tag': 'PYTHON BOT CLOUD',
+        'snippet': 'Optimized Python runtime infrastructure tailored for high concurrency, asyncio event loops, background daemons, and low-latency database queries.'
+    },
+    '/node-js-bot-hosting': {
+        'title': 'Node.js Bot Hosting — Ultra-Fast V8 Engine | EliteHosting',
+        'h1': 'Lightning-Fast Node.js Bot Hosting',
+        'subheading': 'Run Telegraf, GramJS, Discord.js, and Express apps with instant package.json builds and 24/7 uptime.',
+        'badge': 'Node.js 18+ V8 Engine',
+        'description': 'Deploy Node.js Telegram and Discord bots effortlessly. Automated npm install, memory-capped sandboxes, and zero-sleep performance from ₹99/mo.',
+        'canonical': 'https://elitehosting.in/node-js-bot-hosting',
+        'framework_name': 'Node.js Bots',
+        'snippet_tag': 'NODE.JS BOT ENGINE',
+        'snippet': 'Powered by Node.js 18 V8 runtime, delivering ultra-low memory overhead and instant async event handling for Node and TypeScript bots.'
+    },
+    '/aiogram-bot-hosting': {
+        'title': 'Aiogram Bot Hosting — Asynchronous Python VPS | EliteHosting',
+        'h1': 'Dedicated Aiogram 3.x Bot Hosting',
+        'subheading': 'Engineered for Aiogram 3.x asyncio dispatchers, state memory storage, and high-frequency webhook routers.',
+        'badge': 'Aiogram 3.x Framework',
+        'description': 'Run Aiogram Python bots 24/7 without polling freeze. Optimized asyncio loop scheduling, secret vault injection, and live log monitoring.',
+        'canonical': 'https://elitehosting.in/aiogram-bot-hosting',
+        'framework_name': 'Aiogram Bots',
+        'snippet_tag': 'AIOGRAM ASYNC RUNTIME',
+        'snippet': 'Aiogram requires reliable async event processing without polling socket starvation. EliteHosting health checks proactively recycle frozen dispatchers.'
+    },
+    '/pyrogram-bot-hosting': {
+        'title': 'Pyrogram Bot Hosting — MTProto Client VPS | EliteHosting',
+        'h1': 'Reliable Pyrogram MTProto Bot Hosting',
+        'subheading': 'Safe session string handling and SQLite session file isolation built specifically for Pyrogram userbots and bots.',
+        'badge': 'Pyrogram MTProto Client',
+        'description': 'Deploy Pyrogram bots with complete session isolation, encrypted secret vault, and persistent zero-sleep execution loops.',
+        'canonical': 'https://elitehosting.in/pyrogram-bot-hosting',
+        'framework_name': 'Pyrogram Bots',
+        'snippet_tag': 'PYROGRAM MTPROTO HOST',
+        'snippet': 'Pyrogram relies on sensitive session files. Our hardened container isolation prevents cross-tenant access and unauthorized session file reading.'
+    },
+    '/telethon-bot-hosting': {
+        'title': 'Telethon Bot Hosting — Python MTProto Cloud | EliteHosting',
+        'h1': 'Optimized Telethon MTProto Bot Hosting',
+        'subheading': 'High-efficiency asynchronous MTProto client hosting with automatic reconnects and persistent session storage.',
+        'badge': 'Telethon Framework',
+        'description': 'Host Telethon bots and client automations with 24/7 uptime guarantee, automatic dependency resolution, and Indian cloud routing.',
+        'canonical': 'https://elitehosting.in/telethon-bot-hosting',
+        'framework_name': 'Telethon Bots',
+        'snippet_tag': 'TELETHON CLOUD PLATFORM',
+        'snippet': 'Continuous MTProto socket persistence for Telethon bots, protecting against idle disconnects and network latency degradation.'
+    },
+    '/termux-telegram-bot-hosting': {
+        'title': 'Termux Bot Hosting — Deploy Directly from Android | EliteHosting',
+        'h1': 'Termux Mobile Telegram Bot Hosting',
+        'subheading': 'Package scripts on Android Termux into a ZIP and deploy instantly to production 24/7 cloud servers.',
+        'badge': 'Termux Android Deploy',
+        'description': 'Turn your Termux Android bot into a 24/7 cloud server. No PC or complex SSH setup required—just upload your project ZIP file.',
+        'canonical': 'https://elitehosting.in/termux-telegram-bot-hosting',
+        'framework_name': 'Termux Mobile Bots',
+        'snippet_tag': 'TERMUX ANDROID DEPLOY',
+        'snippet': 'Mobile developers can compress their local Termux workspace into a ZIP archive and upload directly from smartphone browsers for 24/7 execution.'
+    },
+    '/discord-bot-hosting': {
+        'title': 'Discord Bot Hosting — 24/7 Discord.js & Discord.py | EliteHosting',
+        'h1': 'Continuous 24/7 Discord Bot Hosting',
+        'subheading': 'Host Discord.py, Discord.js, and Eris bots with low gateway latency and continuous heartbeat synchronization.',
+        'badge': 'Discord Gateway Ready',
+        'description': 'Affordable 24/7 Discord bot hosting with instant auto-restart, gateway reconnect management, and secure token vault storage.',
+        'canonical': 'https://elitehosting.in/discord-bot-hosting',
+        'framework_name': 'Discord Bots',
+        'snippet_tag': 'DISCORD BOT INFRASTRUCTURE',
+        'snippet': 'Keep your Discord bot active 24/7 with zero downtime, instant gateway heartbeat management, and isolated RAM quotas.'
+    }
+}
+
 @app.route('/telegram-bot-hosting')
+@app.route('/pyrogram-bot-hosting')
+@app.route('/python-bot-hosting')
+@app.route('/termux-telegram-bot-hosting')
+@app.route('/node-js-bot-hosting')
+@app.route('/aiogram-bot-hosting')
+@app.route('/telethon-bot-hosting')
+@app.route('/discord-bot-hosting')
 @rate_limit('public')
-def telegram_bot_hosting_page():
-    return render_template('telegram-bot-hosting.html')
+def bot_landing_page():
+    path = request.path.rstrip('/')
+    if not path:
+        path = '/telegram-bot-hosting'
+    landing = BOT_LANDING_CONFIGS.get(path, BOT_LANDING_CONFIGS['/telegram-bot-hosting'])
+    return render_template('telegram-bot-hosting.html', landing=landing)
 
 @app.route('/features')
 @app.route('/features.html')
 @rate_limit('public')
 def features_page():
     seo = {
-        'title': 'High-Performance Cloud Features & Infrastructure | EliteHosting.in',
+        'title': 'Cloud Features & Infrastructure | EliteHosting.in',
         'description': 'Explore EliteHosting features: NVMe SSD storage, 24/7 zero-sleep execution, container isolation, advanced DDoS shield, live terminal logs, and 10Gbps uplink.',
         'canonical': 'https://elitehosting.in/features.html'
     }
@@ -1407,7 +1509,7 @@ def features_page():
 def how_to_deploy_page():
     post = BlogPost.query.filter_by(slug='how-to-deploy-my-code').first()
     seo = {
-        'title': 'How to Deploy My Code on EliteHosting — Step-by-Step Guide',
+        'title': 'How to Deploy Code — Step-by-Step Guide | EliteHosting',
         'description': 'Learn how to deploy Python, Pyrogram, Telethon, Node.js Telegram bots or static web applications on EliteHosting with GitHub, ZIP, Termux, and .env secret vault.',
         'canonical': 'https://elitehosting.in/blog/how-to-deploy-my-code.html'
     }
@@ -1448,17 +1550,6 @@ def how_to_deploy_page():
 <p>Click <strong>Deploy Server</strong>. Our container runner clones, builds, and starts your project instantly. You can inspect live terminal output, monitor memory usage, and manage process state directly from your client portal with 24/7 zero-sleep execution guarantee.</p>'''
     }
     return render_template('index.html', page='blog_detail', blog=fallback_blog, seo=seo)
-
-@app.route('/pyrogram-bot-hosting')
-@app.route('/python-bot-hosting')
-@app.route('/termux-telegram-bot-hosting')
-@app.route('/node-js-bot-hosting')
-@app.route('/aiogram-bot-hosting')
-@app.route('/telethon-bot-hosting')
-@app.route('/discord-bot-hosting')
-@rate_limit('public')
-def seo_landing_bot_hosting():
-    return render_template('telegram-bot-hosting.html')
 
 @app.route('/site/<string:slug>')
 @app.route('/site/<string:slug>/')
