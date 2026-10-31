@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24/7 Telegrambot Hosting - Python, Pyrogram, Node.js VPS | EliteHosting</title>
-    <meta name="description" content="Dedicated 24/7 Telegrambot hosting starting at ₹99/mo. Host Pyrogram, Telethon, and Node.js bots securely. Supports Termux deploy, MongoDB integration, and Zero Sleep loops.">
-    <meta name="keywords" content="telegrambot hosting, host pyrogram bot 24/7, termux deploy telegram bot server, mongodb bot hosting india, cheap nodejs bot host, zero sleep bot hosting, deploy telegram bot, python bot hosting, nodejs telegram bot, free bot hosting, elitehosting">
+    <title>{{ landing.title if landing else '24/7 Telegram Bot Hosting — Python & Node.js VPS | EliteHosting' }}</title>
+    <meta name="description" content="{{ landing.description if landing else 'Dedicated 24/7 Telegram bot hosting starting at ₹99/mo with zero sleep loops, Termux deploy, and isolated VPS slots.' }}">
+    <meta name="keywords" content="telegrambot hosting, python bot hosting, nodejs bot hosting, aiogram hosting, pyrogram hosting, termux deploy, discord bot hosting, vps hosting india, elitehosting">
     <meta name="author" content="EliteHosting Team">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="https://elitehosting.in/telegram-bot-hosting">
+    <link rel="canonical" href="{{ landing.canonical if landing else 'https://elitehosting.in/telegram-bot-hosting' }}">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://elitehosting.in/telegram-bot-hosting">
-    <meta property="og:title" content="24/7 Always-On Telegrambot Hosting | Zero Sleep EliteHosting">
-    <meta property="og:description" content="Deploy your Telegram bots in seconds. Auto-detection for Python and Node.js frameworks with secure environment variables and real-time logs.">
+    <meta property="og:url" content="{{ landing.canonical if landing else 'https://elitehosting.in/telegram-bot-hosting' }}">
+    <meta property="og:title" content="{{ landing.title if landing else '24/7 Always-On Telegram Bot Hosting | EliteHosting' }}">
+    <meta property="og:description" content="{{ landing.description if landing else 'Deploy your bots in seconds with auto-detection, secret vault, and real-time logs.' }}">
     <meta property="og:image" content="https://elitehosting.in/static/img/og-image.jpg">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://elitehosting.in/telegram-bot-hosting">
-    <meta property="twitter:title" content="24/7 Always-On Telegrambot Hosting | Zero Sleep EliteHosting">
-    <meta property="twitter:description" content="High-performance, 24/7 always-on infrastructure built specifically for Telegram bots. Starting at ₹99/mo.">
+    <meta property="twitter:url" content="{{ landing.canonical if landing else 'https://elitehosting.in/telegram-bot-hosting' }}">
+    <meta property="twitter:title" content="{{ landing.title if landing else '24/7 Always-On Telegram Bot Hosting | EliteHosting' }}">
+    <meta property="twitter:description" content="{{ landing.description if landing else 'High-performance, 24/7 always-on infrastructure starting at ₹99/mo.' }}">
     <meta property="twitter:image" content="https://elitehosting.in/static/img/og-image.jpg">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -460,16 +460,21 @@
             </button>
             <nav class="nav-dropdown" role="navigation" aria-label="Main navigation">
                 <a href="/"><i class="fas fa-home"></i> Home</a>
-                <a href="/telegram-bot-hosting"><i class="fab fa-telegram"></i> Telegram Bot Hosting</a>
-                <a href="/node-js-bot-hosting"><i class="fab fa-node-js"></i> Node.js Bot Hosting</a>
-                <a href="/aiogram-bot-hosting"><i class="fab fa-python"></i> Aiogram Python Hosting</a>
+                <a href="/telegram-bot-hosting"><i class="fab fa-telegram"></i> Telegram Bots</a>
+                <a href="/python-bot-hosting"><i class="fab fa-python"></i> Python Bots</a>
+                <a href="/node-js-bot-hosting"><i class="fab fa-node-js"></i> Node.js Bots</a>
+                <a href="/aiogram-bot-hosting"><i class="fas fa-bolt"></i> Aiogram Bots</a>
+                <a href="/pyrogram-bot-hosting"><i class="fas fa-shield-alt"></i> Pyrogram Bots</a>
+                <a href="/telethon-bot-hosting"><i class="fas fa-paper-plane"></i> Telethon Bots</a>
                 <a href="/termux-telegram-bot-hosting"><i class="fas fa-mobile-alt"></i> Termux Deploy</a>
-                <a href="/features.html"><i class="fas fa-bolt"></i> Cloud Features</a>
+                <a href="/discord-bot-hosting"><i class="fab fa-discord"></i> Discord Bots</a>
+                <a href="/features.html"><i class="fas fa-server"></i> Features</a>
                 <a href="/blog/how-to-deploy-my-code.html"><i class="fas fa-book-open"></i> Deploy Guide</a>
-                <a href="/dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
                 <a href="/blogs"><i class="fas fa-pen-nib"></i> Blogs</a>
-                <a href="/terms-and-conditions"><i class="fas fa-file-contract"></i> Terms &amp; Conditions</a>
-                <a href="/privacy-policy"><i class="fas fa-shield-halved"></i> Privacy Policy</a>
+                <a href="/about-us"><i class="fas fa-info-circle"></i> About Us</a>
+                <a href="/contact-us"><i class="fas fa-envelope"></i> Contact Us</a>
+                <a href="/terms-and-conditions"><i class="fas fa-file-contract"></i> Terms</a>
+                <a href="/privacy-policy"><i class="fas fa-shield-halved"></i> Privacy</a>
             </nav>
         </div>
     </header>
@@ -479,12 +484,12 @@
         <section class="hero" aria-labelledby="hero-heading" style="padding-bottom: 0px; min-height: auto;">
             <div class="hero-glow" aria-hidden="true"></div>
             <div class="hero-content" style="max-width: 900px;">
-                <div class="hero-badge"><span class="dot" aria-hidden="true"></span> Dedicated Telegram Core</div>
-                <h1 id="hero-heading">24/7 Always-On <span class="highlight">Telegrambot Hosting</span>:<br>Zero Sleep Mode for Developers</h1>
-                <p style="max-width: 600px;">Deploy high-throughput, asynchronous Telegram bots directly from GitHub or local ZIP uploads. Automatic builds, secure vault environment variables, and live terminal logging.</p>
+                <div class="hero-badge"><span class="dot" aria-hidden="true"></span> {{ landing.badge if landing else 'Dedicated Telegram Core' }}</div>
+                <h1 id="hero-heading">{{ landing.h1 if landing else '24/7 Always-On Telegram Bot Hosting' }}</h1>
+                <p style="max-width: 600px;">{{ landing.subheading if landing else 'Deploy high-throughput, asynchronous bots directly from GitHub or local ZIP uploads with zero sleep mode and live terminal logs.' }}</p>
                 <div class="hero-actions">
-                    <a href="/register" class="btn btn-primary"><i class="fas fa-rocket"></i> Deploy Your Bot Free</a>
-                    <a href="#pricing" class="btn btn-secondary"><i class="fas fa-tags"></i> Bot Plans from ₹99</a>
+                    <a href="/register" class="btn btn-primary"><i class="fas fa-rocket"></i> Deploy Server Now</a>
+                    <a href="#pricing" class="btn btn-secondary"><i class="fas fa-tags"></i> Plans from ₹99</a>
                 </div>
             </div>
         </section>
@@ -492,7 +497,7 @@
         <!-- ===== GEO ANSWER CAPSULE ===== -->
         <section class="reveal" style="padding: 20px 24px;">
             <div class="seo-box">
-                <p><strong>How to choose the best reliable telegrambot hosting platform?</strong> A persistent, zero-sleep environment is critical to keep MTProto Python frameworks (Pyrogram, Telethon), asyncio native systems (Aiogram), and Node.js configurations (Telegraf) running 24/7. EliteHosting provides hyper-optimized hosting specifically engineered for Telegram bots, solving the silent polling socket dropouts that plague legacy, generic Virtual Private Servers. Developers can initiate deployments directly via GitHub or package files securely from mobile Termux on Android using local ZIP uploads. With low-latency routing to premium database clusters like MongoDB in India, secure encrypted environment variable injection, and automated process recovery, EliteHosting guarantees uninterrupted loop executions starting at just ₹99/mo.</p>
+                <p><strong>{{ landing.snippet_tag if landing else 'TELEGRAM BOT HOSTING' }}:</strong> {{ landing.snippet if landing else 'A persistent, zero-sleep environment is critical to keep bot frameworks running 24/7. EliteHosting provides hyper-optimized hosting specifically engineered for Telegram bots and async developers, solving silent socket dropouts with zero sleep runtime loops.' }}</p>
             </div>
         </section>
 
@@ -841,18 +846,22 @@
     <footer class="landing-footer" role="contentinfo">
         <div class="footer-links" style="display:flex; flex-wrap:wrap; justify-content:center; gap:16px;">
             <a href="/">Home</a>
-            <a href="/telegram-bot-hosting">Telegram Bot Hosting</a>
-            <a href="/node-js-bot-hosting">Node.js Bot Hosting</a>
-            <a href="/aiogram-bot-hosting">Aiogram Python Hosting</a>
-            <a href="/termux-telegram-bot-hosting">Termux Mobile Deploy</a>
-            <a href="/features.html">Cloud Features</a>
-            <a href="/blog/how-to-deploy-my-code.html">Deployment Guide</a>
+            <a href="/telegram-bot-hosting">Telegram Bots</a>
+            <a href="/python-bot-hosting">Python Bots</a>
+            <a href="/node-js-bot-hosting">Node.js Bots</a>
+            <a href="/aiogram-bot-hosting">Aiogram Bots</a>
+            <a href="/pyrogram-bot-hosting">Pyrogram Bots</a>
+            <a href="/telethon-bot-hosting">Telethon Bots</a>
+            <a href="/termux-telegram-bot-hosting">Termux Deploy</a>
+            <a href="/discord-bot-hosting">Discord Bots</a>
+            <a href="/features.html">Features</a>
+            <a href="/blog/how-to-deploy-my-code.html">Deploy Guide</a>
             <a href="/blogs">Blogs</a>
-            <a href="/terms-and-conditions">Terms &amp; Conditions</a>
-            <a href="/privacy-policy">Privacy Policy</a>
-            <a href="/refund-policy">Refund Policy</a>
-            <a href="/contact-us">Contact Us</a>
             <a href="/about-us">About Us</a>
+            <a href="/contact-us">Contact Us</a>
+            <a href="/terms-and-conditions">Terms</a>
+            <a href="/privacy-policy">Privacy</a>
+            <a href="/refund-policy">Refunds</a>
         </div>
         <div class="footer-copy" style="margin-top:12px;">&copy; 2026 EliteHosting.in. All rights reserved. High Performance Telegram Bot &amp; Developer Cloud VPS Platform.</div>
     </footer>
