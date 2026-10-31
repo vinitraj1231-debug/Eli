@@ -48,7 +48,8 @@ EliteHosting (https://elitehosting.in) is an instant, developer-first cloud depl
 ### Referrals & Payments
 - `GET /api/referral/info`: Fetch referral code, referred users, and lifetime earnings.
 - `POST /api/referral/withdraw`: Submit withdrawal request.
-- `POST /api/payments/request`: Submit UPI/QR payment confirmation details (Transaction ID, Amount).
+- `POST /api/wallet/add`: Initiate instant wallet top-up via YOUPI Payment Gateway.
+- `POST /api/payment/webhook`: Gateway callback webhook for instant payment verification.
 - `GET /api/transactions`: View transaction history logs.
 
 ### Chat & Support
