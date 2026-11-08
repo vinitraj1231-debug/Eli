@@ -4,6 +4,9 @@ import threading
 import shutil
 import json
 import uuid
+import time
+import hmac
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
@@ -38,10 +41,31 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 # YOUPI PG Configuration
-YOUPI_CHECKOUT_URL = 'https://pay.blazeculture.in'
-YOUPI_API_URL = 'https://pay-api.blazeculture.in'
 YOUPI_SDK_URL = 'https://pay.blazeculture.in/youpi.js'
-YOUPI_WEBHOOK_SECRET = os.environ.get('YOUPI_WEBHOOK_SECRET', '69447d0ed8ea359cba870ab6b792e716813dc2006522154b45268577f851c7c0')
+
+def _load_youpi_secret():
+    val = os.environ.get('YOUPI_WEBHOOK_SECRET')
+    if val:
+        return val.strip()
+    # Fallback: parse /root/Eli/.env or local .env for YOUPI_WEBHOOK_SECRET only
+    for path in ('/root/Eli/.env', os.path.join(os.path.dirname(__file__), '.env')):
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith('#'):
+                            continue
+                        if line.startswith('YOUPI_WEBHOOK_SECRET='):
+                            parts = line.split('=', 1)
+                            secret_val = parts[1].strip().strip('"\'')
+                            if secret_val:
+                                return secret_val
+            except Exception:
+                pass
+    return None
+
+YOUPI_WEBHOOK_SECRET = _load_youpi_secret()
 
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1')
@@ -2282,81 +2306,126 @@ def api_wallet_add():
     db.session.add(req)
     db.session.commit()
 
-    redirect_url = f"https://elitehosting.in/dashboard?payment=success&tx_id={tx_id}"
-    webhook_url = "https://elitehosting.in/api/payment/webhook"
-
-    checkout_url = f"{YOUPI_CHECKOUT_URL}/checkout?tx_id={tx_id}&amount={amount}&email={user.email}&name={user.username}"
-    try:
-        import urllib.request
-        req_payload = json.dumps({
-            'amount': amount,
-            'tx_id': tx_id,
-            'email': user.email,
-            'name': user.username,
-            'redirect_url': redirect_url,
-            'webhook_url': webhook_url
-        }).encode('utf-8')
-        req = urllib.request.Request(
-            f"{YOUPI_API_URL}/order/create",
-            data=req_payload,
-            headers={'Content-Type': 'application/json'},
-            method='POST'
-        )
-        with urllib.request.urlopen(req, timeout=5) as response:
-            if response.status == 200:
-                res_data = json.loads(response.read().decode('utf-8'))
-                if 'checkout_url' in res_data:
-                    checkout_url = res_data['checkout_url']
-    except Exception as e:
-        app.logger.warning(f"YOUPI PG direct order creation notice: {e}")
-
     return jsonify({
-        'message': 'Wallet top-up initiated',
+        'status': 'success',
         'tx_id': tx_id,
-        'amount': amount,
-        'checkout_url': checkout_url,
-        'youpi_js': YOUPI_SDK_URL
+        'order_id': tx_id,
+        'amount': float(amount),
+        'customer': {
+            'name': user.username,
+            'email': user.email
+        }
     }), 200
 
 @app.route('/api/payment/webhook', methods=['POST'])
 def api_payment_webhook():
-    payload_data = request.get_json(silent=True) or request.form.to_dict() or {}
-    app.logger.info(f"Payment webhook received: {payload_data}")
+    secret = YOUPI_WEBHOOK_SECRET or _load_youpi_secret()
+    if not secret:
+        app.logger.error("YOUPI_WEBHOOK_SECRET is unconfigured. Failing closed with 503.")
+        return jsonify({'error': 'Webhook secret unconfigured'}), 503
 
-    sig_header = request.headers.get('X-Youpi-Signature') or request.headers.get('X-Signature') or payload_data.get('signature')
+    raw_data = request.get_data()
+    sig_header = (request.headers.get('X-Gateway-Signature') or '').strip()
+    ts_header = (request.headers.get('X-Gateway-Timestamp') or '').strip()
 
-    tx_id = payload_data.get('tx_id') or payload_data.get('transaction_id') or payload_data.get('order_id')
-    status = payload_data.get('status', '').upper()
-    amount_str = payload_data.get('amount')
+    if not sig_header or not ts_header:
+        app.logger.warning("Payment webhook missing signature or timestamp headers")
+        return jsonify({'error': 'Unauthorized'}), 401
 
-    if not tx_id:
-        return jsonify({'error': 'Missing transaction ID'}), 400
+    # Timestamp drift check (|now - timestamp| > 2 hours)
+    try:
+        ts_val = float(ts_header)
+        if ts_val >= 1e11:
+            ts_sec = ts_val / 1000.0
+        else:
+            ts_sec = ts_val
+        now_sec = time.time()
+        if abs(now_sec - ts_sec) > 7200:
+            app.logger.warning(f"Payment webhook timestamp expired/drifted: ts={ts_sec}, now={now_sec}")
+            return jsonify({'error': 'Timestamp expired or invalid'}), 401
+    except (ValueError, TypeError):
+        app.logger.warning(f"Payment webhook invalid timestamp format: {ts_header}")
+        return jsonify({'error': 'Invalid timestamp'}), 401
 
-    payment_req = PaymentRequest.query.filter_by(transaction_id=tx_id).first()
+    # Verify signature on RAW bytes
+    secret_bytes = secret.encode('utf-8')
+    provided_sig = sig_header[7:].strip() if sig_header.startswith('sha256=') else sig_header.strip()
+
+    # Scheme A: HMAC-SHA256(secret, rawBody + "." + timestampHeader)
+    mac_a = hmac.new(secret_bytes, raw_data + b'.' + ts_header.encode('utf-8'), hashlib.sha256).hexdigest()
+    # Scheme B: HMAC-SHA256(secret, rawBody)
+    mac_b = hmac.new(secret_bytes, raw_data, hashlib.sha256).hexdigest()
+
+    matched_scheme = None
+    if hmac.compare_digest(provided_sig.lower(), mac_a.lower()):
+        matched_scheme = 'rawBody + "." + timestampHeader'
+    elif hmac.compare_digest(provided_sig.lower(), mac_b.lower()):
+        matched_scheme = 'rawBody'
+
+    if not matched_scheme:
+        app.logger.warning("Payment webhook signature verification failed")
+        return jsonify({'error': 'Invalid signature'}), 401
+
+    app.logger.info(f"Payment webhook signature verified using scheme: {matched_scheme}")
+
+    # Parse JSON after signature validation
+    try:
+        payload = json.loads(raw_data.decode('utf-8')) if raw_data else {}
+    except Exception as e:
+        app.logger.warning(f"Payment webhook JSON decode error: {e}")
+        return jsonify({'error': 'Invalid JSON body'}), 400
+
+    event = payload.get('event')
+    order_id = payload.get('orderId') or payload.get('order_id')
+    if not order_id or not isinstance(order_id, str):
+        return jsonify({'received': True, 'ignored': True}), 200
+
+    # Gateway has ONE global webhook URL. Ignore other apps / non-matching orders
+    if not order_id.startswith('W_'):
+        return jsonify({'received': True, 'ignored': True}), 200
+
+    payment_req = PaymentRequest.query.filter_by(transaction_id=order_id).first()
     if not payment_req:
-        return jsonify({'error': 'Payment request not found'}), 404
+        return jsonify({'received': True, 'ignored': True}), 200
 
-    if payment_req.status == 'approved':
-        return jsonify({'message': 'Payment already processed'}), 200
+    if event == 'SUCCESS':
+        method = payload.get('method')
+        if method != 'UPI':
+            app.logger.warning(f"Payment method is not UPI: {method} for order {order_id}")
+            return jsonify({'received': True, 'error': 'Unsupported payment method'}), 200
 
-    if sig_header:
-        raw_string = f"amount={payment_req.amount}&status={status}&tx_id={tx_id}"
-        expected_sig = hmac.new(YOUPI_WEBHOOK_SECRET.encode(), raw_string.encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(sig_header.lower(), expected_sig.lower()):
-            app.logger.error("Webhook signature mismatch!")
-            pass
+        amount_paise = payload.get('amountPaise')
+        expected_paise = int(round(payment_req.amount * 100))
+        try:
+            if int(amount_paise) != expected_paise:
+                app.logger.error(f"Payment amountPaise mismatch for {order_id}: received {amount_paise}, expected {expected_paise}")
+                return jsonify({'received': True, 'error': 'Amount mismatch'}), 200
+        except (ValueError, TypeError):
+            app.logger.error(f"Invalid amountPaise value: {amount_paise}")
+            return jsonify({'received': True, 'error': 'Invalid amountPaise'}), 200
 
-    if status in ['SUCCESS', 'PAID', 'COMPLETED', 'APPROVED']:
-        payment_req.status = 'approved'
-        user = db.session.get(User, payment_req.user_id)
-        if user:
+        # Atomic claim: conditional UPDATE of PaymentRequest row status to 'approved' WHERE status IN ('pending', 'rejected')
+        try:
+            claimed_count = PaymentRequest.query.filter(
+                PaymentRequest.id == payment_req.id,
+                PaymentRequest.status.in_(['pending', 'rejected'])
+            ).update({'status': 'approved'}, synchronize_session='fetch')
+
+            if claimed_count != 1:
+                return jsonify({'received': True, 'message': 'Payment already processed'}), 200
+
+            user = db.session.get(User, payment_req.user_id)
+            if not user:
+                db.session.rollback()
+                return jsonify({'error': 'User not found'}), 404
+
             user.wallet_balance += payment_req.amount
-
+            utr = payload.get('utr', 'N/A')
             tx = Transaction(
                 user_id=user.id,
                 tx_type='wallet_topup',
                 amount=payment_req.amount,
-                description=f"Wallet top-up via YOUPI PG (Tx: {tx_id})"
+                description=f"Wallet top-up via YOUPI PG (Order: {order_id}, UTR: {utr})"
             )
             db.session.add(tx)
 
@@ -2382,12 +2451,20 @@ def api_payment_webhook():
 
             db.session.commit()
             return jsonify({'status': 'success', 'message': 'Wallet credited successfully'}), 200
-    elif status in ['FAILED', 'REJECTED', 'CANCELLED']:
-        payment_req.status = 'rejected'
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Database error while crediting payment for {order_id}: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+
+    elif event in ('FAILED', 'EXPIRED'):
+        PaymentRequest.query.filter(
+            PaymentRequest.id == payment_req.id,
+            PaymentRequest.status == 'pending'
+        ).update({'status': 'rejected'}, synchronize_session='fetch')
         db.session.commit()
         return jsonify({'status': 'rejected', 'message': 'Payment marked as failed'}), 200
 
-    return jsonify({'status': 'pending', 'message': 'Webhook received'}), 200
+    return jsonify({'received': True, 'status': event}), 200
 
 @app.route('/api/payment/status/<tx_id>', methods=['GET'])
 @rate_limit('auth_action')
@@ -3215,7 +3292,7 @@ def add_security_headers(response):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Content-Security-Policy'] = "default-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com;"
+    response.headers['Content-Security-Policy'] = "default-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://pay.blazeculture.in; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://unpkg.com https://pay.blazeculture.in; frame-src 'self' https://pay.blazeculture.in; connect-src 'self' https://pay.blazeculture.in;"
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
     response.headers['Clear-Site-Data'] = '"cache", "cookies"' if request.path == '/api/auth/logout' else ''
