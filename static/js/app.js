@@ -801,7 +801,13 @@ async function submitAddWallet() {
     }
 
     const btn = document.getElementById('addWalletSubmitBtn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Redirecting to YOUPI PG...'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Opening YOUPI PG...'; }
+
+    if (!window.Youpi || typeof window.Youpi.pay !== 'function') {
+        toast('Payment SDK not loaded. Please refresh or try again in a moment.', 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Pay via YOUPI Gateway'; }
+        return;
+    }
 
     try {
         const res = await api('/api/wallet/add', {
@@ -809,14 +815,31 @@ async function submitAddWallet() {
             body: JSON.stringify({ amount: amount })
         });
 
-        toast('Redirecting to YOUPI Payment Gateway...', 'success');
         closeAddWalletModal();
 
-        if (res.checkout_url) {
-            window.location.href = res.checkout_url;
-        } else {
-            toast('Payment gateway link generated!', 'info');
-        }
+        window.Youpi.pay({
+            order_id: res.order_id,
+            amount: res.amount,
+            currency: 'INR',
+            customer: {
+                name: (res.customer && res.customer.name) ? res.customer.name : 'EliteHosting User',
+                phone: '9999999999',
+                email: (res.customer && res.customer.email) ? res.customer.email : ''
+            },
+            metadata: {
+                tx_id: res.tx_id,
+                purpose: 'WALLET_TOPUP'
+            },
+            handler: function (response) {
+                toast('Payment successful! Processing wallet credit...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/dashboard?payment=success';
+                }, 3000);
+            },
+            onClose: function () {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Pay via YOUPI Gateway'; }
+            }
+        });
     } catch (err) {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Pay via YOUPI Gateway'; }
     }
